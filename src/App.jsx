@@ -1253,6 +1253,14 @@ function App() {
     return acc;
   }, {});
 
+  // Explicit category display order
+  const categoryOrder = ['Organize', 'Edits', 'Optimize', 'Security', 'Convert to PDF', 'Convert from PDF'];
+  const orderedCategories = categoryOrder.filter(cat => categorizedTools[cat]);
+  // Append any unlisted categories at the end
+  Object.keys(categorizedTools).forEach(cat => {
+    if (!orderedCategories.includes(cat)) orderedCategories.push(cat);
+  });
+
   return (
     <div className="app-container">
       {/* Header */}
@@ -1280,7 +1288,7 @@ function App() {
             </div>
             
             <div id="tools" className="tool-sections-container">
-              {Object.keys(categorizedTools).map((category) => (
+              {orderedCategories.map((category) => (
                 <div key={category} className="tool-category-section">
                   <h2 className="tool-section-title">{category}</h2>
                   <div className="tool-grid">
