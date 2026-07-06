@@ -24,7 +24,8 @@ import {
   FileText,
   PenTool,
   Lock,
-  QrCode
+  QrCode,
+  Share2
 } from 'lucide-react';
 
 import { 
@@ -1212,6 +1213,29 @@ function App() {
     }
   };
 
+  const shareProcessedFile = async () => {
+    if (!resultBlob || !resultName) return;
+    
+    // Convert Blob to File object so Web Share API can accept it
+    const file = new File([resultBlob], resultName, { type: resultBlob.type });
+    
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: resultName,
+          text: 'Here is your processed document from pdfCraft!',
+        });
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          alert('Could not share file: ' + err.message);
+        }
+      }
+    } else {
+      alert('Native file sharing is not supported by your browser. Please download the file first and share it manually.');
+    }
+  };
+
   const downloadQrCodeImage = () => {
     if (!qrDataUrl) return;
     const a = document.createElement('a');
@@ -1326,15 +1350,20 @@ function App() {
                     <h3>Your file is ready!</h3>
                     <p>The processing completed entirely in your browser. Click download to retrieve your file.</p>
                   </div>
-                  <button className="btn-download-success" onClick={triggerDownload}>
-                    <Download size={18} /> Download {
-                      currentTool.id === 'pdf-to-img' ? 'ZIP' : 
-                      currentTool.id === 'pdf-to-docx' ? 'Word DOCX' : 
-                      currentTool.id === 'pdf-to-pptx' ? 'PowerPoint PPTX' : 
-                      'PDF'
-                    }
-                  </button>
-                   <button className="btn-reset" onClick={resetToolState}>
+                  <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap', width: '100%', maxWidth: '400px' }}>
+                    <button className="btn-download-success" onClick={triggerDownload} style={{ flex: '1 1 180px' }}>
+                      <Download size={18} /> Download {
+                        currentTool.id === 'pdf-to-img' ? 'ZIP' : 
+                        currentTool.id === 'pdf-to-docx' ? 'Word DOCX' : 
+                        currentTool.id === 'pdf-to-pptx' ? 'PowerPoint PPTX' : 
+                        'PDF'
+                      }
+                    </button>
+                    <button className="btn-share-file" onClick={shareProcessedFile} style={{ flex: '1 1 180px' }}>
+                      <Share2 size={18} /> Share File
+                    </button>
+                  </div>
+                  <button className="btn-reset" onClick={resetToolState} style={{ marginTop: '0.5rem' }}>
                     Perform Another Operation
                   </button>
 
