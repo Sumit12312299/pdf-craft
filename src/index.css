@@ -1692,9 +1692,7 @@ input:checked + .slider:before {
   }
 
   .footer {
-    padding: 1.5rem 0 7rem 0 !important; /* Extra bottom padding so it doesn't get covered by bottom nav */
-    font-size: 0.7rem !important;
-    border-top: none !important;
+    display: none !important;
   }
 
   /* Floating Bottom Navigation Bar */
