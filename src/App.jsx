@@ -1108,6 +1108,17 @@ function App() {
     }
   };
 
+  const downloadQrCodeImage = () => {
+    if (!qrDataUrl) return;
+    const a = document.createElement('a');
+    a.href = qrDataUrl;
+    a.download = `qrcode_${Date.now()}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+
   const categorizedTools = tools.reduce((acc, tool) => {
     if (!acc[tool.category]) acc[tool.category] = [];
     acc[tool.category].push(tool);
@@ -1765,7 +1776,7 @@ function App() {
                       </div>
 
                       {qrDataUrl && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center', width: '100%' }}>
                           <label style={{ fontSize: '0.8rem', fontWeight: '600', width: '100%' }}>QR Preview</label>
                           <div style={{ 
                             backgroundColor: 'white', 
@@ -1780,6 +1791,22 @@ function App() {
                           }}>
                             <img src={qrDataUrl} style={{ height: '100%', width: '100%', objectFit: 'contain' }} alt="qr code preview" />
                           </div>
+                          <button 
+                            className="btn-upload" 
+                            style={{ 
+                              width: '100%', 
+                              padding: '0.4rem', 
+                              fontSize: '0.8rem', 
+                              backgroundColor: 'var(--success-color)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '0.25rem' 
+                            }} 
+                            onClick={downloadQrCodeImage}
+                          >
+                            <Download size={14} /> Download QR Image
+                          </button>
                         </div>
                       )}
 
