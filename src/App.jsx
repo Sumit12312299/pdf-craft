@@ -1,29 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react';
 import JSZip from 'jszip';
 import QRCode from 'qrcode';
-import { 
-  Combine, 
-  Scissors, 
-  Layers, 
-  RotateCw, 
-  Sliders, 
-  Image as ImageIcon, 
-  FileImage, 
-  Hash, 
-  Type, 
-  Settings, 
-  Download, 
-  UploadCloud, 
-  Trash2, 
-  ArrowLeft, 
-  ArrowRight, 
-  CheckCircle2, 
-  Sun, 
-  Moon, 
+import {
+  Combine,
+  Scissors,
+  Layers,
+  RotateCw,
+  Sliders,
+  Image as ImageIcon,
+  FileImage,
+  Hash,
+  Type,
+  Settings,
+  Download,
+  UploadCloud,
+  Trash2,
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+  Sun,
+  Moon,
   Info,
   FileText,
   PenTool,
   Lock,
+  LockOpen,
   QrCode,
   Share2,
   Copy,
@@ -33,19 +34,20 @@ import {
   Eye
 } from 'lucide-react';
 
-import { 
-  mergePdfs, 
-  splitPdf, 
-  organizePdf, 
-  compressPdf, 
-  rotatePdf, 
-  imageToPdf, 
-  addPageNumbers, 
-  addWatermark, 
-  editMetadata, 
+import {
+  mergePdfs,
+  splitPdf,
+  organizePdf,
+  compressPdf,
+  rotatePdf,
+  imageToPdf,
+  addPageNumbers,
+  addWatermark,
+  editMetadata,
   extractTextFromPdf,
   stampSignatures,
   encryptPdfFile,
+  unlockPdf,
   stampQrCode,
   convertDocxToPdf,
   convertPptxToPdf,
@@ -161,15 +163,15 @@ const renderPdfPagesToImages = async (fileBuffer, onProgress) => {
       const page = await pdf.getPage(pageNum);
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
-      
+
       // Scale 0.35 is perfect for file cards and very fast to render
       const viewport = page.getViewport({ scale: 0.35 });
       canvas.width = viewport.width;
       canvas.height = viewport.height;
-      
+
       await page.render({ canvasContext: context, viewport }).promise;
       const dataUrl = canvas.toDataURL('image/jpeg', 0.85); // JPEG is fast and lightweight
-      
+
       return {
         originalIndex: pageNum - 1,
         dataUrl,
@@ -187,12 +189,12 @@ const renderPdfPagesToImages = async (fileBuffer, onProgress) => {
       }
       const results = await Promise.all(batch);
       pagePreviews.push(...results);
-      
+
       if (onProgress) {
         onProgress(Math.round((Math.min(i + batchSize - 1, numPages) / numPages) * 100));
       }
     }
-    
+
     return pagePreviews;
   } catch (err) {
     console.error('Error pre-rendering PDF pages:', err);
@@ -215,7 +217,7 @@ function downloadBlob(blob, filename) {
 function App() {
   // Theme state
   const [theme, setTheme] = useState('light');
-  
+
   // Navigation
   const [activeTool, setActiveTool] = useState(null);
   const [gridMenuOpen, setGridMenuOpen] = useState(false);
@@ -236,7 +238,7 @@ function App() {
   const [progress, setProgress] = useState(0);
   const [processingStatus, setProcessingStatus] = useState('');
   const [error, setError] = useState('');
-  
+
   // Results
   const [resultBlob, setResultBlob] = useState(null);
   const [resultName, setResultName] = useState('');
@@ -246,7 +248,7 @@ function App() {
   const [selectedPagesForSplit, setSelectedPagesForSplit] = useState(new Set()); // Set of 0-based indices
   const [compressLevel, setCompressLevel] = useState('recommended'); // high, recommended, low
   const [globalRotation, setGlobalRotation] = useState(90); // 90, 180, 270
-  
+
   const [watermarkOptions, setWatermarkOptions] = useState({
     text: 'CONFIDENTIAL',
     opacity: 0.3,
@@ -254,7 +256,7 @@ function App() {
     rotation: 45,
     color: '#ef4444'
   });
-  
+
   const [pageNumberOptions, setPageNumberOptions] = useState({
     position: 'bottomRight',
     style: 'simple',
@@ -262,13 +264,13 @@ function App() {
     fontSize: 10,
     color: '#475569'
   });
-  
+
   const [imgToPdfOptions, setImgToPdfOptions] = useState({
     layout: 'a4',
     orientation: 'portrait',
     margin: 'none'
   });
-  
+
   const [metadataOptions, setMetadataOptions] = useState({
     title: '',
     author: '',
@@ -313,11 +315,12 @@ function App() {
   const [previewModalImage, setPreviewModalImage] = useState(null);
   const [previewModalTitle, setPreviewModalTitle] = useState('');
   const [lightboxLoading, setLightboxLoading] = useState(false);
+  const [unlockPassword, setUnlockPassword] = useState('');
 
   const openLightbox = async (fileObj, pageIndex, fallbackUrl, title) => {
     setPreviewModalTitle(title || fileObj?.name || 'Page Preview');
     setPreviewModalImage(fallbackUrl); // Show fallback instantly
-    
+
     // Render high-res version on-demand if it's a PDF and we have the buffer
     if (fileObj && fileObj.buffer && (fileObj.name?.toLowerCase().endsWith('.pdf') || fileObj.file?.name?.toLowerCase().endsWith('.pdf'))) {
       setLightboxLoading(true);
@@ -326,18 +329,18 @@ function App() {
           const loadingTask = window.pdfjsLib.getDocument({ data: fileObj.buffer.slice(0) });
           const pdf = await loadingTask.promise;
           const page = await pdf.getPage(pageIndex + 1);
-          
+
           const canvas = document.createElement('canvas');
           const context = canvas.getContext('2d');
-          
+
           // Render at scale 2.0 for ultra-crisp retina quality text
           const viewport = page.getViewport({ scale: 2.0 });
           canvas.width = viewport.width;
           canvas.height = viewport.height;
-          
+
           await page.render({ canvasContext: context, viewport }).promise;
           const highResDataUrl = canvas.toDataURL('image/jpeg', 0.95);
-          
+
           setPreviewModalImage(highResDataUrl);
         }
       } catch (err) {
@@ -347,7 +350,7 @@ function App() {
       }
     }
   };
-  
+
   const signatureCanvasRef = useRef(null);
   const isDrawingRef = useRef(false);
   const pageImageRef = useRef(null);
@@ -417,12 +420,12 @@ function App() {
         margin: 1,
         width: 300
       })
-      .then(url => {
-        setQrDataUrl(url);
-        setSignatureDataUrl(url); // Map QR code to reuse signature visual placement components!
-        setSignatureAspectRatio(1); // QR is always square (1:1 ratio)
-      })
-      .catch(err => console.error(err));
+        .then(url => {
+          setQrDataUrl(url);
+          setSignatureDataUrl(url); // Map QR code to reuse signature visual placement components!
+          setSignatureAspectRatio(1); // QR is always square (1:1 ratio)
+        })
+        .catch(err => console.error(err));
     }
   }, [qrText, qrFgColor, qrBgColor, activeTool]);
 
@@ -444,11 +447,11 @@ function App() {
         width: qrGenSize,
         errorCorrectionLevel: 'H'
       })
-      .then(url => setQrGenDataUrl(url))
-      .catch(err => {
-        setQrGenError('Failed to generate QR code: ' + err.message);
-        setQrGenDataUrl('');
-      });
+        .then(url => setQrGenDataUrl(url))
+        .catch(err => {
+          setQrGenError('Failed to generate QR code: ' + err.message);
+          setQrGenDataUrl('');
+        });
     }
   }, [qrGenText, qrGenFgColor, qrGenBgColor, qrGenSize, activeTool]);
 
@@ -504,6 +507,15 @@ function App() {
       title: 'Protect PDF',
       description: 'Encrypt your PDF with a secure password to restrict unauthorized opening or modifications.',
       icon: <Lock size={24} />,
+      category: 'Security',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'unlock',
+      title: 'Unlock PDF',
+      description: 'Remove password protection from a PDF file. Enter the current password to unlock it.',
+      icon: <LockOpen size={24} />,
       category: 'Security',
       multiple: false,
       accept: '.pdf'
@@ -690,7 +702,7 @@ function App() {
 
     const newFiles = [];
     const accepts = currentTool?.accept ? currentTool.accept.split(',') : [];
-    
+
     for (const file of filesList) {
       const ext = '.' + file.name.split('.').pop().toLowerCase();
       if (accepts.length > 0 && !accepts.includes(ext) && !accepts.includes(ext.replace('jpeg', 'jpg'))) {
@@ -709,7 +721,7 @@ function App() {
             const loadingTask = window.pdfjsLib.getDocument({ data: buffer.slice(0) });
             const pdf = await loadingTask.promise;
             pageCount = pdf.numPages;
-            
+
             // Render first page immediately as file icon preview
             const page = await pdf.getPage(1);
             const canvas = document.createElement('canvas');
@@ -751,11 +763,11 @@ function App() {
     } else {
       const singleFile = newFiles[0];
       setUploadedFiles([singleFile]);
-      
+
       // Trigger background thumbnail pre-rendering if PDF
       if (singleFile.pageCount > 0) {
         const previews = await loadPagePreviews(singleFile.buffer);
-        
+
         // Initialize organize list for organize tool
         if (currentTool?.id === 'organize') {
           const pages = Array.from({ length: singleFile.pageCount }, (_, i) => ({
@@ -799,7 +811,7 @@ function App() {
     URL.revokeObjectURL(newFiles[index].previewUrl);
     newFiles.splice(index, 1);
     setUploadedFiles(newFiles);
-    
+
     // Clear preview cache if all files are cleared
     if (newFiles.length === 0) {
       setPagePreviews([]);
@@ -825,7 +837,7 @@ function App() {
     setProcessingStatus('');
     setError('');
     setExtractedText('');
-    
+
     // Reset specific tool settings
     setSplitRanges('');
     setGlobalRotation(90);
@@ -851,6 +863,7 @@ function App() {
       creator: 'PDFCraft Online'
     });
     setProtectPassword('');
+    setUnlockPassword('');
     setProtectOptions({
       allowPrinting: true,
       allowCopying: true,
@@ -878,11 +891,11 @@ function App() {
     const list = [...uploadedFiles];
     const target = index + direction;
     if (target < 0 || target >= list.length) return;
-    
+
     const temp = list[index];
     list[index] = list[target];
     list[target] = temp;
-    
+
     setUploadedFiles(list);
   };
 
@@ -891,11 +904,11 @@ function App() {
     const list = [...organizePages];
     const target = index + direction;
     if (target < 0 || target >= list.length) return;
-    
+
     const temp = list[index];
     list[index] = list[target];
     list[target] = temp;
-    
+
     setOrganizePages(list);
   };
 
@@ -920,20 +933,20 @@ function App() {
     } else {
       newSelected.add(originalIndex);
     }
-    
+
     setSelectedPagesForSplit(newSelected);
-    
+
     // Auto-generate split range string based on selection (e.g. "1-2, 5")
     if (newSelected.size === 0) {
       setSplitRanges('');
       return;
     }
-    
+
     const sortedIndices = Array.from(newSelected).sort((a, b) => a - b);
     const ranges = [];
     let start = sortedIndices[0];
     let end = start;
-    
+
     for (let i = 1; i < sortedIndices.length; i++) {
       if (sortedIndices[i] === end + 1) {
         end = sortedIndices[i];
@@ -944,18 +957,18 @@ function App() {
       }
     }
     ranges.push(start === end ? `${start + 1}` : `${start + 1}-${end + 1}`);
-    
+
     setSplitRanges(ranges.join(', '));
   };
 
   // Sync hand-typed Split Range box back to Visual Selection checkmarks
   const handleSplitRangeInputChange = (val) => {
     setSplitRanges(val);
-    
+
     try {
       const pageCount = uploadedFiles[0]?.pageCount || 0;
       if (pageCount === 0) return;
-      
+
       const newSelected = new Set();
       const parts = val.split(',');
       for (const part of parts) {
@@ -988,20 +1001,20 @@ function App() {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const rect = canvas.getBoundingClientRect();
-    
+
     const clientX = e.clientX || (e.touches && e.touches[0].clientX);
     const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-    
+
     const x = clientX - rect.left;
     const y = clientY - rect.top;
-    
+
     ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.lineWidth = 3;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.strokeStyle = '#000000'; // Draw in black for standard signature look
-    
+
     isDrawingRef.current = true;
   };
 
@@ -1011,13 +1024,13 @@ function App() {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const rect = canvas.getBoundingClientRect();
-    
+
     const clientX = e.clientX || (e.touches && e.touches[0].clientX);
     const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-    
+
     const x = clientX - rect.left;
     const y = clientY - rect.top;
-    
+
     ctx.lineTo(x, y);
     ctx.stroke();
   };
@@ -1036,24 +1049,24 @@ function App() {
   const saveDrawnSignature = () => {
     const canvas = signatureCanvasRef.current;
     if (!canvas) return;
-    
+
     // Check if canvas is empty
     const ctx = canvas.getContext('2d');
     const buffer = new Uint32Array(ctx.getImageData(0, 0, canvas.width, canvas.height).data.buffer);
     const hasData = buffer.some(color => color !== 0);
-    
+
     if (!hasData) {
       alert('Please draw your signature first!');
       return;
     }
-    
+
     const dataUrl = canvas.toDataURL('image/png');
     setSignatureDataUrl(dataUrl);
     setSignatureAspectRatio(2); // standard 400x200 canvas has aspect ratio 2
-    
+
     // Reset dragging position size
     setSigPos({ x: 50, y: 50, w: 120, h: 60 });
-    
+
     setShowSignatureModal(false);
   };
 
@@ -1061,18 +1074,18 @@ function App() {
   const handleSignatureUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
+
     const reader = new FileReader();
     reader.onload = (event) => {
       const dataUrl = event.target.result;
-      
+
       // Create image object to read aspect ratio
       const img = new Image();
       img.onload = () => {
         const ratio = img.width / img.height;
         setSignatureDataUrl(dataUrl);
         setSignatureAspectRatio(ratio);
-        
+
         // Size signature box proportionally
         const w = 120;
         setSigPos({ x: 50, y: 50, w, h: Math.round(w / ratio) });
@@ -1089,29 +1102,29 @@ function App() {
     const isTouch = e.type === 'touchstart';
     const clientX = isTouch ? e.touches[0].clientX : e.clientX;
     const clientY = isTouch ? e.touches[0].clientY : e.clientY;
-    
+
     const startX = clientX;
     const startY = clientY;
     const initLeft = sigPos.x;
     const initTop = sigPos.y;
-    
+
     const container = pageImageRef.current.parentElement;
     const containerRect = container.getBoundingClientRect();
-    
+
     const handleMove = (moveEvent) => {
       const moveClientX = moveEvent.type === 'touchmove' ? moveEvent.touches[0].clientX : moveEvent.clientX;
       const moveClientY = moveEvent.type === 'touchmove' ? moveEvent.touches[0].clientY : moveEvent.clientY;
-      
+
       const deltaX = moveClientX - startX;
       const deltaY = moveClientY - startY;
-      
+
       // Bound checking within the rendered page container
       const newX = Math.max(0, Math.min(containerRect.width - sigPos.w, initLeft + deltaX));
       const newY = Math.max(0, Math.min(containerRect.height - sigPos.h, initTop + deltaY));
-      
+
       setSigPos(prev => ({ ...prev, x: newX, y: newY }));
     };
-    
+
     const handleEnd = () => {
       if (isTouch) {
         document.removeEventListener('touchmove', handleMove);
@@ -1121,7 +1134,7 @@ function App() {
         document.removeEventListener('mouseup', handleEnd);
       }
     };
-    
+
     if (isTouch) {
       document.addEventListener('touchmove', handleMove, { passive: false });
       document.addEventListener('touchend', handleEnd);
@@ -1135,14 +1148,14 @@ function App() {
   const handleSignatureSizeChange = (newWidth) => {
     const w = parseInt(newWidth, 10);
     const h = Math.round(w / signatureAspectRatio);
-    
+
     // Maintain placement bounds
     let x = sigPos.x;
     let y = sigPos.y;
     if (pageImageRef.current) {
       const container = pageImageRef.current.parentElement;
       const containerRect = container.getBoundingClientRect();
-      
+
       if (x + w > containerRect.width) {
         x = Math.max(0, containerRect.width - w);
       }
@@ -1150,7 +1163,7 @@ function App() {
         y = Math.max(0, containerRect.height - h);
       }
     }
-    
+
     setSigPos({ x, y, w, h });
   };
 
@@ -1165,7 +1178,7 @@ function App() {
   // Save placed signature stamp details
   const saveSignaturePlacement = (applyToAll = false) => {
     if (renderedPageDimensions.w === 0 || renderedPageDimensions.h === 0) return;
-    
+
     if (applyToAll) {
       const totalPages = uploadedFiles[0]?.pageCount || 0;
       const newStamps = [];
@@ -1207,7 +1220,7 @@ function App() {
   // Perform PDF Operations
   const runProcess = async () => {
     if (uploadedFiles.length === 0) return;
-    
+
     setProcessing(true);
     setProgress(20);
     setProcessingStatus('Reading documents...');
@@ -1222,15 +1235,15 @@ function App() {
         const buffers = uploadedFiles.map(f => f.buffer);
         outputBytes = await mergePdfs(buffers);
         filename = 'merged_document.pdf';
-      } 
-      
+      }
+
       else if (activeTool === 'split') {
         setProcessingStatus('Splitting PDF file...');
         const file = uploadedFiles[0];
         outputBytes = await splitPdf(file.buffer, splitRanges);
         filename = `${file.name.replace('.pdf', '')}_split.pdf`;
-      } 
-      
+      }
+
       else if (activeTool === 'organize') {
         setProcessingStatus('Restructuring PDF pages...');
         const file = uploadedFiles[0];
@@ -1238,29 +1251,29 @@ function App() {
           index: p.originalIndex,
           rotation: p.rotation
         }));
-        
+
         if (pageActions.length === 0) {
           throw new Error('All pages have been deleted. Please keep at least one page.');
         }
-        
+
         outputBytes = await organizePdf(file.buffer, pageActions);
         filename = `${file.name.replace('.pdf', '')}_organized.pdf`;
-      } 
-      
+      }
+
       else if (activeTool === 'compress') {
         setProcessingStatus('Compressing PDF structure...');
         const file = uploadedFiles[0];
         outputBytes = await compressPdf(file.buffer, compressLevel);
         filename = `${file.name.replace('.pdf', '')}_compressed.pdf`;
-      } 
-      
+      }
+
       else if (activeTool === 'rotate') {
         setProcessingStatus('Rotating PDF pages...');
         const file = uploadedFiles[0];
         outputBytes = await rotatePdf(file.buffer, globalRotation);
         filename = `${file.name.replace('.pdf', '')}_rotated.pdf`;
-      } 
-      
+      }
+
       else if (activeTool === 'img-to-pdf') {
         setProcessingStatus('Converting images to PDF pages...');
         const images = uploadedFiles.map(f => ({
@@ -1269,22 +1282,22 @@ function App() {
         }));
         outputBytes = await imageToPdf(images, imgToPdfOptions);
         filename = 'images_converted.pdf';
-      } 
-      
+      }
+
       else if (activeTool === 'page-numbers') {
         setProcessingStatus('Adding page numbers...');
         const file = uploadedFiles[0];
         outputBytes = await addPageNumbers(file.buffer, pageNumberOptions);
         filename = `${file.name.replace('.pdf', '')}_numbered.pdf`;
-      } 
-      
+      }
+
       else if (activeTool === 'watermark') {
         setProcessingStatus('Stamping watermarks...');
         const file = uploadedFiles[0];
         outputBytes = await addWatermark(file.buffer, watermarkOptions);
         filename = `${file.name.replace('.pdf', '')}_watermarked.pdf`;
-      } 
-      
+      }
+
       else if (activeTool === 'metadata') {
         setProcessingStatus('Saving PDF metadata...');
         const file = uploadedFiles[0];
@@ -1295,11 +1308,11 @@ function App() {
       else if (activeTool === 'sign') {
         setProcessingStatus('Applying digital signatures...');
         const file = uploadedFiles[0];
-        
+
         if (placedSignatures.length === 0) {
           throw new Error('Please visually place at least one signature stamp on a page.');
         }
-        
+
         outputBytes = await stampSignatures(file.buffer, placedSignatures);
         filename = `${file.name.replace('.pdf', '')}_signed.pdf`;
       }
@@ -1307,11 +1320,11 @@ function App() {
       else if (activeTool === 'qr') {
         setProcessingStatus('Embedding QR codes...');
         const file = uploadedFiles[0];
-        
+
         if (placedSignatures.length === 0) {
           throw new Error('Please visually place at least one QR code stamp on a page.');
         }
-        
+
         outputBytes = await stampQrCode(file.buffer, placedSignatures);
         filename = `${file.name.replace('.pdf', '')}_qr_stamped.pdf`;
       }
@@ -1322,10 +1335,20 @@ function App() {
         if (!protectPassword.trim()) {
           throw new Error('Please enter a password to protect the PDF.');
         }
-        
+
         const encryptedBytes = await encryptPdfFile(file.buffer, protectPassword, protectOptions);
         outputBytes = encryptedBytes;
         filename = `${file.name.replace('.pdf', '')}_protected.pdf`;
+      }
+
+      else if (activeTool === 'unlock') {
+        setProcessingStatus('Removing password protection...');
+        const file = uploadedFiles[0];
+        if (!unlockPassword.trim()) {
+          throw new Error('Please enter the current password to unlock the PDF.');
+        }
+        outputBytes = await unlockPdf(file.buffer, unlockPassword);
+        filename = `${file.name.replace('.pdf', '')}_unlocked.pdf`;
       }
 
       else if (activeTool === 'pdf-to-docx') {
@@ -1412,7 +1435,7 @@ function App() {
         setProcessingStatus('Extracting text content...');
         const file = uploadedFiles[0];
         const text = await extractTextFromPdf(file.buffer, (prog) => {
-          setProgress(20 + Math.round(prog * 0.7)); 
+          setProgress(20 + Math.round(prog * 0.7));
         });
         setExtractedText(text);
         setProgress(100);
@@ -1424,7 +1447,7 @@ function App() {
         setProcessingStatus('Rendering pages to images...');
         const file = uploadedFiles[0];
         const zip = new JSZip();
-        
+
         if (!window.pdfjsLib) {
           throw new Error('PDF render worker is not loaded yet.');
         }
@@ -1445,12 +1468,12 @@ function App() {
               const page = await pdf.getPage(pageNum);
               const canvas = document.createElement('canvas');
               const context = canvas.getContext('2d');
-              
+
               // Crisp 2.0x render scale for HD download
               const viewport = page.getViewport({ scale: 2.0 });
               canvas.width = viewport.width;
               canvas.height = viewport.height;
-              
+
               await page.render({ canvasContext: context, viewport }).promise;
               const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
               zip.file(`page-${pageNum}.jpg`, blob);
@@ -1461,7 +1484,7 @@ function App() {
 
         setProcessingStatus('Compressing ZIP archive...');
         const zipBlob = await zip.generateAsync({ type: 'blob' });
-        
+
         setResultBlob(zipBlob);
         setResultName(`${file.name.replace('.pdf', '')}_images.zip`);
         setProgress(100);
@@ -1472,15 +1495,15 @@ function App() {
       if (outputBytes) {
         setProgress(90);
         setProcessingStatus('Finalizing document...');
-        
+
         const blob = new Blob([outputBytes], { type: 'application/pdf' });
         setResultBlob(blob);
         setResultName(filename);
-        
+
         setProgress(100);
         setTimeout(() => {
           setProcessing(false);
-        }, 150); 
+        }, 150);
       }
     } catch (err) {
       console.error(err);
@@ -1499,7 +1522,7 @@ function App() {
     setShareData({ blob, name, type });
     const file = new File([blob], name, { type });
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
-    
+
     if (navigator.share) {
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         navigator.share({
@@ -1551,7 +1574,7 @@ function App() {
       let url = '';
       const websiteUrl = 'https://pdf-craft-sand.vercel.app/';
       const messageText = `Hi, I just processed my file securely and 100% locally using pdfCraft. Website: ${websiteUrl}`;
-      
+
       if (platform === 'whatsapp') {
         url = `https://web.whatsapp.com/send?text=${encodeURIComponent(messageText)}`;
       } else if (platform === 'telegram') {
@@ -1639,13 +1662,13 @@ function App() {
           <button className="btn-icon btn-burger-menu" title="Menu" onClick={() => setMobileMenuOpen(true)}>
             <Menu size={20} />
           </button>
-          
+
           <a href="/" className="nav-brand" onClick={(e) => { e.preventDefault(); backToHome(); }}>
             <span className="logo-pdf">pdf</span>
             <span className="logo-heart">❤️</span>
             <span className="logo-craft">Craft</span>
           </a>
-          
+
           <nav className="nav-menu">
             <a href="#merge" className={`nav-item ${activeTool === 'merge' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); navigateToTool('merge'); }}>
               MERGE PDF
@@ -1656,7 +1679,7 @@ function App() {
             <a href="#compress" className={`nav-item ${activeTool === 'compress' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); navigateToTool('compress'); }}>
               COMPRESS PDF
             </a>
-            
+
             {/* Convert PDF Dropdown */}
             <div className="nav-dropdown-trigger">
               <span className="nav-item-dropdown">
@@ -1859,7 +1882,7 @@ function App() {
                 <a href="#compress" className="drawer-item" onClick={(e) => { e.preventDefault(); navigateToTool('compress'); setMobileMenuOpen(false); }}>
                   <Sliders size={18} /> Compress PDF
                 </a>
-                
+
                 {/* Convert Group */}
                 <div className="drawer-group">
                   <div className="drawer-group-title">Convert PDF</div>
@@ -1928,6 +1951,9 @@ function App() {
                     <a href="#protect" onClick={(e) => { e.preventDefault(); navigateToTool('protect'); setMobileMenuOpen(false); }} className="drawer-subitem">
                       <Lock size={18} /> Protect PDF
                     </a>
+                    <a href="#unlock" onClick={(e) => { e.preventDefault(); navigateToTool('unlock'); setMobileMenuOpen(false); }} className="drawer-subitem">
+                      <LockOpen size={18} /> Unlock PDF
+                    </a>
                     <a href="#qr-generator" onClick={(e) => { e.preventDefault(); navigateToTool('qr-generator'); setMobileMenuOpen(false); }} className="drawer-subitem font-semibold color-accent">
                       <QrCode size={18} /> QR Code Generator
                     </a>
@@ -1948,16 +1974,16 @@ function App() {
               <h1>Organize, compress, and edit PDFs.</h1>
               <p>Simple, lightning-fast tools that run completely client-side in your browser. Your files never leave your computer, ensuring absolute privacy.</p>
             </div>
-            
+
             <div id="tools" className="tool-sections-container">
               {getFilteredCategories().map((category) => (
                 <div key={category} className="tool-category-section">
                   <h2 className="tool-section-title">{category}</h2>
                   <div className="tool-grid">
                     {categorizedTools[category].map((tool) => (
-                      <div 
-                        key={tool.id} 
-                        className="tool-card" 
+                      <div
+                        key={tool.id}
+                        className="tool-card"
                         onClick={() => setActiveTool(tool.id)}
                       >
                         <div className="tool-card-icon">{tool.icon}</div>
@@ -2016,10 +2042,10 @@ function App() {
                         border: '1px solid var(--border-color)',
                         boxShadow: 'var(--shadow-md)',
                       }}>
-                        <img 
-                          src={qrGenDataUrl} 
-                          alt="Generated QR Code" 
-                          style={{ width: `${Math.min(qrGenSize, 280)}px`, height: `${Math.min(qrGenSize, 280)}px`, display: 'block' }} 
+                        <img
+                          src={qrGenDataUrl}
+                          alt="Generated QR Code"
+                          style={{ width: `${Math.min(qrGenSize, 280)}px`, height: `${Math.min(qrGenSize, 280)}px`, display: 'block' }}
                         />
                       </div>
                       <div style={{ textAlign: 'center' }}>
@@ -2181,21 +2207,21 @@ function App() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', justifyContent: 'center', width: '100%', maxWidth: '400px' }}>
                     <button className="btn-download-success" onClick={triggerDownload} style={{ width: '100%', padding: '0.75rem' }}>
                       <Download size={18} /> Download {
-                        currentTool.id === 'pdf-to-img' ? 'ZIP' : 
-                        currentTool.id === 'pdf-to-docx' ? 'Word DOCX' : 
-                        currentTool.id === 'pdf-to-pptx' ? 'PowerPoint PPTX' : 
-                        currentTool.id === 'pdf-to-xlsx' ? 'Excel XLSX' : 
-                        'PDF'
+                        currentTool.id === 'pdf-to-img' ? 'ZIP' :
+                          currentTool.id === 'pdf-to-docx' ? 'Word DOCX' :
+                            currentTool.id === 'pdf-to-pptx' ? 'PowerPoint PPTX' :
+                              currentTool.id === 'pdf-to-xlsx' ? 'Excel XLSX' :
+                                'PDF'
                       }
                     </button>
                     {navigator.share && (
-                      <button 
-                        className="btn-upload" 
+                      <button
+                        className="btn-upload"
                         onClick={() => handleShareClick(resultBlob, resultName, resultBlob.type || 'application/pdf')}
-                        style={{ 
-                          width: '100%', 
-                          padding: '0.75rem', 
-                          backgroundColor: 'var(--accent-color)', 
+                        style={{
+                          width: '100%',
+                          padding: '0.75rem',
+                          backgroundColor: 'var(--accent-color)',
                           color: 'white',
                           display: 'flex',
                           alignItems: 'center',
@@ -2260,7 +2286,7 @@ function App() {
               </div>
             ) : (activeTool !== 'qr-generator' && uploadedFiles.length === 0) ? (
               /* Sub-View: 4. Empty state */
-              <div 
+              <div
                 className={`workspace-main dropzone ${dragActive ? 'active' : ''}`}
                 onDragEnter={handleDrag}
                 onDragOver={handleDrag}
@@ -2288,18 +2314,18 @@ function App() {
                   </p>
                 </div>
 
-                <button 
-                  className="btn-upload" 
+                <button
+                  className="btn-upload"
                   style={{ padding: '0.75rem 2.5rem', fontSize: '0.95rem', fontWeight: '700', borderRadius: 'var(--radius-md)' }}
                   onClick={(e) => { e.stopPropagation(); document.getElementById('workspace-file-input').click(); }}
                 >
                   Select {currentTool.multiple ? 'Files' : 'File'}
                 </button>
 
-                <input 
-                  id="workspace-file-input" 
-                  type="file" 
-                  className="file-input" 
+                <input
+                  id="workspace-file-input"
+                  type="file"
+                  className="file-input"
                   multiple={currentTool.multiple}
                   accept={currentTool.accept}
                   onChange={handleFileInput}
@@ -2333,11 +2359,11 @@ function App() {
                         + Add More Files
                       </button>
                     )}
-                    <input 
-                      id="workspace-file-input-add" 
-                      type="file" 
-                      className="file-input" 
-                      multiple 
+                    <input
+                      id="workspace-file-input-add"
+                      type="file"
+                      className="file-input"
+                      multiple
                       accept={currentTool.accept}
                       onChange={handleFileInput}
                     />
@@ -2365,8 +2391,8 @@ function App() {
                     <div className="files-preview-container">
                       <div className="files-grid" style={{ gridTemplateColumns: '1fr' }}>
                         {uploadedFiles.map((file, idx) => (
-                          <div 
-                            key={idx} 
+                          <div
+                            key={idx}
                             style={{
                               display: 'flex',
                               alignItems: 'center',
@@ -2380,10 +2406,10 @@ function App() {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
                               <div style={{ width: '32px', height: '40px', flexShrink: 0, border: '1px solid var(--border-color)', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
                                 <img src={file.firstPagePreview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="pdf first page" />
-                                <button 
-                                  className="btn-preview-eye" 
+                                <button
+                                  className="btn-preview-eye"
                                   style={{ width: '18px', height: '18px', bottom: '2px', right: '2px', padding: 0 }}
-                                  title="Preview Page" 
+                                  title="Preview Page"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     openLightbox(file, 0, file.firstPagePreview, file.name);
@@ -2424,10 +2450,10 @@ function App() {
                             <div key={page.id} className="file-preview-card">
                               <div className="file-preview-thumbnail">
                                 {previewObj ? (
-                                  <img 
-                                    src={previewObj.dataUrl} 
+                                  <img
+                                    src={previewObj.dataUrl}
                                     className="file-preview-img"
-                                    style={{ transform: `rotate(${page.rotation}deg)` }} 
+                                    style={{ transform: `rotate(${page.rotation}deg)` }}
                                     alt={`Page ${page.originalIndex + 1}`}
                                   />
                                 ) : (
@@ -2442,9 +2468,9 @@ function App() {
                                   </button>
                                 </div>
                                 {previewObj && (
-                                  <button 
-                                    className="btn-preview-eye" 
-                                    title="Preview Page" 
+                                  <button
+                                    className="btn-preview-eye"
+                                    title="Preview Page"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       openLightbox(uploadedFiles[0], page.originalIndex, previewObj.dataUrl, `Page ${page.originalIndex + 1}`);
@@ -2481,8 +2507,8 @@ function App() {
                           const isSelected = selectedPagesForSplit.has(originalIdx);
                           const previewObj = pagePreviews.find(p => p.originalIndex === originalIdx);
                           return (
-                            <div 
-                              key={originalIdx} 
+                            <div
+                              key={originalIdx}
                               className={`file-preview-card ${isSelected ? 'selected' : ''}`}
                               onClick={() => toggleSplitPageSelection(originalIdx)}
                               style={{ cursor: 'pointer' }}
@@ -2491,14 +2517,14 @@ function App() {
                               <div className="file-preview-thumbnail" style={{ position: 'relative' }}>
                                 {previewObj ? (
                                   <>
-                                    <img 
-                                      src={previewObj.dataUrl} 
+                                    <img
+                                      src={previewObj.dataUrl}
                                       className="file-preview-img"
                                       alt={`Page ${originalIdx + 1}`}
                                     />
-                                    <button 
-                                      className="btn-preview-eye" 
-                                      title="Preview Page" 
+                                    <button
+                                      className="btn-preview-eye"
+                                      title="Preview Page"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         openLightbox(uploadedFiles[0], originalIdx, previewObj.dataUrl, `Page ${originalIdx + 1}`);
@@ -2538,12 +2564,12 @@ function App() {
                             </button>
                           </div>
                         </div>
-                        
+
                         {/* Interactive Page Canvas Wrapper */}
-                        <div style={{ 
-                          position: 'relative', 
-                          border: '1px solid var(--border-color)', 
-                          boxShadow: 'var(--shadow-md)', 
+                        <div style={{
+                          position: 'relative',
+                          border: '1px solid var(--border-color)',
+                          boxShadow: 'var(--shadow-md)',
                           backgroundColor: 'var(--bg-primary)',
                           maxWidth: '100%',
                           maxHeight: '420px',
@@ -2552,16 +2578,16 @@ function App() {
                           alignItems: 'center',
                           overflow: 'hidden'
                         }}>
-                          <img 
+                          <img
                             ref={pageImageRef}
-                            src={pagePreviews.find(p => p.originalIndex === activePageToSign)?.dataUrl} 
+                            src={pagePreviews.find(p => p.originalIndex === activePageToSign)?.dataUrl}
                             onLoad={handlePageImageLoad}
                             style={{ display: 'block', maxWidth: '100%', maxHeight: '420px', objectFit: 'contain', pointerEvents: 'none' }}
                             alt="page to stamp"
                           />
-                          
+
                           {/* Draggable signature element */}
-                          <div 
+                          <div
                             style={{
                               position: 'absolute',
                               left: `${sigPos.x}px`,
@@ -2594,8 +2620,8 @@ function App() {
                             const previewObj = pagePreviews.find(p => p.originalIndex === originalIdx);
                             const pageStampCount = placedSignatures.filter(s => s.pageIndex === originalIdx).length;
                             return (
-                              <div 
-                                key={originalIdx} 
+                              <div
+                                key={originalIdx}
                                 className="file-preview-card"
                                 style={{ border: pageStampCount > 0 ? '1.5px solid var(--success-color)' : '1px solid var(--border-color)' }}
                               >
@@ -2607,14 +2633,14 @@ function App() {
                                 <div className="file-preview-thumbnail" style={{ position: 'relative' }}>
                                   {previewObj ? (
                                     <>
-                                      <img 
-                                        src={previewObj.dataUrl} 
+                                      <img
+                                        src={previewObj.dataUrl}
                                         className="file-preview-img"
                                         alt={`Page ${originalIdx + 1}`}
                                       />
-                                      <button 
-                                        className="btn-preview-eye" 
-                                        title="Preview Page" 
+                                      <button
+                                        className="btn-preview-eye"
+                                        title="Preview Page"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           openLightbox(uploadedFiles[0], originalIdx, previewObj.dataUrl, `Page ${originalIdx + 1}`);
@@ -2629,8 +2655,8 @@ function App() {
                                 </div>
                                 <div className="file-preview-info" style={{ marginTop: '4px' }}>
                                   <div className="file-preview-name">Page {originalIdx + 1}</div>
-                                  <button 
-                                    className="btn-upload" 
+                                  <button
+                                    className="btn-upload"
                                     style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', width: '100%', marginTop: '4px' }}
                                     disabled={!signatureDataUrl}
                                     onClick={() => {
@@ -2662,9 +2688,9 @@ function App() {
                                   <Trash2 size={12} />
                                 </button>
                               </div>
-                              <button 
-                                className="btn-preview-eye" 
-                                title="Preview Page" 
+                              <button
+                                className="btn-preview-eye"
+                                title="Preview Page"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   openLightbox(file, 0, file.firstPagePreview, file.name);
@@ -2692,13 +2718,13 @@ function App() {
                   ) : (
                     /* Default Single File Preview */
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: '1rem' }}>
-                      <div style={{ 
-                        width: '120px', 
-                        height: '160px', 
-                        boxShadow: 'var(--shadow-md)', 
-                        borderRadius: 'var(--radius-sm)', 
-                        overflow: 'hidden', 
-                        border: '1px solid var(--border-color)', 
+                      <div style={{
+                        width: '120px',
+                        height: '160px',
+                        boxShadow: 'var(--shadow-md)',
+                        borderRadius: 'var(--radius-sm)',
+                        overflow: 'hidden',
+                        border: '1px solid var(--border-color)',
                         backgroundColor: 'var(--bg-primary)',
                         display: 'flex',
                         alignItems: 'center',
@@ -2708,9 +2734,9 @@ function App() {
                         {uploadedFiles[0].firstPagePreview ? (
                           <>
                             <img src={uploadedFiles[0].firstPagePreview} style={{ width: '100%', height: '100%', objectFit: 'contain' }} alt="File Preview" />
-                            <button 
-                              className="btn-preview-eye" 
-                              title="Preview Page" 
+                            <button
+                              className="btn-preview-eye"
+                              title="Preview Page"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 openLightbox(uploadedFiles[0], 0, uploadedFiles[0].firstPagePreview, uploadedFiles[0].name);
@@ -2751,11 +2777,11 @@ function App() {
                       <h3>Split Options</h3>
                       <div className="form-group">
                         <label>Page Ranges</label>
-                        <input 
-                          type="text" 
-                          className="form-control" 
-                          placeholder="e.g. 1-3, 5, 7-10" 
-                          value={splitRanges} 
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="e.g. 1-3, 5, 7-10"
+                          value={splitRanges}
                           onChange={(e) => handleSplitRangeInputChange(e.target.value)}
                         />
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
@@ -2778,20 +2804,20 @@ function App() {
                   {activeTool === 'sign' && (
                     <div className="sidebar-section" style={{ gap: '1rem' }}>
                       <h3>Signature Setup</h3>
-                      
+
                       {signatureDataUrl ? (
                         /* Signature configured preview */
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                           <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Active Signature</label>
-                          <div style={{ 
-                            backgroundColor: 'white', 
-                            border: '1px solid var(--border-color)', 
-                            borderRadius: 'var(--radius-sm)', 
-                            padding: '0.5rem', 
-                            height: '60px', 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'center' 
+                          <div style={{
+                            backgroundColor: 'white',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: 'var(--radius-sm)',
+                            padding: '0.5rem',
+                            height: '60px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
                           }}>
                             <img src={signatureDataUrl} style={{ maxHeight: '100%', maxWidth: '100%' }} alt="drawn signature" />
                           </div>
@@ -2813,10 +2839,10 @@ function App() {
                       {activePageToSign !== null && (
                         <div className="form-group" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
                           <label>Signature Width ({sigPos.w}px)</label>
-                          <input 
-                            type="range" 
-                            min="30" 
-                            max="250" 
+                          <input
+                            type="range"
+                            min="30"
+                            max="250"
                             value={sigPos.w}
                             onChange={(e) => handleSignatureSizeChange(e.target.value)}
                           />
@@ -2848,7 +2874,7 @@ function App() {
 
                       <div className="form-group">
                         <label>QR Code Content (Text / URL)</label>
-                        <input 
+                        <input
                           type="text"
                           className="form-control"
                           value={qrText}
@@ -2860,21 +2886,21 @@ function App() {
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                         <div className="form-group">
                           <label>Foreground</label>
-                          <input 
-                            type="color" 
-                            className="form-control" 
+                          <input
+                            type="color"
+                            className="form-control"
                             style={{ height: '38px', padding: '2px', cursor: 'pointer' }}
-                            value={qrFgColor} 
+                            value={qrFgColor}
                             onChange={(e) => setQrFgColor(e.target.value)}
                           />
                         </div>
                         <div className="form-group">
                           <label>Background</label>
-                          <input 
-                            type="color" 
-                            className="form-control" 
+                          <input
+                            type="color"
+                            className="form-control"
                             style={{ height: '38px', padding: '2px', cursor: 'pointer' }}
-                            value={qrBgColor} 
+                            value={qrBgColor}
                             onChange={(e) => setQrBgColor(e.target.value)}
                           />
                         </div>
@@ -2883,31 +2909,31 @@ function App() {
                       {qrDataUrl && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center', width: '100%' }}>
                           <label style={{ fontSize: '0.8rem', fontWeight: '600', width: '100%' }}>QR Preview</label>
-                          <div style={{ 
-                            backgroundColor: 'white', 
-                            border: '1px solid var(--border-color)', 
-                            borderRadius: 'var(--radius-sm)', 
-                            padding: '0.5rem', 
+                          <div style={{
+                            backgroundColor: 'white',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: 'var(--radius-sm)',
+                            padding: '0.5rem',
                             width: '100px',
-                            height: '100px', 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'center' 
+                            height: '100px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
                           }}>
                             <img src={qrDataUrl} style={{ height: '100%', width: '100%', objectFit: 'contain' }} alt="qr code preview" />
                           </div>
-                          <button 
-                            className="btn-upload" 
-                            style={{ 
-                              width: '100%', 
-                              padding: '0.4rem', 
-                              fontSize: '0.8rem', 
+                          <button
+                            className="btn-upload"
+                            style={{
+                              width: '100%',
+                              padding: '0.4rem',
+                              fontSize: '0.8rem',
                               backgroundColor: 'var(--success-color)',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: '0.25rem' 
-                            }} 
+                              gap: '0.25rem'
+                            }}
                             onClick={downloadQrCodeImage}
                           >
                             <Download size={14} /> Download QR Image
@@ -2919,10 +2945,10 @@ function App() {
                       {activePageToSign !== null && (
                         <div className="form-group" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
                           <label>QR Code Width ({sigPos.w}px)</label>
-                          <input 
-                            type="range" 
-                            min="30" 
-                            max="250" 
+                          <input
+                            type="range"
+                            min="30"
+                            max="250"
                             value={sigPos.w}
                             onChange={(e) => handleSignatureSizeChange(e.target.value)}
                           />
@@ -2951,11 +2977,11 @@ function App() {
                   {activeTool === 'protect' && (
                     <div className="sidebar-section" style={{ gap: '1rem' }}>
                       <h3>Security Settings</h3>
-                      
+
                       <div className="form-group">
                         <label>Enter Password</label>
-                        <input 
-                          type="password" 
+                        <input
+                          type="password"
                           className="form-control"
                           placeholder="Password to open PDF"
                           value={protectPassword}
@@ -2966,17 +2992,17 @@ function App() {
                       <div className="form-group">
                         <label>Encryption Algorithm</label>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button 
+                          <button
                             className={`option-select-btn ${protectOptions.algorithm === 'AES-256' ? 'active' : ''}`}
                             style={{ flex: 1 }}
-                            onClick={() => setProtectOptions({...protectOptions, algorithm: 'AES-256'})}
+                            onClick={() => setProtectOptions({ ...protectOptions, algorithm: 'AES-256' })}
                           >
                             AES-256 (Strong)
                           </button>
-                          <button 
+                          <button
                             className={`option-select-btn ${protectOptions.algorithm === 'RC4' ? 'active' : ''}`}
                             style={{ flex: 1 }}
-                            onClick={() => setProtectOptions({...protectOptions, algorithm: 'RC4'})}
+                            onClick={() => setProtectOptions({ ...protectOptions, algorithm: 'RC4' })}
                           >
                             RC4 (Legacy)
                           </button>
@@ -2985,14 +3011,14 @@ function App() {
 
                       <div className="form-group" style={{ gap: '0.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
                         <label style={{ marginBottom: '0.25rem' }}>Permissions</label>
-                        
+
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.25rem 0' }}>
                           <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Allow Printing</span>
                           <label className="toggle-switch">
-                            <input 
-                              type="checkbox" 
-                              checked={protectOptions.allowPrinting} 
-                              onChange={(e) => setProtectOptions({...protectOptions, allowPrinting: e.target.checked})}
+                            <input
+                              type="checkbox"
+                              checked={protectOptions.allowPrinting}
+                              onChange={(e) => setProtectOptions({ ...protectOptions, allowPrinting: e.target.checked })}
                             />
                             <span className="slider"></span>
                           </label>
@@ -3001,10 +3027,10 @@ function App() {
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.25rem 0' }}>
                           <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Allow Copying Text/Images</span>
                           <label className="toggle-switch">
-                            <input 
-                              type="checkbox" 
-                              checked={protectOptions.allowCopying} 
-                              onChange={(e) => setProtectOptions({...protectOptions, allowCopying: e.target.checked})}
+                            <input
+                              type="checkbox"
+                              checked={protectOptions.allowCopying}
+                              onChange={(e) => setProtectOptions({ ...protectOptions, allowCopying: e.target.checked })}
                             />
                             <span className="slider"></span>
                           </label>
@@ -3013,10 +3039,10 @@ function App() {
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.25rem 0' }}>
                           <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Allow Modifications</span>
                           <label className="toggle-switch">
-                            <input 
-                              type="checkbox" 
-                              checked={protectOptions.allowModifying} 
-                              onChange={(e) => setProtectOptions({...protectOptions, allowModifying: e.target.checked})}
+                            <input
+                              type="checkbox"
+                              checked={protectOptions.allowModifying}
+                              onChange={(e) => setProtectOptions({ ...protectOptions, allowModifying: e.target.checked })}
                             />
                             <span className="slider"></span>
                           </label>
@@ -3025,11 +3051,43 @@ function App() {
                     </div>
                   )}
 
+                  {activeTool === 'unlock' && (
+                    <div className="sidebar-section" style={{ gap: '1rem' }}>
+                      <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <LockOpen size={16} /> Unlock Settings
+                      </h3>
+
+                      <div style={{
+                        padding: '0.75rem 1rem',
+                        backgroundColor: 'rgba(59,130,246,0.08)',
+                        border: '1px solid rgba(59,130,246,0.25)',
+                        borderRadius: 'var(--radius-md)',
+                        fontSize: '0.8rem',
+                        color: 'var(--text-secondary)',
+                        lineHeight: '1.5'
+                      }}>
+                        🔓 Enter the current password of the PDF to remove its protection permanently.
+                      </div>
+
+                      <div className="form-group">
+                        <label>Current Password</label>
+                        <input
+                          type="password"
+                          className="form-control"
+                          placeholder="Enter PDF password..."
+                          value={unlockPassword}
+                          onChange={(e) => setUnlockPassword(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && runProcess()}
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   {activeTool === 'compress' && (
                     <div className="sidebar-section">
                       <h3>Compression Level</h3>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <button 
+                        <button
                           className={`option-select-btn ${compressLevel === 'high' ? 'active' : ''}`}
                           onClick={() => setCompressLevel('high')}
                           style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', textAlign: 'left', width: '100%', gap: '0.5rem' }}
@@ -3049,14 +3107,14 @@ function App() {
                               border: compressLevel === 'high' ? 'none' : '1px solid var(--border-color)',
                               whiteSpace: 'nowrap'
                             }}>
-                              ~{(uploadedFiles[0].size * 0.3 / 1024 / 1024) >= 0.1 
+                              ~{(uploadedFiles[0].size * 0.3 / 1024 / 1024) >= 0.1
                                 ? `${(uploadedFiles[0].size * 0.3 / 1024 / 1024).toFixed(2)} MB`
                                 : `${(uploadedFiles[0].size * 0.3 / 1024).toFixed(0)} KB`
                               }
                             </span>
                           )}
                         </button>
-                        <button 
+                        <button
                           className={`option-select-btn ${compressLevel === 'recommended' ? 'active' : ''}`}
                           onClick={() => setCompressLevel('recommended')}
                           style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', textAlign: 'left', width: '100%', gap: '0.5rem' }}
@@ -3076,14 +3134,14 @@ function App() {
                               border: compressLevel === 'recommended' ? 'none' : '1px solid var(--border-color)',
                               whiteSpace: 'nowrap'
                             }}>
-                              ~{(uploadedFiles[0].size * 0.5 / 1024 / 1024) >= 0.1 
+                              ~{(uploadedFiles[0].size * 0.5 / 1024 / 1024) >= 0.1
                                 ? `${(uploadedFiles[0].size * 0.5 / 1024 / 1024).toFixed(2)} MB`
                                 : `${(uploadedFiles[0].size * 0.5 / 1024).toFixed(0)} KB`
                               }
                             </span>
                           )}
                         </button>
-                        <button 
+                        <button
                           className={`option-select-btn ${compressLevel === 'low' ? 'active' : ''}`}
                           onClick={() => setCompressLevel('low')}
                           style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', textAlign: 'left', width: '100%', gap: '0.5rem' }}
@@ -3103,7 +3161,7 @@ function App() {
                               border: compressLevel === 'low' ? 'none' : '1px solid var(--border-color)',
                               whiteSpace: 'nowrap'
                             }}>
-                              ~{(uploadedFiles[0].size * 0.8 / 1024 / 1024) >= 0.1 
+                              ~{(uploadedFiles[0].size * 0.8 / 1024 / 1024) >= 0.1
                                 ? `${(uploadedFiles[0].size * 0.8 / 1024 / 1024).toFixed(2)} MB`
                                 : `${(uploadedFiles[0].size * 0.8 / 1024).toFixed(0)} KB`
                               }
@@ -3118,21 +3176,21 @@ function App() {
                     <div className="sidebar-section">
                       <h3>Rotate Direction</h3>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button 
+                        <button
                           className={`option-select-btn ${globalRotation === 90 ? 'active' : ''}`}
                           style={{ flex: 1 }}
                           onClick={() => setGlobalRotation(90)}
                         >
                           90° Right
                         </button>
-                        <button 
+                        <button
                           className={`option-select-btn ${globalRotation === 180 ? 'active' : ''}`}
                           style={{ flex: 1 }}
                           onClick={() => setGlobalRotation(180)}
                         >
                           180°
                         </button>
-                        <button 
+                        <button
                           className={`option-select-btn ${globalRotation === 270 ? 'active' : ''}`}
                           style={{ flex: 1 }}
                           onClick={() => setGlobalRotation(270)}
@@ -3146,13 +3204,13 @@ function App() {
                   {activeTool === 'img-to-pdf' && (
                     <div className="sidebar-section" style={{ gap: '1rem' }}>
                       <h3>Page Layout</h3>
-                      
+
                       <div className="form-group">
                         <label>Page Size</label>
-                        <select 
+                        <select
                           className="form-control"
                           value={imgToPdfOptions.layout}
-                          onChange={(e) => setImgToPdfOptions({...imgToPdfOptions, layout: e.target.value})}
+                          onChange={(e) => setImgToPdfOptions({ ...imgToPdfOptions, layout: e.target.value })}
                         >
                           <option value="a4">A4 (595 x 842 pt)</option>
                           <option value="letter">US Letter (612 x 792 pt)</option>
@@ -3162,17 +3220,17 @@ function App() {
                       <div className="form-group">
                         <label>Orientation</label>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button 
+                          <button
                             className={`option-select-btn ${imgToPdfOptions.orientation === 'portrait' ? 'active' : ''}`}
                             style={{ flex: 1 }}
-                            onClick={() => setImgToPdfOptions({...imgToPdfOptions, orientation: 'portrait'})}
+                            onClick={() => setImgToPdfOptions({ ...imgToPdfOptions, orientation: 'portrait' })}
                           >
                             Portrait
                           </button>
-                          <button 
+                          <button
                             className={`option-select-btn ${imgToPdfOptions.orientation === 'landscape' ? 'active' : ''}`}
                             style={{ flex: 1 }}
-                            onClick={() => setImgToPdfOptions({...imgToPdfOptions, orientation: 'landscape'})}
+                            onClick={() => setImgToPdfOptions({ ...imgToPdfOptions, orientation: 'landscape' })}
                           >
                             Landscape
                           </button>
@@ -3182,24 +3240,24 @@ function App() {
                       <div className="form-group">
                         <label>Page Margins</label>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button 
+                          <button
                             className={`option-select-btn ${imgToPdfOptions.margin === 'none' ? 'active' : ''}`}
                             style={{ flex: 1 }}
-                            onClick={() => setImgToPdfOptions({...imgToPdfOptions, margin: 'none'})}
+                            onClick={() => setImgToPdfOptions({ ...imgToPdfOptions, margin: 'none' })}
                           >
                             None
                           </button>
-                          <button 
+                          <button
                             className={`option-select-btn ${imgToPdfOptions.margin === 'small' ? 'active' : ''}`}
                             style={{ flex: 1 }}
-                            onClick={() => setImgToPdfOptions({...imgToPdfOptions, margin: 'small'})}
+                            onClick={() => setImgToPdfOptions({ ...imgToPdfOptions, margin: 'small' })}
                           >
                             Small
                           </button>
-                          <button 
+                          <button
                             className={`option-select-btn ${imgToPdfOptions.margin === 'large' ? 'active' : ''}`}
                             style={{ flex: 1 }}
-                            onClick={() => setImgToPdfOptions({...imgToPdfOptions, margin: 'large'})}
+                            onClick={() => setImgToPdfOptions({ ...imgToPdfOptions, margin: 'large' })}
                           >
                             Big
                           </button>
@@ -3225,15 +3283,15 @@ function App() {
                   {activeTool === 'page-numbers' && (
                     <div className="sidebar-section" style={{ gap: '1rem' }}>
                       <h3>Position & Styling</h3>
-                      
+
                       <div className="form-group">
                         <label>Location on Page</label>
                         <div className="position-grid">
                           {['topLeft', 'topCenter', 'topRight', 'bottomLeft', 'bottomCenter', 'bottomRight'].map((pos) => (
-                            <div 
-                              key={pos} 
+                            <div
+                              key={pos}
                               className={`position-cell ${pageNumberOptions.position === pos ? 'active' : ''}`}
-                              onClick={() => setPageNumberOptions({...pageNumberOptions, position: pos})}
+                              onClick={() => setPageNumberOptions({ ...pageNumberOptions, position: pos })}
                               title={pos.replace(/([A-Z])/g, ' $1')}
                             >
                               <div className="position-dot"></div>
@@ -3244,10 +3302,10 @@ function App() {
 
                       <div className="form-group">
                         <label>Number Style</label>
-                        <select 
+                        <select
                           className="form-control"
                           value={pageNumberOptions.style}
-                          onChange={(e) => setPageNumberOptions({...pageNumberOptions, style: e.target.value})}
+                          onChange={(e) => setPageNumberOptions({ ...pageNumberOptions, style: e.target.value })}
                         >
                           <option value="simple">Simple number (e.g. "1")</option>
                           <option value="detailed">Complete Page Info (e.g. "Page 1 of N")</option>
@@ -3257,32 +3315,32 @@ function App() {
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                         <div className="form-group">
                           <label>Start From</label>
-                          <input 
-                            type="number" 
-                            className="form-control" 
-                            value={pageNumberOptions.startNumber} 
-                            onChange={(e) => setPageNumberOptions({...pageNumberOptions, startNumber: parseInt(e.target.value) || 1})}
+                          <input
+                            type="number"
+                            className="form-control"
+                            value={pageNumberOptions.startNumber}
+                            onChange={(e) => setPageNumberOptions({ ...pageNumberOptions, startNumber: parseInt(e.target.value) || 1 })}
                           />
                         </div>
                         <div className="form-group">
                           <label>Font Size</label>
-                          <input 
-                            type="number" 
-                            className="form-control" 
-                            value={pageNumberOptions.fontSize} 
-                            onChange={(e) => setPageNumberOptions({...pageNumberOptions, fontSize: parseInt(e.target.value) || 10})}
+                          <input
+                            type="number"
+                            className="form-control"
+                            value={pageNumberOptions.fontSize}
+                            onChange={(e) => setPageNumberOptions({ ...pageNumberOptions, fontSize: parseInt(e.target.value) || 10 })}
                           />
                         </div>
                       </div>
 
                       <div className="form-group">
                         <label>Number Color</label>
-                        <input 
-                          type="color" 
-                          className="form-control" 
+                        <input
+                          type="color"
+                          className="form-control"
                           style={{ height: '38px', padding: '2px', cursor: 'pointer' }}
-                          value={pageNumberOptions.color} 
-                          onChange={(e) => setPageNumberOptions({...pageNumberOptions, color: e.target.value})}
+                          value={pageNumberOptions.color}
+                          onChange={(e) => setPageNumberOptions({ ...pageNumberOptions, color: e.target.value })}
                         />
                       </div>
                     </div>
@@ -3291,61 +3349,61 @@ function App() {
                   {activeTool === 'watermark' && (
                     <div className="sidebar-section" style={{ gap: '1rem' }}>
                       <h3>Watermark Options</h3>
-                      
+
                       <div className="form-group">
                         <label>Watermark Text</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           className="form-control"
                           value={watermarkOptions.text}
-                          onChange={(e) => setWatermarkOptions({...watermarkOptions, text: e.target.value})}
+                          onChange={(e) => setWatermarkOptions({ ...watermarkOptions, text: e.target.value })}
                         />
                       </div>
 
                       <div className="form-group">
                         <label>Opacity ({Math.round(watermarkOptions.opacity * 100)}%)</label>
-                        <input 
-                          type="range" 
-                          min="0.05" 
-                          max="1.0" 
+                        <input
+                          type="range"
+                          min="0.05"
+                          max="1.0"
                           step="0.05"
                           value={watermarkOptions.opacity}
-                          onChange={(e) => setWatermarkOptions({...watermarkOptions, opacity: parseFloat(e.target.value)})}
+                          onChange={(e) => setWatermarkOptions({ ...watermarkOptions, opacity: parseFloat(e.target.value) })}
                         />
                       </div>
 
                       <div className="form-group">
                         <label>Font Size ({watermarkOptions.size}pt)</label>
-                        <input 
-                          type="range" 
-                          min="12" 
-                          max="120" 
+                        <input
+                          type="range"
+                          min="12"
+                          max="120"
                           step="2"
                           value={watermarkOptions.size}
-                          onChange={(e) => setWatermarkOptions({...watermarkOptions, size: parseInt(e.target.value)})}
+                          onChange={(e) => setWatermarkOptions({ ...watermarkOptions, size: parseInt(e.target.value) })}
                         />
                       </div>
 
                       <div className="form-group">
                         <label>Rotation Angle ({watermarkOptions.rotation}°)</label>
-                        <input 
-                          type="range" 
-                          min="-90" 
-                          max="90" 
+                        <input
+                          type="range"
+                          min="-90"
+                          max="90"
                           step="5"
                           value={watermarkOptions.rotation}
-                          onChange={(e) => setWatermarkOptions({...watermarkOptions, rotation: parseInt(e.target.value)})}
+                          onChange={(e) => setWatermarkOptions({ ...watermarkOptions, rotation: parseInt(e.target.value) })}
                         />
                       </div>
 
                       <div className="form-group">
                         <label>Text Color</label>
-                        <input 
-                          type="color" 
-                          className="form-control" 
+                        <input
+                          type="color"
+                          className="form-control"
                           style={{ height: '38px', padding: '2px', cursor: 'pointer' }}
-                          value={watermarkOptions.color} 
-                          onChange={(e) => setWatermarkOptions({...watermarkOptions, color: e.target.value})}
+                          value={watermarkOptions.color}
+                          onChange={(e) => setWatermarkOptions({ ...watermarkOptions, color: e.target.value })}
                         />
                       </div>
                     </div>
@@ -3354,58 +3412,58 @@ function App() {
                   {activeTool === 'metadata' && (
                     <div className="sidebar-section" style={{ gap: '0.75rem' }}>
                       <h3>Metadata Values</h3>
-                      
+
                       <div className="form-group">
                         <label>Document Title</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           className="form-control"
                           placeholder="Leave empty to clear"
                           value={metadataOptions.title}
-                          onChange={(e) => setMetadataOptions({...metadataOptions, title: e.target.value})}
+                          onChange={(e) => setMetadataOptions({ ...metadataOptions, title: e.target.value })}
                         />
                       </div>
 
                       <div className="form-group">
                         <label>Author / Owner</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           className="form-control"
                           placeholder="Author name"
                           value={metadataOptions.author}
-                          onChange={(e) => setMetadataOptions({...metadataOptions, author: e.target.value})}
+                          onChange={(e) => setMetadataOptions({ ...metadataOptions, author: e.target.value })}
                         />
                       </div>
 
                       <div className="form-group">
                         <label>Subject</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           className="form-control"
                           placeholder="Brief description"
                           value={metadataOptions.subject}
-                          onChange={(e) => setMetadataOptions({...metadataOptions, subject: e.target.value})}
+                          onChange={(e) => setMetadataOptions({ ...metadataOptions, subject: e.target.value })}
                         />
                       </div>
 
                       <div className="form-group">
                         <label>Keywords (comma separated)</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           className="form-control"
                           placeholder="pdf, document, report"
                           value={metadataOptions.keywords}
-                          onChange={(e) => setMetadataOptions({...metadataOptions, keywords: e.target.value})}
+                          onChange={(e) => setMetadataOptions({ ...metadataOptions, keywords: e.target.value })}
                         />
                       </div>
 
                       <div className="form-group">
                         <label>Creator Application</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           className="form-control"
                           value={metadataOptions.creator}
-                          onChange={(e) => setMetadataOptions({...metadataOptions, creator: e.target.value})}
+                          onChange={(e) => setMetadataOptions({ ...metadataOptions, creator: e.target.value })}
                         />
                       </div>
                     </div>
@@ -3448,21 +3506,22 @@ function App() {
                   )}
 
                   {/* Primary Trigger Button */}
-                  <button 
+                  <button
                     className="btn-action-primary"
                     onClick={runProcess}
                     disabled={
                       (activeTool === 'split' && !splitRanges.trim()) ||
                       ((activeTool === 'sign' || activeTool === 'qr') && placedSignatures.length === 0) ||
                       ((activeTool === 'sign' || activeTool === 'qr') && activePageToSign !== null) ||
-                      (activeTool === 'protect' && !protectPassword.trim())
+                      (activeTool === 'protect' && !protectPassword.trim()) ||
+                      (activeTool === 'unlock' && !unlockPassword.trim())
                     }
                   >
                     {
                       activeTool === 'extract-text' ? 'Extract Text' :
-                      activeTool === 'pdf-to-docx' ? 'Convert to Word' :
-                      activeTool === 'pdf-to-pptx' ? 'Convert to PowerPoint' :
-                      `Convert to ${currentTool?.id === 'pdf-to-img' ? 'Images' : 'PDF'}`
+                        activeTool === 'pdf-to-docx' ? 'Convert to Word' :
+                          activeTool === 'pdf-to-pptx' ? 'Convert to PowerPoint' :
+                            `Convert to ${currentTool?.id === 'pdf-to-img' ? 'Images' : 'PDF'}`
                     }
                   </button>
                 </div>
@@ -3501,11 +3560,11 @@ function App() {
               <h3 style={{ fontSize: '1.1rem', fontWeight: '800' }}>Create Your Signature</h3>
               <button className="btn-icon" style={{ padding: '2px 6px', fontSize: '0.8rem' }} onClick={() => setShowSignatureModal(false)}>✕</button>
             </div>
-            
+
             {/* Draw Pad Canvas */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Draw inside the box:</span>
-              <canvas 
+              <canvas
                 ref={signatureCanvasRef}
                 width={400}
                 height={200}
@@ -3531,8 +3590,8 @@ function App() {
             {/* Option to Upload Image instead */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Or upload scanned signature image (PNG / JPG):</span>
-              <input 
-                type="file" 
+              <input
+                type="file"
                 accept="image/png, image/jpeg, image/jpg"
                 onChange={handleSignatureUpload}
                 style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}
@@ -3585,9 +3644,9 @@ function App() {
                 <Share2 size={20} style={{ color: 'var(--accent-color)' }} />
                 {shareData.type === 'image/png' ? 'Share QR Code' : 'Share File'}
               </h3>
-              <button 
-                className="btn-icon" 
-                style={{ padding: '4px 8px', fontSize: '0.85rem', cursor: 'pointer' }} 
+              <button
+                className="btn-icon"
+                style={{ padding: '4px 8px', fontSize: '0.85rem', cursor: 'pointer' }}
                 onClick={() => {
                   setShowShareModal(false);
                   setShareData({ blob: null, name: '', type: '' });
@@ -3624,8 +3683,8 @@ function App() {
                   {shareData.name}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                  Size: {shareData.blob.size ? ((shareData.blob.size / 1024).toFixed(1) > 1024 
-                    ? `${(shareData.blob.size / (1024 * 1024)).toFixed(2)} MB` 
+                  Size: {shareData.blob.size ? ((shareData.blob.size / 1024).toFixed(1) > 1024
+                    ? `${(shareData.blob.size / (1024 * 1024)).toFixed(2)} MB`
                     : `${(shareData.blob.size / 1024).toFixed(1)} KB`)
                     : 'Unknown'
                   }
@@ -3689,7 +3748,7 @@ function App() {
                   }}
                 >
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                    <path d="M12.012 2c-5.506 0-9.988 4.482-9.988 9.988 0 1.76.457 3.473 1.328 4.982L2.03 22l5.182-1.36c1.464.798 3.11 1.218 4.793 1.218 5.507 0 9.988-4.482 9.988-9.988C22 6.482 17.52 2 12.012 2zm6.262 14.372c-.258.73-1.488 1.428-2.046 1.482-.5.05-1.155.08-3.328-.82-2.777-1.15-4.57-3.98-4.71-4.168-.14-.19-1.123-1.493-1.123-2.846 0-1.353.708-2.015.96-2.28.25-.268.55-.333.73-.333.18 0 .36 0 .52.01.17 0 .4.01.61.51.22.53.76 1.86.83 1.99.07.13.11.29.02.46-.08.17-.18.28-.35.48-.17.2-.36.45-.52.6-.18.17-.37.36-.16.73.21.36.93 1.54 2 2.49 1.38 1.23 2.54 1.62 2.9 1.8.36.18.57.15.79-.09.21-.24.93-1.08 1.18-1.45.25-.37.5-.31.84-.18.35.13 2.2 1.04 2.58 1.23.38.19.64.28.73.43.08.16.08.93-.18 1.66z"/>
+                    <path d="M12.012 2c-5.506 0-9.988 4.482-9.988 9.988 0 1.76.457 3.473 1.328 4.982L2.03 22l5.182-1.36c1.464.798 3.11 1.218 4.793 1.218 5.507 0 9.988-4.482 9.988-9.988C22 6.482 17.52 2 12.012 2zm6.262 14.372c-.258.73-1.488 1.428-2.046 1.482-.5.05-1.155.08-3.328-.82-2.777-1.15-4.57-3.98-4.71-4.168-.14-.19-1.123-1.493-1.123-2.846 0-1.353.708-2.015.96-2.28.25-.268.55-.333.73-.333.18 0 .36 0 .52.01.17 0 .4.01.61.51.22.53.76 1.86.83 1.99.07.13.11.29.02.46-.08.17-.18.28-.35.48-.17.2-.36.45-.52.6-.18.17-.37.36-.16.73.21.36.93 1.54 2 2.49 1.38 1.23 2.54 1.62 2.9 1.8.36.18.57.15.79-.09.21-.24.93-1.08 1.18-1.45.25-.37.5-.31.84-.18.35.13 2.2 1.04 2.58 1.23.38.19.64.28.73.43.08.16.08.93-.18 1.66z" />
                   </svg>
                   WhatsApp
                 </button>
@@ -3713,7 +3772,7 @@ function App() {
                   }}
                 >
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-1-.65-.35-1 .22-1.6.15-.15 2.76-2.53 2.81-2.75.01-.03.01-.1-.04-.15-.05-.05-.12-.03-.17-.02-.07.02-1.29.83-3.64 2.42-.34.24-.66.35-.95.34-.32-.01-.94-.18-1.4-.33-.56-.18-1-.28-.96-.6.02-.17.25-.34.69-.53 2.7-1.17 4.5-1.95 5.4-2.33 2.56-1.09 3.09-1.28 3.44-1.28.08 0 .25.02.36.11.1.08.13.2.14.3-.01.06-.01.12-.02.18z"/>
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-1-.65-.35-1 .22-1.6.15-.15 2.76-2.53 2.81-2.75.01-.03.01-.1-.04-.15-.05-.05-.12-.03-.17-.02-.07.02-1.29.83-3.64 2.42-.34.24-.66.35-.95.34-.32-.01-.94-.18-1.4-.33-.56-.18-1-.28-.96-.6.02-.17.25-.34.69-.53 2.7-1.17 4.5-1.95 5.4-2.33 2.56-1.09 3.09-1.28 3.44-1.28.08 0 .25.02.36.11.1.08.13.2.14.3-.01.06-.01.12-.02.18z" />
                   </svg>
                   Telegram
                 </button>
@@ -3737,7 +3796,7 @@ function App() {
                   }}
                 >
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                    <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                    <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
                   </svg>
                   Gmail
                 </button>
@@ -3761,8 +3820,8 @@ function App() {
                   }}
                 >
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                    <polyline points="22,6 12,13 2,6"/>
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                    <polyline points="22,6 12,13 2,6" />
                   </svg>
                   Other Email
                 </button>
@@ -3793,9 +3852,9 @@ function App() {
               paddingTop: '1rem'
             }}>
               {/* Primary Download Button */}
-              <button 
-                className="btn-download-success" 
-                style={{ width: '100%', padding: '0.75rem', fontSize: '0.95rem' }} 
+              <button
+                className="btn-download-success"
+                style={{ width: '100%', padding: '0.75rem', fontSize: '0.95rem' }}
                 onClick={() => downloadBlob(shareData.blob, shareData.name)}
               >
                 <Download size={18} /> Download File
@@ -3804,8 +3863,8 @@ function App() {
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 {/* Copy Image Button (only for QR Codes/Images) */}
                 {shareData.type === 'image/png' && (
-                  <button 
-                    className="btn-reset" 
+                  <button
+                    className="btn-reset"
                     style={{ flex: 1, padding: '0.6rem 0.75rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', border: '1px solid var(--accent-color)', color: 'var(--accent-color)' }}
                     onClick={async () => {
                       try {
@@ -3826,8 +3885,8 @@ function App() {
                 )}
 
                 {/* Share App Link Button */}
-                <button 
-                  className="btn-reset" 
+                <button
+                  className="btn-reset"
                   style={{ flex: 1, padding: '0.6rem 0.75rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
                   onClick={() => {
                     navigator.clipboard.writeText('https://pdf-craft-sand.vercel.app/');
@@ -3883,7 +3942,7 @@ function App() {
       </footer>
       {/* Premium Glassmorphic Bottom Navigation Bar for Mobile */}
       <div className="bottom-nav">
-        <button 
+        <button
           className={`bottom-nav-item ${mobileTab === 'all' && activeTool === null ? 'active' : ''}`}
           onClick={() => {
             setActiveTool(null);
@@ -3894,7 +3953,7 @@ function App() {
           <Layers size={20} />
           <span>All Tools</span>
         </button>
-        <button 
+        <button
           className={`bottom-nav-item ${mobileTab === 'organize' && activeTool === null ? 'active' : ''}`}
           onClick={() => {
             setActiveTool(null);
@@ -3905,7 +3964,7 @@ function App() {
           <Scissors size={20} />
           <span>Organize</span>
         </button>
-        <button 
+        <button
           className={`bottom-nav-item ${mobileTab === 'convert' && activeTool === null ? 'active' : ''}`}
           onClick={() => {
             setActiveTool(null);
@@ -3916,7 +3975,7 @@ function App() {
           <Combine size={20} />
           <span>Convert</span>
         </button>
-        <button 
+        <button
           className={`bottom-nav-item ${mobileTab === 'security' && activeTool === null ? 'active' : ''}`}
           onClick={() => {
             setActiveTool(null);

@@ -388,6 +388,28 @@ export async function stampQrCode(pdfBuffer, qrStamps) {
   return await stampSignatures(pdfBuffer, qrStamps);
 }
 
+// 13b. Unlock / Remove Password from PDF
+export async function unlockPdf(pdfBuffer, password) {
+  const pdfBytes = new Uint8Array(pdfBuffer);
+  
+  try {
+    // Load the encrypted PDF using the provided password
+    const pdfDoc = await PDFDocument.load(pdfBytes, {
+      password,
+      ignoreEncryption: false,
+    });
+    
+    // Re-save without any encryption — this strips the password
+    const unlockedBytes = await pdfDoc.save();
+    return unlockedBytes;
+  } catch (err) {
+    if (err.message && (err.message.includes('password') || err.message.includes('encrypt') || err.message.includes('decrypt'))) {
+      throw new Error('Incorrect password. Please check the password and try again.');
+    }
+    throw new Error('Failed to unlock PDF. The file may be corrupted or use unsupported encryption.');
+  }
+}
+
 // 14. Convert DOCX to PDF
 export async function convertDocxToPdf(docxBuffer) {
   if (!window.mammoth) {
