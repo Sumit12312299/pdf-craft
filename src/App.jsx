@@ -40,7 +40,11 @@ import {
   extractTextFromPdf,
   stampSignatures,
   encryptPdfFile,
-  stampQrCode
+  stampQrCode,
+  convertDocxToPdf,
+  convertPptxToPdf,
+  convertPdfToDocx,
+  convertPdfToPptx
 } from './utils/pdfProcessor';
 
 // Parallel/Batch PDF Page Pre-renderer to Cache Base64 Images
@@ -353,6 +357,42 @@ function App() {
       accept: '.pdf'
     },
     {
+      id: 'pdf-to-docx',
+      title: 'PDF to Word',
+      description: 'Convert your PDF document into an editable Microsoft Word DOCX file client-side.',
+      icon: <FileText size={24} />,
+      category: 'Convert from PDF',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'pdf-to-pptx',
+      title: 'PDF to PowerPoint',
+      description: 'Convert your PDF pages into editable PowerPoint slides (.pptx) client-side.',
+      icon: <FileText size={24} />,
+      category: 'Convert from PDF',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'docx-to-pdf',
+      title: 'Word to PDF',
+      description: 'Convert Microsoft Word (.docx) files into clean, readable PDF documents client-side.',
+      icon: <FileText size={24} />,
+      category: 'Convert to PDF',
+      multiple: false,
+      accept: '.docx'
+    },
+    {
+      id: 'pptx-to-pdf',
+      title: 'PowerPoint to PDF',
+      description: 'Convert PowerPoint (.pptx) presentation slides into a PDF document client-side.',
+      icon: <FileText size={24} />,
+      category: 'Convert to PDF',
+      multiple: false,
+      accept: '.pptx'
+    },
+    {
       id: 'page-numbers',
       title: 'Add Page Numbers',
       description: 'Customize and stamp page numbers on pages with layout controls.',
@@ -438,9 +478,12 @@ function App() {
             await page.render({ canvasContext: context, viewport }).promise;
             firstPagePreview = canvas.toDataURL('image/jpeg', 0.8);
           }
-        } else {
+        } else if (['.jpg', '.jpeg', '.png'].includes(ext)) {
           // It is an image file
           firstPagePreview = URL.createObjectURL(file);
+        } else {
+          // Word, PowerPoint, or other format
+          firstPagePreview = '';
         }
 
         newFiles.push({
@@ -1038,6 +1081,50 @@ function App() {
         filename = `${file.name.replace('.pdf', '')}_protected.pdf`;
       }
 
+      else if (activeTool === 'pdf-to-docx') {
+        setProcessingStatus('Converting PDF to Word document...');
+        const file = uploadedFiles[0];
+        const docxBlob = await convertPdfToDocx(file.buffer, (prog) => {
+          setProgress(20 + Math.round(prog * 0.7));
+        });
+        setResultBlob(docxBlob);
+        setResultName(`${file.name.replace('.pdf', '')}.docx`);
+        setProgress(100);
+        setTimeout(() => {
+          setProcessing(false);
+        }, 150);
+        return;
+      }
+
+      else if (activeTool === 'pdf-to-pptx') {
+        setProcessingStatus('Converting PDF to PowerPoint slides...');
+        const file = uploadedFiles[0];
+        const pptxBlob = await convertPdfToPptx(file.buffer, (prog) => {
+          setProgress(20 + Math.round(prog * 0.7));
+        });
+        setResultBlob(pptxBlob);
+        setResultName(`${file.name.replace('.pdf', '')}.pptx`);
+        setProgress(100);
+        setTimeout(() => {
+          setProcessing(false);
+        }, 150);
+        return;
+      }
+
+      else if (activeTool === 'docx-to-pdf') {
+        setProcessingStatus('Converting Word document to PDF...');
+        const file = uploadedFiles[0];
+        outputBytes = await convertDocxToPdf(file.buffer);
+        filename = `${file.name.replace('.docx', '')}.pdf`;
+      }
+
+      else if (activeTool === 'pptx-to-pdf') {
+        setProcessingStatus('Converting PowerPoint presentation to PDF...');
+        const file = uploadedFiles[0];
+        outputBytes = await convertPptxToPdf(file.buffer);
+        filename = `${file.name.replace('.pptx', '')}.pdf`;
+      }
+
       else if (activeTool === 'extract-text') {
         setProcessingStatus('Extracting text content...');
         const file = uploadedFiles[0];
@@ -1240,7 +1327,12 @@ function App() {
                     <p>The processing completed entirely in your browser. Click download to retrieve your file.</p>
                   </div>
                   <button className="btn-download-success" onClick={triggerDownload}>
-                    <Download size={18} /> Download {currentTool.id === 'pdf-to-img' ? 'ZIP' : 'PDF'}
+                    <Download size={18} /> Download {
+                      currentTool.id === 'pdf-to-img' ? 'ZIP' : 
+                      currentTool.id === 'pdf-to-docx' ? 'Word DOCX' : 
+                      currentTool.id === 'pdf-to-pptx' ? 'PowerPoint PPTX' : 
+                      'PDF'
+                    }
                   </button>
                   <button className="btn-reset" onClick={resetToolState}>
                     Perform Another Operation
@@ -1637,13 +1729,28 @@ function App() {
                   ) : (
                     /* Default Single File Preview */
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: '1rem' }}>
-                      <div style={{ width: '120px', height: '160px', boxShadow: 'var(--shadow-md)', borderRadius: 'var(--radius-sm)', overflow: 'hidden', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)' }}>
-                        <img src={uploadedFiles[0].firstPagePreview} style={{ width: '100%', height: '100%', objectFit: 'contain' }} alt="PDF Preview" />
+                      <div style={{ 
+                        width: '120px', 
+                        height: '160px', 
+                        boxShadow: 'var(--shadow-md)', 
+                        borderRadius: 'var(--radius-sm)', 
+                        overflow: 'hidden', 
+                        border: '1px solid var(--border-color)', 
+                        backgroundColor: 'var(--bg-primary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        {uploadedFiles[0].firstPagePreview ? (
+                          <img src={uploadedFiles[0].firstPagePreview} style={{ width: '100%', height: '100%', objectFit: 'contain' }} alt="File Preview" />
+                        ) : (
+                          <FileText size={48} style={{ color: 'var(--accent-color)' }} />
+                        )}
                       </div>
                       <div style={{ textAlign: 'center' }}>
                         <div style={{ fontWeight: '700', fontSize: '1rem', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{uploadedFiles[0].name}</div>
                         <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                          {(uploadedFiles[0].size / 1024 / 1024).toFixed(2)} MB • {uploadedFiles[0].pageCount} pages
+                          {(uploadedFiles[0].size / 1024 / 1024).toFixed(2)} MB {uploadedFiles[0].pageCount > 0 ? `• ${uploadedFiles[0].pageCount} pages` : ''}
                         </div>
                       </div>
                       <button className="btn-reset" style={{ borderColor: 'rgba(239, 68, 68, 0.4)', color: '#ef4444' }} onClick={() => removeFile(0)}>
@@ -2268,6 +2375,42 @@ function App() {
                     </div>
                   )}
 
+                  {activeTool === 'pdf-to-docx' && (
+                    <div className="sidebar-section">
+                      <h3>PDF to Word</h3>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        Convert PDF text content into an editable Microsoft Word document (.docx). All operations run client-side in your browser.
+                      </p>
+                    </div>
+                  )}
+
+                  {activeTool === 'pdf-to-pptx' && (
+                    <div className="sidebar-section">
+                      <h3>PDF to PowerPoint</h3>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        Convert PDF pages into slide layouts containing editable slide texts. No data is sent to any servers.
+                      </p>
+                    </div>
+                  )}
+
+                  {activeTool === 'docx-to-pdf' && (
+                    <div className="sidebar-section">
+                      <h3>Word to PDF</h3>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        Convert and render Microsoft Word docx layouts into standard PDF files. Powered by client-side XML layouts.
+                      </p>
+                    </div>
+                  )}
+
+                  {activeTool === 'pptx-to-pdf' && (
+                    <div className="sidebar-section">
+                      <h3>PowerPoint to PDF</h3>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        Render PowerPoint presentation slides (.pptx) to standard PDF pages client-side in real-time.
+                      </p>
+                    </div>
+                  )}
+
                   {/* Primary Trigger Button */}
                   <button 
                     className="btn-action-primary"
@@ -2279,7 +2422,12 @@ function App() {
                       (activeTool === 'protect' && !protectPassword.trim())
                     }
                   >
-                    {activeTool === 'extract-text' ? 'Extract Text' : `Convert to ${currentTool.id === 'pdf-to-img' ? 'Images' : 'PDF'}`}
+                    {
+                      activeTool === 'extract-text' ? 'Extract Text' :
+                      activeTool === 'pdf-to-docx' ? 'Convert to Word' :
+                      activeTool === 'pdf-to-pptx' ? 'Convert to PowerPoint' :
+                      `Convert to ${currentTool?.id === 'pdf-to-img' ? 'Images' : 'PDF'}`
+                    }
                   </button>
                 </div>
               </div>

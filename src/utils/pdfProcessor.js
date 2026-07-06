@@ -1,5 +1,8 @@
 import { PDFDocument, rgb, degrees, StandardFonts } from 'pdf-lib';
 import { encryptPDF } from '@pdfsmaller/pdf-encrypt';
+import JSZip from 'jszip';
+import { Document, Packer, Paragraph, TextRun, PageBreak } from 'docx';
+import pptxgen from 'pptxgenjs';
 
 
 // Helper to convert HEX to PDF-lib RGB colors (0 to 1 range)
@@ -384,6 +387,267 @@ export async function stampQrCode(pdfBuffer, qrStamps) {
   // qrStamps: Array of { pageIndex, dataUrl, x, y, width, height, pageW, pageH }
   return await stampSignatures(pdfBuffer, qrStamps);
 }
+
+// 14. Convert DOCX to PDF
+export async function convertDocxToPdf(docxBuffer) {
+  const zip = await JSZip.loadAsync(docxBuffer);
+  const docXmlText = await zip.file('word/document.xml').async('text');
+  
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(docXmlText, 'application/xml');
+  const paragraphs = xmlDoc.getElementsByTagName('w:p');
+  
+  const pdfDoc = await PDFDocument.create();
+  let page = pdfDoc.addPage([595, 842]); // A4
+  const { width, height } = page.getSize();
+  const margin = 50;
+  let y = height - margin;
+  
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  
+  for (let i = 0; i < paragraphs.length; i++) {
+    const p = paragraphs[i];
+    const textRuns = p.getElementsByTagName('w:t');
+    let paragraphText = '';
+    for (let j = 0; j < textRuns.length; j++) {
+      paragraphText += textRuns[j].textContent;
+    }
+    
+    if (!paragraphText.trim()) {
+      y -= 15; // empty line
+      continue;
+    }
+    
+    const words = paragraphText.split(' ');
+    let line = '';
+    for (const word of words) {
+      const testLine = line + (line ? ' ' : '') + word;
+      const testWidth = font.widthOfTextAtSize(testLine, 11);
+      if (testWidth > width - margin * 2) {
+        if (y < margin + 20) {
+          page = pdfDoc.addPage([595, 842]);
+          y = height - margin;
+        }
+        page.drawText(line, { x: margin, y, size: 11, font });
+        y -= 15;
+        line = word;
+      } else {
+        line = testLine;
+      }
+    }
+    
+    if (line) {
+      if (y < margin + 20) {
+        page = pdfDoc.addPage([595, 842]);
+        y = height - margin;
+      }
+      page.drawText(line, { x: margin, y, size: 11, font });
+      y -= 20;
+    }
+  }
+  
+  return await pdfDoc.save();
+}
+
+// 15. Convert PPTX to PDF
+export async function convertPptxToPdf(pptxBuffer) {
+  const zip = await JSZip.loadAsync(pptxBuffer);
+  
+  const slideKeys = Object.keys(zip.files).filter(key => key.startsWith('ppt/slides/slide') && key.endsWith('.xml'));
+  slideKeys.sort((a, b) => {
+    const numA = parseInt(a.replace('ppt/slides/slide', '').replace('.xml', ''), 10);
+    const numB = parseInt(b.replace('ppt/slides/slide', '').replace('.xml', ''), 10);
+    return numA - numB;
+  });
+  
+  const pdfDoc = await PDFDocument.create();
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  
+  for (const slideKey of slideKeys) {
+    const slideXmlText = await zip.file(slideKey).async('text');
+    
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(slideXmlText, 'application/xml');
+    
+    const textElements = xmlDoc.getElementsByTagName('a:t');
+    let slideTextLines = [];
+    let currentLine = '';
+    
+    for (let i = 0; i < textElements.length; i++) {
+      const text = textElements[i].textContent;
+      if (text.includes('\n')) {
+        slideTextLines.push(currentLine);
+        currentLine = '';
+      } else {
+        currentLine += text;
+      }
+    }
+    if (currentLine) {
+      slideTextLines.push(currentLine);
+    }
+    
+    const page = pdfDoc.addPage([842, 595]); // A4 Landscape
+    const { width, height } = page.getSize();
+    
+    page.drawRectangle({
+      x: 20,
+      y: 20,
+      width: width - 40,
+      height: height - 40,
+      borderColor: rgb(0.8, 0.8, 0.8),
+      borderWidth: 1,
+      color: rgb(0.98, 0.98, 0.98)
+    });
+    
+    let y = height - 60;
+    const margin = 50;
+    
+    const slideNumber = slideKey.replace('ppt/slides/slide', '').replace('.xml', '');
+    page.drawText(`Slide ${slideNumber}`, { x: width - 80, y: 35, size: 9, font, color: rgb(0.5, 0.5, 0.5) });
+    
+    for (let line of slideTextLines) {
+      if (!line.trim()) continue;
+      
+      const words = line.split(' ');
+      let lineText = '';
+      for (const word of words) {
+        const testLine = lineText + (lineText ? ' ' : '') + word;
+        const testWidth = font.widthOfTextAtSize(testLine, 14);
+        if (testWidth > width - margin * 2) {
+          if (y > 50) {
+            page.drawText(lineText, { x: margin, y, size: 14, font });
+            y -= 22;
+          }
+          lineText = word;
+        } else {
+          lineText = testLine;
+        }
+      }
+      if (lineText && y > 50) {
+        page.drawText(lineText, { x: margin, y, size: 14, font });
+        y -= 28;
+      }
+    }
+  }
+  
+  return await pdfDoc.save();
+}
+
+// 16. Convert PDF to DOCX
+export async function convertPdfToDocx(pdfBuffer, onProgress) {
+  if (!window.pdfjsLib) {
+    throw new Error('PDF.js is not loaded yet.');
+  }
+  const loadingTask = window.pdfjsLib.getDocument({ data: pdfBuffer });
+  const pdf = await loadingTask.promise;
+  const numPages = pdf.numPages;
+  const docChildren = [];
+  
+  for (let i = 1; i <= numPages; i++) {
+    const page = await pdf.getPage(i);
+    const textContent = await page.getTextContent();
+    const items = textContent.items;
+    
+    const lineGroups = {};
+    for (const item of items) {
+      const y = Math.round(item.transform[5] / 10) * 10;
+      if (!lineGroups[y]) lineGroups[y] = [];
+      lineGroups[y].push(item);
+    }
+    
+    const sortedYs = Object.keys(lineGroups).sort((a, b) => b - a);
+    
+    for (const y of sortedYs) {
+      const lineItems = lineGroups[y].sort((a, b) => a.transform[4] - b.transform[4]);
+      const lineText = lineItems.map(item => item.str).join(' ');
+      if (lineText.trim()) {
+        docChildren.push(
+          new Paragraph({
+            children: [new TextRun({ text: lineText, size: 24 })],
+            spacing: { after: 120 }
+          })
+        );
+      }
+    }
+    
+    if (i < numPages) {
+      docChildren.push(new Paragraph({ children: [new PageBreak()] }));
+    }
+    
+    if (onProgress) {
+      onProgress(Math.round((i / numPages) * 100));
+    }
+  }
+  
+  const doc = new Document({
+    sections: [{
+      properties: {},
+      children: docChildren
+    }]
+  });
+  
+  const outBuffer = await Packer.toBlob(doc);
+  return outBuffer;
+}
+
+// 17. Convert PDF to PPTX
+export async function convertPdfToPptx(pdfBuffer, onProgress) {
+  if (!window.pdfjsLib) {
+    throw new Error('PDF.js is not loaded yet.');
+  }
+  const loadingTask = window.pdfjsLib.getDocument({ data: pdfBuffer });
+  const pdf = await loadingTask.promise;
+  const numPages = pdf.numPages;
+  
+  const pptx = new pptxgen();
+  
+  for (let i = 1; i <= numPages; i++) {
+    const page = await pdf.getPage(i);
+    const textContent = await page.getTextContent();
+    const items = textContent.items;
+    
+    const lineGroups = {};
+    for (const item of items) {
+      const y = Math.round(item.transform[5] / 10) * 10;
+      if (!lineGroups[y]) lineGroups[y] = [];
+      lineGroups[y].push(item);
+    }
+    
+    const sortedYs = Object.keys(lineGroups).sort((a, b) => b - a);
+    const lines = [];
+    for (const y of sortedYs) {
+      const lineItems = lineGroups[y].sort((a, b) => a.transform[4] - b.transform[4]);
+      const lineText = lineItems.map(item => item.str).join(' ');
+      if (lineText.trim()) {
+        lines.push(lineText);
+      }
+    }
+    
+    const slide = pptx.addSlide();
+    slide.addText(`Slide ${i}`, { x: 0.5, y: 0.5, w: '90%', h: 0.5, fontSize: 18, bold: true, color: '475569' });
+    
+    if (lines.length > 0) {
+      slide.addText(lines.join('\n'), {
+        x: 0.5,
+        y: 1.2,
+        w: 9.0,
+        h: 4.5,
+        fontSize: 12,
+        color: '1E293B',
+        vertical: 'top',
+        breakLine: true
+      });
+    }
+    
+    if (onProgress) {
+      onProgress(Math.round((i / numPages) * 100));
+    }
+  }
+  
+  const outBuffer = await pptx.write('blob');
+  return outBuffer;
+}
+
 
 
 
