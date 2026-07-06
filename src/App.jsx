@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import JSZip from 'jszip';
+import QRCode from 'qrcode';
 import { 
   Combine, 
   Scissors, 
@@ -22,7 +23,8 @@ import {
   Info,
   FileText,
   PenTool,
-  Lock
+  Lock,
+  QrCode
 } from 'lucide-react';
 
 import { 
@@ -37,7 +39,8 @@ import {
   editMetadata, 
   extractTextFromPdf,
   stampSignatures,
-  encryptPdfFile
+  encryptPdfFile,
+  stampQrCode
 } from './utils/pdfProcessor';
 
 // Parallel/Batch PDF Page Pre-renderer to Cache Base64 Images
@@ -181,8 +184,14 @@ function App() {
     algorithm: 'AES-256'
   });
 
+  // QR Code States
+  const [qrText, setQrText] = useState('https://pdfcraft.online');
+  const [qrFgColor, setQrFgColor] = useState('#000000');
+  const [qrBgColor, setQrBgColor] = useState('#ffffff');
+  const [qrDataUrl, setQrDataUrl] = useState('');
+
   // Signature States
-  const [signatureDataUrl, setSignatureDataUrl] = useState(null); // Drawn signature PNG
+  const [signatureDataUrl, setSignatureDataUrl] = useState(null); // Drawn signature PNG or QR Code PNG
   const [signatureAspectRatio, setSignatureAspectRatio] = useState(2); // width / height
   const [placedSignatures, setPlacedSignatures] = useState([]); // Array of { pageIndex, dataUrl, x, y, width, height, pageW, pageH }
   const [activePageToSign, setActivePageToSign] = useState(null); // index of page being stamped
@@ -222,6 +231,26 @@ function App() {
     }
   };
 
+  // QR Code Real-time generation effect
+  useEffect(() => {
+    if (activeTool === 'qr') {
+      QRCode.toDataURL(qrText || ' ', {
+        color: {
+          dark: qrFgColor,
+          light: qrBgColor
+        },
+        margin: 1,
+        width: 300
+      })
+      .then(url => {
+        setQrDataUrl(url);
+        setSignatureDataUrl(url); // Map QR code to reuse signature visual placement components!
+        setSignatureAspectRatio(1); // QR is always square (1:1 ratio)
+      })
+      .catch(err => console.error(err));
+    }
+  }, [qrText, qrFgColor, qrBgColor, activeTool]);
+
   // Define tools catalog
   const tools = [
     {
@@ -256,6 +285,15 @@ function App() {
       title: 'Sign PDF',
       description: 'Draw or upload your signature, then visually place and resize it on any page of the PDF.',
       icon: <PenTool size={24} />,
+      category: 'Edits',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'qr',
+      title: 'Stamp QR Code',
+      description: 'Generate a QR code from text or URLs and visually stamp it on any page of the PDF.',
+      icon: <QrCode size={24} />,
       category: 'Edits',
       multiple: false,
       accept: '.pdf'
@@ -534,6 +572,10 @@ function App() {
       allowModifying: true,
       algorithm: 'AES-256'
     });
+    setQrText('https://pdfcraft.online');
+    setQrFgColor('#000000');
+    setQrBgColor('#ffffff');
+    setQrDataUrl('');
   };
 
   const backToHome = () => {
@@ -953,6 +995,18 @@ function App() {
         
         outputBytes = await stampSignatures(file.buffer, placedSignatures);
         filename = `${file.name.replace('.pdf', '')}_signed.pdf`;
+      }
+
+      else if (activeTool === 'qr') {
+        setProcessingStatus('Embedding QR codes...');
+        const file = uploadedFiles[0];
+        
+        if (placedSignatures.length === 0) {
+          throw new Error('Please visually place at least one QR code stamp on a page.');
+        }
+        
+        outputBytes = await stampQrCode(file.buffer, placedSignatures);
+        filename = `${file.name.replace('.pdf', '')}_qr_stamped.pdf`;
       }
 
       else if (activeTool === 'protect') {
@@ -1404,8 +1458,8 @@ function App() {
                         })}
                       </div>
                     </div>
-                  ) : activeTool === 'sign' ? (
-                    /* Visual Signature Placement Layout */
+                  ) : (activeTool === 'sign' || activeTool === 'qr') ? (
+                    /* Visual Signature / QR Code Placement Layout */
                     activePageToSign !== null ? (
                       /* visual page placement zoom view */
                       <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', alignItems: 'center' }}>
@@ -1413,7 +1467,7 @@ function App() {
                           <button className="btn-back" style={{ padding: '0.35rem 0.6rem' }} onClick={() => setActivePageToSign(null)}>
                             ◀ Cancel placement
                           </button>
-                          <span style={{ fontSize: '0.85rem', fontWeight: '700' }}>Placing signature on Page {activePageToSign + 1}</span>
+                          <span style={{ fontSize: '0.85rem', fontWeight: '700' }}>Placing {activeTool === 'qr' ? 'QR Code' : 'signature'} on Page {activePageToSign + 1}</span>
                           <button className="btn-upload" style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', backgroundColor: 'var(--success-color)' }} onClick={saveSignaturePlacement}>
                             Apply Placement
                           </button>
@@ -1437,7 +1491,7 @@ function App() {
                             src={pagePreviews.find(p => p.originalIndex === activePageToSign)?.dataUrl} 
                             onLoad={handlePageImageLoad}
                             style={{ display: 'block', maxWidth: '100%', maxHeight: '420px', objectFit: 'contain', pointerEvents: 'none' }}
-                            alt="page to sign"
+                            alt="page to stamp"
                           />
                           
                           {/* Draggable signature element */}
@@ -1456,18 +1510,18 @@ function App() {
                             onMouseDown={handleSignatureMouseDown}
                             onTouchStart={handleSignatureMouseDown}
                           >
-                            <img src={signatureDataUrl} style={{ width: '100%', height: '100%', pointerEvents: 'none' }} alt="signature seal" />
+                            <img src={signatureDataUrl} style={{ width: '100%', height: '100%', pointerEvents: 'none' }} alt="stamp seal" />
                           </div>
                         </div>
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-                          Drag the signature box to position it. Use the slider on the right to resize.
+                          Drag the stamp box to position it. Use the slider on the right to resize.
                         </span>
                       </div>
                     ) : (
-                      /* page selection list for signing */
+                      /* page selection list for stamping */
                       <div className="files-preview-container">
                         <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-                          {signatureDataUrl ? 'Choose a page below to visually stamp your signature.' : 'Please create your signature on the right panel first.'}
+                          {signatureDataUrl ? `Choose a page below to visually stamp your ${activeTool === 'qr' ? 'QR Code' : 'signature'}.` : 'Please set up your options in the right panel first.'}
                         </div>
                         <div className="files-grid">
                           {Array.from({ length: uploadedFiles[0].pageCount }).map((_, originalIdx) => {
@@ -1503,11 +1557,12 @@ function App() {
                                     disabled={!signatureDataUrl}
                                     onClick={() => {
                                       setActivePageToSign(originalIdx);
-                                      // Center the signature box by default
-                                      setSigPos({ x: 40, y: 40, w: 120, h: Math.round(120 / signatureAspectRatio) });
+                                      // Center the stamp box by default
+                                      const w = activeTool === 'qr' ? 100 : 120;
+                                      setSigPos({ x: 40, y: 40, w, h: Math.round(w / signatureAspectRatio) });
                                     }}
                                   >
-                                    Stamp Sign
+                                    Stamp {activeTool === 'qr' ? 'QR' : 'Sign'}
                                   </button>
                                 </div>
                               </div>
@@ -1660,6 +1715,96 @@ function App() {
                             {placedSignatures.map((stamp, idx) => (
                               <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', backgroundColor: 'var(--bg-secondary)', padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
                                 <span>Page {stamp.pageIndex + 1} stamp</span>
+                                <button style={{ border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer' }} onClick={() => removePlacedSignature(idx)}>
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {activeTool === 'qr' && (
+                    <div className="sidebar-section" style={{ gap: '1rem' }}>
+                      <h3>QR Code Generator</h3>
+
+                      <div className="form-group">
+                        <label>QR Code Content (Text / URL)</label>
+                        <input 
+                          type="text"
+                          className="form-control"
+                          value={qrText}
+                          onChange={(e) => setQrText(e.target.value)}
+                          placeholder="e.g. https://www.google.com"
+                        />
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                        <div className="form-group">
+                          <label>Foreground</label>
+                          <input 
+                            type="color" 
+                            className="form-control" 
+                            style={{ height: '38px', padding: '2px', cursor: 'pointer' }}
+                            value={qrFgColor} 
+                            onChange={(e) => setQrFgColor(e.target.value)}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Background</label>
+                          <input 
+                            type="color" 
+                            className="form-control" 
+                            style={{ height: '38px', padding: '2px', cursor: 'pointer' }}
+                            value={qrBgColor} 
+                            onChange={(e) => setQrBgColor(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      {qrDataUrl && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
+                          <label style={{ fontSize: '0.8rem', fontWeight: '600', width: '100%' }}>QR Preview</label>
+                          <div style={{ 
+                            backgroundColor: 'white', 
+                            border: '1px solid var(--border-color)', 
+                            borderRadius: 'var(--radius-sm)', 
+                            padding: '0.5rem', 
+                            width: '100px',
+                            height: '100px', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center' 
+                          }}>
+                            <img src={qrDataUrl} style={{ height: '100%', width: '100%', objectFit: 'contain' }} alt="qr code preview" />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Active stamp page resizing slider */}
+                      {activePageToSign !== null && (
+                        <div className="form-group" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+                          <label>QR Code Width ({sigPos.w}px)</label>
+                          <input 
+                            type="range" 
+                            min="30" 
+                            max="250" 
+                            value={sigPos.w}
+                            onChange={(e) => handleSignatureSizeChange(e.target.value)}
+                          />
+                        </div>
+                      )}
+
+                      {/* Stamped List */}
+                      {placedSignatures.length > 0 && (
+                        <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          <label style={{ fontSize: '0.8rem', fontWeight: '700' }}>Placed QR Stamps ({placedSignatures.length})</label>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', maxHeight: '120px', overflowY: 'auto' }}>
+                            {placedSignatures.map((stamp, idx) => (
+                              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', backgroundColor: 'var(--bg-secondary)', padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+                                <span>Page {stamp.pageIndex + 1} QR stamp</span>
                                 <button style={{ border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer' }} onClick={() => removePlacedSignature(idx)}>
                                   <Trash2 size={12} />
                                 </button>
@@ -2080,8 +2225,8 @@ function App() {
                     onClick={runProcess}
                     disabled={
                       (activeTool === 'split' && !splitRanges.trim()) ||
-                      (activeTool === 'sign' && placedSignatures.length === 0) ||
-                      (activeTool === 'sign' && activePageToSign !== null) ||
+                      ((activeTool === 'sign' || activeTool === 'qr') && placedSignatures.length === 0) ||
+                      ((activeTool === 'sign' || activeTool === 'qr') && activePageToSign !== null) ||
                       (activeTool === 'protect' && !protectPassword.trim())
                     }
                   >

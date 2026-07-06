@@ -379,4 +379,11 @@ export async function encryptPdfFile(pdfBuffer, password, options = {}) {
   return encryptedBytes;
 }
 
+// 13. Stamp QR Codes
+export async function stampQrCode(pdfBuffer, qrStamps) {
+  // qrStamps: Array of { pageIndex, dataUrl, x, y, width, height, pageW, pageH }
+  return await stampSignatures(pdfBuffer, qrStamps);
+}
+
+
 
