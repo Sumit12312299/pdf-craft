@@ -390,69 +390,91 @@ export async function stampQrCode(pdfBuffer, qrStamps) {
 
 // 14. Convert DOCX to PDF
 export async function convertDocxToPdf(docxBuffer) {
-  const zip = await JSZip.loadAsync(docxBuffer);
-  const docXmlText = await zip.file('word/document.xml').async('text');
-  
-  const parser = new DOMParser();
-  const xmlDoc = parser.parseFromString(docXmlText, 'application/xml');
-  const paragraphs = xmlDoc.getElementsByTagName('w:p');
-  
-  const pdfDoc = await PDFDocument.create();
-  let page = pdfDoc.addPage([595, 842]); // A4
-  const { width, height } = page.getSize();
-  const margin = 50;
-  let y = height - margin;
-  
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  
-  for (let i = 0; i < paragraphs.length; i++) {
-    const p = paragraphs[i];
-    const textRuns = p.getElementsByTagName('w:t');
-    let paragraphText = '';
-    for (let j = 0; j < textRuns.length; j++) {
-      paragraphText += textRuns[j].textContent;
-    }
-    
-    if (!paragraphText.trim()) {
-      y -= 15; // empty line
-      continue;
-    }
-    
-    const words = paragraphText.split(' ');
-    let line = '';
-    for (const word of words) {
-      const testLine = line + (line ? ' ' : '') + word;
-      const testWidth = font.widthOfTextAtSize(testLine, 11);
-      if (testWidth > width - margin * 2) {
-        if (y < margin + 20) {
-          page = pdfDoc.addPage([595, 842]);
-          y = height - margin;
-        }
-        page.drawText(line, { x: margin, y, size: 11, font });
-        y -= 15;
-        line = word;
-      } else {
-        line = testLine;
-      }
-    }
-    
-    if (line) {
-      if (y < margin + 20) {
-        page = pdfDoc.addPage([595, 842]);
-        y = height - margin;
-      }
-      page.drawText(line, { x: margin, y, size: 11, font });
-      y -= 20;
-    }
+  if (!window.mammoth) {
+    throw new Error('Mammoth library is not loaded. Please refresh the page and try again.');
+  }
+  if (!window.html2pdf) {
+    throw new Error('html2pdf library is not loaded. Please refresh the page and try again.');
   }
   
-  return await pdfDoc.save();
+  // 1. Convert DOCX to HTML
+  const result = await window.mammoth.convertToHtml({ arrayBuffer: docxBuffer });
+  const htmlContent = result.value; // The generated HTML
+  
+  // 2. Create a temporary container styled beautifully to resemble a clean document layout
+  const tempDiv = document.createElement('div');
+  tempDiv.id = 'docx-temp-render';
+  tempDiv.style.position = 'absolute';
+  tempDiv.style.left = '-9999px';
+  tempDiv.style.top = '-9999px';
+  tempDiv.style.width = '794px'; // A4 width at 96 DPI
+  tempDiv.style.padding = '50px';
+  tempDiv.style.boxSizing = 'border-box';
+  tempDiv.style.fontFamily = '"Plus Jakarta Sans", "Helvetica Neue", Helvetica, Arial, sans-serif';
+  tempDiv.style.fontSize = '14px';
+  tempDiv.style.lineHeight = '1.6';
+  tempDiv.style.color = '#1e293b';
+  tempDiv.style.backgroundColor = '#ffffff';
+  
+  // Inject basic CSS rules to format the mammoth output cleanly
+  tempDiv.innerHTML = `
+    <style>
+      #docx-temp-render h1, #docx-temp-render h2, #docx-temp-render h3 {
+        color: #0f172a;
+        margin-top: 1.5rem;
+        margin-bottom: 0.75rem;
+        font-weight: 700;
+      }
+      #docx-temp-render h1 { font-size: 24px; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem; }
+      #docx-temp-render h2 { font-size: 20px; }
+      #docx-temp-render h3 { font-size: 16px; }
+      #docx-temp-render p { margin-bottom: 1rem; }
+      #docx-temp-render img { max-width: 100%; height: auto; display: block; margin: 1rem auto; border-radius: 4px; }
+      #docx-temp-render table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+      #docx-temp-render th, #docx-temp-render td { border: 1px solid #cbd5e1; padding: 8px 12px; text-align: left; }
+      #docx-temp-render th { background-color: #f1f5f9; font-weight: 600; }
+      #docx-temp-render ul, #docx-temp-render ol { margin-bottom: 1rem; padding-left: 20px; }
+      #docx-temp-render li { margin-bottom: 0.25rem; }
+    </style>
+    ${htmlContent}
+  `;
+  
+  document.body.appendChild(tempDiv);
+  
+  // 3. Configure html2pdf options
+  const opt = {
+    margin: [15, 15, 15, 15], // margins in mm
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { 
+      scale: 2, 
+      useCORS: true, 
+      logging: false,
+      letterRendering: true
+    },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+  
+  try {
+    // Generate PDF ArrayBuffer
+    const pdfArrayBuffer = await window.html2pdf()
+      .from(tempDiv)
+      .set(opt)
+      .outputPdf('arraybuffer');
+      
+    return new Uint8Array(pdfArrayBuffer);
+  } finally {
+    // Clean up temporary DOM element
+    document.body.removeChild(tempDiv);
+  }
 }
 
 // 15. Convert PPTX to PDF
 export async function convertPptxToPdf(pptxBuffer) {
-  const zip = await JSZip.loadAsync(pptxBuffer);
+  if (!window.html2pdf) {
+    throw new Error('html2pdf library is not loaded. Please refresh the page and try again.');
+  }
   
+  const zip = await JSZip.loadAsync(pptxBuffer);
   const slideKeys = Object.keys(zip.files).filter(key => key.startsWith('ppt/slides/slide') && key.endsWith('.xml'));
   slideKeys.sort((a, b) => {
     const numA = parseInt(a.replace('ppt/slides/slide', '').replace('.xml', ''), 10);
@@ -460,12 +482,59 @@ export async function convertPptxToPdf(pptxBuffer) {
     return numA - numB;
   });
   
-  const pdfDoc = await PDFDocument.create();
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  // Create a container for slides html rendering
+  const tempDiv = document.createElement('div');
+  tempDiv.id = 'pptx-temp-render';
+  tempDiv.style.position = 'absolute';
+  tempDiv.style.left = '-9999px';
+  tempDiv.style.top = '-9999px';
+  tempDiv.style.width = '1123px'; // A4 Landscape width at 96 DPI
+  tempDiv.style.boxSizing = 'border-box';
+  tempDiv.style.fontFamily = '"Plus Jakarta Sans", "Helvetica Neue", Helvetica, Arial, sans-serif';
+  tempDiv.style.color = '#1e293b';
+  tempDiv.style.backgroundColor = '#ffffff';
+  
+  let slidesHtml = `
+    <style>
+      .pptx-slide {
+        width: 1123px;
+        height: 794px; /* A4 Landscape height */
+        padding: 60px;
+        box-sizing: border-box;
+        border: 1px solid #cbd5e1;
+        background-color: #f8fafc;
+        position: relative;
+        page-break-after: always;
+        display: flex;
+        flex-direction: column;
+      }
+      .pptx-slide-title {
+        font-size: 32px;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 2rem;
+        border-bottom: 2px solid #e2e8f0;
+        padding-bottom: 0.5rem;
+      }
+      .pptx-slide-content {
+        font-size: 20px;
+        line-height: 1.6;
+        color: #334155;
+        white-space: pre-wrap;
+        flex-grow: 1;
+      }
+      .pptx-slide-number {
+        position: absolute;
+        bottom: 30px;
+        right: 40px;
+        font-size: 14px;
+        color: #64748b;
+      }
+    </style>
+  `;
   
   for (const slideKey of slideKeys) {
     const slideXmlText = await zip.file(slideKey).async('text');
-    
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(slideXmlText, 'application/xml');
     
@@ -486,51 +555,46 @@ export async function convertPptxToPdf(pptxBuffer) {
       slideTextLines.push(currentLine);
     }
     
-    const page = pdfDoc.addPage([842, 595]); // A4 Landscape
-    const { width, height } = page.getSize();
-    
-    page.drawRectangle({
-      x: 20,
-      y: 20,
-      width: width - 40,
-      height: height - 40,
-      borderColor: rgb(0.8, 0.8, 0.8),
-      borderWidth: 1,
-      color: rgb(0.98, 0.98, 0.98)
-    });
-    
-    let y = height - 60;
-    const margin = 50;
-    
     const slideNumber = slideKey.replace('ppt/slides/slide', '').replace('.xml', '');
-    page.drawText(`Slide ${slideNumber}`, { x: width - 80, y: 35, size: 9, font, color: rgb(0.5, 0.5, 0.5) });
+    const cleanLines = slideTextLines.filter(line => line.trim());
     
-    for (let line of slideTextLines) {
-      if (!line.trim()) continue;
-      
-      const words = line.split(' ');
-      let lineText = '';
-      for (const word of words) {
-        const testLine = lineText + (lineText ? ' ' : '') + word;
-        const testWidth = font.widthOfTextAtSize(testLine, 14);
-        if (testWidth > width - margin * 2) {
-          if (y > 50) {
-            page.drawText(lineText, { x: margin, y, size: 14, font });
-            y -= 22;
-          }
-          lineText = word;
-        } else {
-          lineText = testLine;
-        }
-      }
-      if (lineText && y > 50) {
-        page.drawText(lineText, { x: margin, y, size: 14, font });
-        y -= 28;
-      }
-    }
+    const slideTitle = cleanLines.length > 0 ? cleanLines[0] : `Slide ${slideNumber}`;
+    const slideBody = cleanLines.slice(1).join('\n');
+    
+    slidesHtml += `
+      <div class="pptx-slide">
+        <div class="pptx-slide-title">${slideTitle}</div>
+        <div class="pptx-slide-content">${slideBody}</div>
+        <div class="pptx-slide-number">Slide ${slideNumber}</div>
+      </div>
+    `;
   }
   
-  return await pdfDoc.save();
+  tempDiv.innerHTML = slidesHtml;
+  document.body.appendChild(tempDiv);
+  
+  const opt = {
+    margin: [0, 0, 0, 0],
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { 
+      scale: 2, 
+      useCORS: true, 
+      logging: false,
+      letterRendering: true
+    },
+    jsPDF: { unit: 'px', format: [1123, 794], orientation: 'landscape' }
+  };
+  
+  try {
+    const pdfArrayBuffer = await window.html2pdf()
+      .from(tempDiv)
+      .set(opt)
+      .outputPdf('arraybuffer');
+      
+    return new Uint8Array(pdfArrayBuffer);
+  } finally {
+    document.body.removeChild(tempDiv);
+  }
 }
 
 // 16. Convert PDF to DOCX
