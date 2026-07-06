@@ -1974,7 +1974,7 @@ function App() {
           /* Active Tool Workspace */
           <div className="workspace-container">
             <div className="workspace-header">
-              <button className="btn-back" onClick={backToHome}>
+              <button className="btn-back btn-back-desktop" onClick={backToHome}>
                 <ArrowLeft size={16} /> Back to Tools
               </button>
               <div className="workspace-title-area">
