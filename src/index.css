@@ -938,3 +938,43 @@ input:checked + .slider {
 input:checked + .slider:before {
   transform: translateX(22px);
 }
+
+/* Social Share Buttons */
+.share-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast) ease-in-out;
+}
+
+.share-btn:hover {
+  transform: translateY(-2px);
+  color: white;
+}
+
+.share-btn.whatsapp:hover {
+  background-color: #25D366;
+  border-color: #25D366;
+}
+
+.share-btn.telegram:hover {
+  background-color: #0088cc;
+  border-color: #0088cc;
+}
+
+.share-btn.linkedin:hover {
+  background-color: #0077b5;
+  border-color: #0077b5;
+}
+
+.share-btn.email:hover {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+}

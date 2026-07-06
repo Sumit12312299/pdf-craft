@@ -1334,9 +1334,72 @@ function App() {
                       'PDF'
                     }
                   </button>
-                  <button className="btn-reset" onClick={resetToolState}>
+                   <button className="btn-reset" onClick={resetToolState}>
                     Perform Another Operation
                   </button>
+
+                  <div style={{
+                    marginTop: '2rem',
+                    paddingTop: '1.5rem',
+                    borderTop: '1px solid var(--border-color)',
+                    width: '100%',
+                    maxWidth: '400px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.75rem'
+                  }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                      Share pdfCraft with others:
+                    </span>
+                    <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                      <a 
+                        href={`https://api.whatsapp.com/send?text=${encodeURIComponent("I just processed my document securely on pdfCraft! It's super fast, free, and runs entirely in the browser. Check it out: https://pdf-craft-sand.vercel.app/")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="share-btn whatsapp"
+                        title="Share on WhatsApp"
+                      >
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                          <path d="M12.012 2c-5.506 0-9.988 4.482-9.988 9.988 0 1.76.457 3.473 1.328 4.982L2.03 22l5.182-1.36c1.464.798 3.11 1.218 4.793 1.218 5.507 0 9.988-4.482 9.988-9.988C22 6.482 17.52 2 12.012 2zm6.262 14.372c-.258.73-1.488 1.428-2.046 1.482-.5.05-1.155.08-3.328-.82-2.777-1.15-4.57-3.98-4.71-4.168-.14-.19-1.123-1.493-1.123-2.846 0-1.353.708-2.015.96-2.28.25-.268.55-.333.73-.333.18 0 .36 0 .52.01.17 0 .4.01.61.51.22.53.76 1.86.83 1.99.07.13.11.29.02.46-.08.17-.18.28-.35.48-.17.2-.36.45-.52.6-.18.17-.37.36-.16.73.21.36.93 1.54 2 2.49 1.38 1.23 2.54 1.62 2.9 1.8.36.18.57.15.79-.09.21-.24.93-1.08 1.18-1.45.25-.37.5-.31.84-.18.35.13 2.2 1.04 2.58 1.23.38.19.64.28.73.43.08.16.08.93-.18 1.66z"/>
+                        </svg>
+                      </a>
+                      
+                      <a 
+                        href={`https://t.me/share/url?url=${encodeURIComponent("https://pdf-craft-sand.vercel.app/")}&text=${encodeURIComponent("I just processed my document securely on pdfCraft! It's super fast, free, and runs entirely in the browser. Check it out:")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="share-btn telegram"
+                        title="Share on Telegram"
+                      >
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-1-.65-.35-1 .22-1.6.15-.15 2.76-2.53 2.81-2.75.01-.03.01-.1-.04-.15-.05-.05-.12-.03-.17-.02-.07.02-1.29.83-3.64 2.42-.34.24-.66.35-.95.34-.32-.01-.94-.18-1.4-.33-.56-.18-1-.28-.96-.6.02-.17.25-.34.69-.53 2.7-1.17 4.5-1.95 5.4-2.33 2.56-1.09 3.09-1.28 3.44-1.28.08 0 .25.02.36.11.1.08.13.2.14.3-.01.06-.01.12-.02.18z"/>
+                        </svg>
+                      </a>
+                      
+                      <a 
+                        href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent("https://pdf-craft-sand.vercel.app/")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="share-btn linkedin"
+                        title="Share on LinkedIn"
+                      >
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                          <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/>
+                        </svg>
+                      </a>
+                      
+                      <a 
+                        href={`mailto:?subject=${encodeURIComponent("Secure PDF & Office Tools - pdfCraft")}&body=${encodeURIComponent("Hi,\n\nI just processed my document securely using pdfCraft. It runs completely client-side in the browser, meaning your files never leave your computer.\n\nTry it here: https://pdf-craft-sand.vercel.app/")}`}
+                        className="share-btn email"
+                        title="Share via Email"
+                      >
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                          <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                        </svg>
+                      </a>
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : extractedText ? (
