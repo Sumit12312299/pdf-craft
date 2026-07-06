@@ -1549,3 +1549,49 @@ input:checked + .slider:before {
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
 }
+
+/* Native Mobile App Enhancements */
+@media (max-width: 768px) {
+  body {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    overscroll-behavior-y: contain; /* Prevent pull-to-refresh */
+  }
+  
+  /* Optimize safe areas for newer phones (with notch/home indicators) */
+  .navbar {
+    padding-top: calc(0.75rem + env(safe-area-inset-top, 0px));
+    padding-left: calc(1rem + env(safe-area-inset-left, 0px));
+    padding-right: calc(1rem + env(safe-area-inset-right, 0px));
+  }
+  
+  .footer {
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .mobile-menu-drawer .drawer-content {
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Make tap responses super fast and smooth */
+  button, a, .tool-card, .file-preview-card {
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+  }
+  
+  /* Make the header look like a native app bar */
+  .navbar {
+    position: sticky;
+    top: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    background-color: var(--bg-primary);
+  }
+  
+  /* Scroll inertia for drawers and tool containers */
+  .drawer-body, .files-preview-container {
+    -webkit-overflow-scrolling: touch;
+  }
+}
