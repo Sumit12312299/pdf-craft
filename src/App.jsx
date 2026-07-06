@@ -1471,18 +1471,32 @@ function App() {
   const handleShareClick = (blob, name, type) => {
     setShareData({ blob, name, type });
     const file = new File([blob], name, { type });
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
     
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      navigator.share({
-        files: [file],
-        title: name,
-        text: 'Here is your file from pdfCraft!',
-      }).catch(err => {
-        // Even if they cancel (AbortError) or it fails, open the modal so they have other options
-        setShowShareModal(true);
-      });
+    if (navigator.share) {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({
+          files: [file],
+          title: name,
+          text: 'Here is your file from pdfCraft!',
+        }).catch(err => {
+          console.log('Native file sharing cancelled or failed:', err);
+        });
+      } else {
+        navigator.share({
+          title: name,
+          text: `Here is your processed file: ${name}`,
+          url: window.location.origin
+        }).catch(err => {
+          console.log('Native sharing cancelled or failed:', err);
+        });
+      }
     } else {
-      setShowShareModal(true);
+      if (!isMobile) {
+        setShowShareModal(true);
+      } else {
+        downloadBlob(blob, name);
+      }
     }
   };
 
