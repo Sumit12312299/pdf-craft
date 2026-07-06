@@ -369,6 +369,32 @@ function App() {
     }
   }, []);
 
+  // Handle Android/Mobile Physical Back Button
+  // When a tool is opened, push a fake history state so the back button returns to home
+  useEffect(() => {
+    if (activeTool !== null) {
+      // Push a state so back button has somewhere to go
+      window.history.pushState({ tool: activeTool }, '', window.location.href);
+    }
+  }, [activeTool]);
+
+  useEffect(() => {
+    const handlePopState = (e) => {
+      // If we're inside a tool, intercept the back button and go home
+      if (activeTool !== null) {
+        e.preventDefault();
+        resetToolState();
+        setActiveTool(null);
+        // Push state again so the next back press is also intercepted if needed
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [activeTool]);
+
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
