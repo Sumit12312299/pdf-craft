@@ -322,3 +322,40 @@ export async function extractTextFromPdf(pdfBuffer, onProgress) {
   
   return fullText;
 }
+
+// 11. Stamp Signatures
+export async function stampSignatures(pdfBuffer, signatures) {
+  // signatures: Array of { pageIndex, dataUrl, x, y, width, height, pageW, pageH }
+  const pdfDoc = await PDFDocument.load(pdfBuffer);
+  const pages = pdfDoc.getPages();
+  
+  for (const sig of signatures) {
+    const page = pages[sig.pageIndex];
+    if (!page) continue;
+    
+    const { width: pdfPageW, height: pdfPageH } = page.getSize();
+    
+    // Embed the transparent PNG signature image
+    const pngImage = await pdfDoc.embedPng(sig.dataUrl);
+    
+    // Translation ratios (UI pixels -> PDF points)
+    const scaleX = pdfPageW / sig.pageW;
+    const scaleY = pdfPageH / sig.pageH;
+    
+    const w = sig.width * scaleX;
+    const h = sig.height * scaleY;
+    const x = sig.x * scaleX;
+    // Invert Y coordinate since PDF's origin is bottom-left and HTML is top-left
+    const y = pdfPageH - ((sig.y + sig.height) * scaleY);
+    
+    page.drawImage(pngImage, {
+      x,
+      y,
+      width: w,
+      height: h
+    });
+  }
+  
+  return await pdfDoc.save();
+}
+

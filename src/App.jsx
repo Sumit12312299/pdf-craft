@@ -20,7 +20,9 @@ import {
   Sun, 
   Moon, 
   Info,
-  FileText
+  FileText,
+  FileSearch,
+  PenTool
 } from 'lucide-react';
 
 import { 
@@ -33,7 +35,8 @@ import {
   addPageNumbers, 
   addWatermark, 
   editMetadata, 
-  extractTextFromPdf 
+  extractTextFromPdf,
+  stampSignatures
 } from './utils/pdfProcessor';
 
 // Parallel/Batch PDF Page Pre-renderer to Cache Base64 Images
@@ -117,7 +120,7 @@ function App() {
   const [uploadedFiles, setUploadedFiles] = useState([]); // { file, buffer, pageCount, name, size, type, previewUrl, firstPagePreview }
   const [dragActive, setDragActive] = useState(false);
 
-  // Pre-rendered Page Cache for Organize & Split tools
+  // Pre-rendered Page Cache for Organize, Split, and Sign tools
   const [pagePreviews, setPagePreviews] = useState([]); // Array of { originalIndex, dataUrl }
   const [loadingPreviews, setLoadingPreviews] = useState(false);
   const [previewProgress, setPreviewProgress] = useState(0);
@@ -167,6 +170,19 @@ function App() {
     keywords: '',
     creator: 'PDFCraft Online'
   });
+
+  // Signature States
+  const [signatureDataUrl, setSignatureDataUrl] = useState(null); // Drawn signature PNG
+  const [signatureAspectRatio, setSignatureAspectRatio] = useState(2); // width / height
+  const [placedSignatures, setPlacedSignatures] = useState([]); // Array of { pageIndex, dataUrl, x, y, width, height, pageW, pageH }
+  const [activePageToSign, setActivePageToSign] = useState(null); // index of page being stamped
+  const [showSignatureModal, setShowSignatureModal] = useState(false);
+  const [sigPos, setSigPos] = useState({ x: 50, y: 50, w: 120, h: 60 });
+  const [renderedPageDimensions, setRenderedPageDimensions] = useState({ w: 0, h: 0 });
+  
+  const signatureCanvasRef = useRef(null);
+  const isDrawingRef = useRef(false);
+  const pageImageRef = useRef(null);
 
   // Text Extraction Results
   const [extractedText, setExtractedText] = useState('');
@@ -222,6 +238,15 @@ function App() {
       description: 'Visually sort, rotate, and delete pages of a PDF to restructure the document.',
       icon: <Layers size={24} />,
       category: 'Organize',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'sign',
+      title: 'Sign PDF',
+      description: 'Draw or upload your signature, then visually place and resize it on any page of the PDF.',
+      icon: <PenTool size={24} />,
+      category: 'Edits',
       multiple: false,
       accept: '.pdf'
     },
@@ -438,6 +463,8 @@ function App() {
       setPagePreviews([]);
       setOrganizePages([]);
       setSelectedPagesForSplit(new Set());
+      setPlacedSignatures([]);
+      setActivePageToSign(null);
     }
   };
 
@@ -447,6 +474,8 @@ function App() {
     setPagePreviews([]);
     setOrganizePages([]);
     setSelectedPagesForSplit(new Set());
+    setPlacedSignatures([]);
+    setActivePageToSign(null);
     setResultBlob(null);
     setResultName('');
     setProcessing(false);
@@ -565,7 +594,6 @@ function App() {
   const handleSplitRangeInputChange = (val) => {
     setSplitRanges(val);
     
-    // Attempt to parse range and select pages visually
     try {
       const pageCount = uploadedFiles[0]?.pageCount || 0;
       if (pageCount === 0) return;
@@ -596,7 +624,212 @@ function App() {
     }
   };
 
-  // Perform Operations (Highly optimized processing routines)
+  // CANVAS SIGNATURE DRAWING PAD HANDLERS
+  const startDrawing = (e) => {
+    const canvas = signatureCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    
+    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+    
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#000000'; // Draw in black for standard signature look
+    
+    isDrawingRef.current = true;
+  };
+
+  const drawSignature = (e) => {
+    if (!isDrawingRef.current) return;
+    const canvas = signatureCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    
+    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+    
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
+
+  const stopDrawing = () => {
+    isDrawingRef.current = false;
+  };
+
+  const clearSignatureCanvas = () => {
+    const canvas = signatureCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  };
+
+  const saveDrawnSignature = () => {
+    const canvas = signatureCanvasRef.current;
+    if (!canvas) return;
+    
+    // Check if canvas is empty
+    const ctx = canvas.getContext('2d');
+    const buffer = new Uint32Array(ctx.getImageData(0, 0, canvas.width, canvas.height).data.buffer);
+    const hasData = buffer.some(color => color !== 0);
+    
+    if (!hasData) {
+      alert('Please draw your signature first!');
+      return;
+    }
+    
+    const dataUrl = canvas.toDataURL('image/png');
+    setSignatureDataUrl(dataUrl);
+    setSignatureAspectRatio(2); // standard 400x200 canvas has aspect ratio 2
+    
+    // Reset dragging position size
+    setSigPos({ x: 50, y: 50, w: 120, h: 60 });
+    
+    setShowSignatureModal(false);
+  };
+
+  // Upload Pre-scanned Signature File (PNG / JPG)
+  const handleSignatureUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target.result;
+      
+      // Create image object to read aspect ratio
+      const img = new Image();
+      img.onload = () => {
+        const ratio = img.width / img.height;
+        setSignatureDataUrl(dataUrl);
+        setSignatureAspectRatio(ratio);
+        
+        // Size signature box proportionally
+        const w = 120;
+        setSigPos({ x: 50, y: 50, w, h: Math.round(w / ratio) });
+        setShowSignatureModal(false);
+      };
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Stamp Visual Drag Handler (Mouse and Touch supported)
+  const handleSignatureMouseDown = (e) => {
+    e.preventDefault();
+    const isTouch = e.type === 'touchstart';
+    const clientX = isTouch ? e.touches[0].clientX : e.clientX;
+    const clientY = isTouch ? e.touches[0].clientY : e.clientY;
+    
+    const startX = clientX;
+    const startY = clientY;
+    const initLeft = sigPos.x;
+    const initTop = sigPos.y;
+    
+    const container = pageImageRef.current.parentElement;
+    const containerRect = container.getBoundingClientRect();
+    
+    const handleMove = (moveEvent) => {
+      const moveClientX = moveEvent.type === 'touchmove' ? moveEvent.touches[0].clientX : moveEvent.clientX;
+      const moveClientY = moveEvent.type === 'touchmove' ? moveEvent.touches[0].clientY : moveEvent.clientY;
+      
+      const deltaX = moveClientX - startX;
+      const deltaY = moveClientY - startY;
+      
+      // Bound checking within the rendered page container
+      const newX = Math.max(0, Math.min(containerRect.width - sigPos.w, initLeft + deltaX));
+      const newY = Math.max(0, Math.min(containerRect.height - sigPos.h, initTop + deltaY));
+      
+      setSigPos(prev => ({ ...prev, x: newX, y: newY }));
+    };
+    
+    const handleEnd = () => {
+      if (isTouch) {
+        document.removeEventListener('touchmove', handleMove);
+        document.removeEventListener('touchend', handleEnd);
+      } else {
+        document.removeEventListener('mousemove', handleMove);
+        document.removeEventListener('mouseup', handleEnd);
+      }
+    };
+    
+    if (isTouch) {
+      document.addEventListener('touchmove', handleMove, { passive: false });
+      document.addEventListener('touchend', handleEnd);
+    } else {
+      document.addEventListener('mousemove', handleMove);
+      document.addEventListener('mouseup', handleEnd);
+    }
+  };
+
+  // Adjust signature dimensions proportionally via sidebar size slider
+  const handleSignatureSizeChange = (newWidth) => {
+    const w = parseInt(newWidth, 10);
+    const h = Math.round(w / signatureAspectRatio);
+    
+    // Maintain placement bounds
+    let x = sigPos.x;
+    let y = sigPos.y;
+    if (pageImageRef.current) {
+      const container = pageImageRef.current.parentElement;
+      const containerRect = container.getBoundingClientRect();
+      
+      if (x + w > containerRect.width) {
+        x = Math.max(0, containerRect.width - w);
+      }
+      if (y + h > containerRect.height) {
+        y = Math.max(0, containerRect.height - h);
+      }
+    }
+    
+    setSigPos({ x, y, w, h });
+  };
+
+  // Visual layout loaded sizes callback
+  const handlePageImageLoad = () => {
+    if (pageImageRef.current) {
+      const rect = pageImageRef.current.getBoundingClientRect();
+      setRenderedPageDimensions({ w: rect.width, h: rect.height });
+    }
+  };
+
+  // Save placed signature stamp details
+  const saveSignaturePlacement = () => {
+    if (renderedPageDimensions.w === 0 || renderedPageDimensions.h === 0) return;
+    
+    const newStamp = {
+      pageIndex: activePageToSign,
+      dataUrl: signatureDataUrl,
+      x: sigPos.x,
+      y: sigPos.y,
+      width: sigPos.w,
+      height: sigPos.h,
+      pageW: renderedPageDimensions.w,
+      pageH: renderedPageDimensions.h
+    };
+    
+    setPlacedSignatures([...placedSignatures, newStamp]);
+    setActivePageToSign(null); // return to signature page grid
+  };
+
+  const removePlacedSignature = (index) => {
+    const list = [...placedSignatures];
+    list.splice(index, 1);
+    setPlacedSignatures(list);
+  };
+
+  // Perform PDF Operations
   const runProcess = async () => {
     if (uploadedFiles.length === 0) return;
     
@@ -684,11 +917,23 @@ function App() {
         filename = `${file.name.replace('.pdf', '')}_updated.pdf`;
       }
 
+      else if (activeTool === 'sign') {
+        setProcessingStatus('Applying digital signatures...');
+        const file = uploadedFiles[0];
+        
+        if (placedSignatures.length === 0) {
+          throw new Error('Please visually place at least one signature stamp on a page.');
+        }
+        
+        outputBytes = await stampSignatures(file.buffer, placedSignatures);
+        filename = `${file.name.replace('.pdf', '')}_signed.pdf`;
+      }
+
       else if (activeTool === 'extract-text') {
         setProcessingStatus('Extracting text content...');
         const file = uploadedFiles[0];
         const text = await extractTextFromPdf(file.buffer, (prog) => {
-          setProgress(20 + Math.round(prog * 0.7)); // scale progress from 20% to 90%
+          setProgress(20 + Math.round(prog * 0.7)); 
         });
         setExtractedText(text);
         setProgress(100);
@@ -756,7 +1001,7 @@ function App() {
         setProgress(100);
         setTimeout(() => {
           setProcessing(false);
-        }, 150); // fast completion feedback
+        }, 150); 
       }
     } catch (err) {
       console.error(err);
@@ -1121,6 +1366,118 @@ function App() {
                         })}
                       </div>
                     </div>
+                  ) : activeTool === 'sign' ? (
+                    /* Visual Signature Placement Layout */
+                    activePageToSign !== null ? (
+                      /* visual page placement zoom view */
+                      <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', marginBottom: '1rem', alignItems: 'center' }}>
+                          <button className="btn-back" style={{ padding: '0.35rem 0.6rem' }} onClick={() => setActivePageToSign(null)}>
+                            ◀ Cancel placement
+                          </button>
+                          <span style={{ fontSize: '0.85rem', fontWeight: '700' }}>Placing signature on Page {activePageToSign + 1}</span>
+                          <button className="btn-upload" style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', backgroundColor: 'var(--success-color)' }} onClick={saveSignaturePlacement}>
+                            Apply Placement
+                          </button>
+                        </div>
+                        
+                        {/* Interactive Page Canvas Wrapper */}
+                        <div style={{ 
+                          position: 'relative', 
+                          border: '1px solid var(--border-color)', 
+                          boxShadow: 'var(--shadow-md)', 
+                          backgroundColor: 'var(--bg-primary)',
+                          maxWidth: '100%',
+                          maxHeight: '420px',
+                          display: 'flex',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          overflow: 'hidden'
+                        }}>
+                          <img 
+                            ref={pageImageRef}
+                            src={pagePreviews.find(p => p.originalIndex === activePageToSign)?.dataUrl} 
+                            onLoad={handlePageImageLoad}
+                            style={{ display: 'block', maxWidth: '100%', maxHeight: '420px', objectFit: 'contain', pointerEvents: 'none' }}
+                            alt="page to sign"
+                          />
+                          
+                          {/* Draggable signature element */}
+                          <div 
+                            style={{
+                              position: 'absolute',
+                              left: `${sigPos.x}px`,
+                              top: `${sigPos.y}px`,
+                              width: `${sigPos.w}px`,
+                              height: `${sigPos.h}px`,
+                              border: '1.5px dashed var(--accent-color)',
+                              cursor: 'move',
+                              backgroundColor: 'rgba(254, 226, 226, 0.2)',
+                              touchAction: 'none'
+                            }}
+                            onMouseDown={handleSignatureMouseDown}
+                            onTouchStart={handleSignatureMouseDown}
+                          >
+                            <img src={signatureDataUrl} style={{ width: '100%', height: '100%', pointerEvents: 'none' }} alt="signature seal" />
+                          </div>
+                        </div>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+                          Drag the signature box to position it. Use the slider on the right to resize.
+                        </span>
+                      </div>
+                    ) : (
+                      /* page selection list for signing */
+                      <div className="files-preview-container">
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                          {signatureDataUrl ? 'Choose a page below to visually stamp your signature.' : 'Please create your signature on the right panel first.'}
+                        </div>
+                        <div className="files-grid">
+                          {Array.from({ length: uploadedFiles[0].pageCount }).map((_, originalIdx) => {
+                            const previewObj = pagePreviews.find(p => p.originalIndex === originalIdx);
+                            const pageStampCount = placedSignatures.filter(s => s.pageIndex === originalIdx).length;
+                            return (
+                              <div 
+                                key={originalIdx} 
+                                className="file-preview-card"
+                                style={{ border: pageStampCount > 0 ? '1.5px solid var(--success-color)' : '1px solid var(--border-color)' }}
+                              >
+                                {pageStampCount > 0 && (
+                                  <div style={{ position: 'absolute', top: '6px', left: '6px', backgroundColor: 'var(--success-color)', color: 'white', borderRadius: 'var(--radius-full)', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: '800', zIndex: 10 }}>
+                                    {pageStampCount}
+                                  </div>
+                                )}
+                                <div className="file-preview-thumbnail">
+                                  {previewObj ? (
+                                    <img 
+                                      src={previewObj.dataUrl} 
+                                      className="file-preview-img"
+                                      alt={`Page ${originalIdx + 1}`}
+                                    />
+                                  ) : (
+                                    <div className="skeleton-pulse" />
+                                  )}
+                                </div>
+                                <div className="file-preview-info" style={{ marginTop: '4px' }}>
+                                  <div className="file-preview-name">Page {originalIdx + 1}</div>
+                                  <button 
+                                    className="btn-upload" 
+                                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', width: '100%', marginTop: '4px' }}
+                                    disabled={!signatureDataUrl}
+                                    onClick={() => {
+                                      setActivePageToSign(originalIdx);
+                                      // Center the signature box by default
+                                      setSigPos({ x: 40, y: 40, w: 120, h: Math.round(120 / signatureAspectRatio) });
+                                    }}
+                                  >
+                                    Stamp Sign
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )
                   ) : activeTool === 'img-to-pdf' ? (
                     /* Image list */
                     <div className="files-preview-container">
@@ -1142,7 +1499,7 @@ function App() {
                             <div className="card-nav-buttons">
                               <button className="btn-icon btn-nav" disabled={idx === 0} onClick={() => moveFileOrder(idx, -1)}>
                                 ◀
-                              </button>
+                                </button>
                               <button className="btn-icon btn-nav" disabled={idx === uploadedFiles.length - 1} onClick={() => moveFileOrder(idx, 1)}>
                                 ▶
                               </button>
@@ -1206,6 +1563,73 @@ function App() {
                       <div style={{ fontSize: '0.8rem', backgroundColor: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
                         <strong>Summary:</strong> Keeping {organizePages.length} of {uploadedFiles[0].pageCount} pages.
                       </div>
+                    </div>
+                  )}
+
+                  {activeTool === 'sign' && (
+                    <div className="sidebar-section" style={{ gap: '1rem' }}>
+                      <h3>Signature Setup</h3>
+                      
+                      {signatureDataUrl ? (
+                        /* Signature configured preview */
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Active Signature</label>
+                          <div style={{ 
+                            backgroundColor: 'white', 
+                            border: '1px solid var(--border-color)', 
+                            borderRadius: 'var(--radius-sm)', 
+                            padding: '0.5rem', 
+                            height: '60px', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center' 
+                          }}>
+                            <img src={signatureDataUrl} style={{ maxHeight: '100%', maxWidth: '100%' }} alt="drawn signature" />
+                          </div>
+                          <button className="btn-reset" style={{ width: '100%', padding: '0.4rem', fontSize: '0.8rem' }} onClick={() => setShowSignatureModal(true)}>
+                            Redraw Signature
+                          </button>
+                        </div>
+                      ) : (
+                        /* Empty state prompt signature */
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Create your signature drawing or upload a scanned image to enable stamping on pages.</p>
+                          <button className="btn-action-primary" style={{ padding: '0.75rem' }} onClick={() => setShowSignatureModal(true)}>
+                            Create Signature
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Active stamp page resizing slider */}
+                      {activePageToSign !== null && (
+                        <div className="form-group" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+                          <label>Signature Width ({sigPos.w}px)</label>
+                          <input 
+                            type="range" 
+                            min="30" 
+                            max="250" 
+                            value={sigPos.w}
+                            onChange={(e) => handleSignatureSizeChange(e.target.value)}
+                          />
+                        </div>
+                      )}
+
+                      {/* Stamped List */}
+                      {placedSignatures.length > 0 && (
+                        <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          <label style={{ fontSize: '0.8rem', fontWeight: '700' }}>Placed Stamps ({placedSignatures.length})</label>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', maxHeight: '120px', overflowY: 'auto' }}>
+                            {placedSignatures.map((stamp, idx) => (
+                              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', backgroundColor: 'var(--bg-secondary)', padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+                                <span>Page {stamp.pageIndex + 1} stamp</span>
+                                <button style={{ border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer' }} onClick={() => removePlacedSignature(idx)}>
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -1539,7 +1963,11 @@ function App() {
                   <button 
                     className="btn-action-primary"
                     onClick={runProcess}
-                    disabled={activeTool === 'split' && !splitRanges.trim()}
+                    disabled={
+                      (activeTool === 'split' && !splitRanges.trim()) ||
+                      (activeTool === 'sign' && placedSignatures.length === 0) ||
+                      (activeTool === 'sign' && activePageToSign !== null) // Disable save while visual placement editor is open
+                    }
                   >
                     {activeTool === 'extract-text' ? 'Extract Text' : `Convert to ${currentTool.id === 'pdf-to-img' ? 'Images' : 'PDF'}`}
                   </button>
@@ -1549,6 +1977,86 @@ function App() {
           </div>
         )}
       </main>
+
+      {/* SIGNATURE DRAWING PAD MODAL */}
+      {showSignatureModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 100,
+          animation: 'fadeIn 0.2s ease'
+        }}>
+          <div style={{
+            backgroundColor: 'var(--bg-primary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '1.5rem',
+            width: '90%',
+            maxWidth: '460px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.25rem',
+            boxShadow: 'var(--shadow-xl)',
+            animation: 'scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: '800' }}>Create Your Signature</h3>
+              <button className="btn-icon" style={{ padding: '2px 6px', fontSize: '0.8rem' }} onClick={() => setShowSignatureModal(false)}>✕</button>
+            </div>
+            
+            {/* Draw Pad Canvas */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Draw inside the box:</span>
+              <canvas 
+                ref={signatureCanvasRef}
+                width={400}
+                height={200}
+                style={{
+                  border: '1.5px solid var(--border-color)',
+                  borderRadius: 'var(--radius-sm)',
+                  backgroundColor: 'white',
+                  cursor: 'crosshair',
+                  touchAction: 'none',
+                  width: '100%',
+                  height: '200px'
+                }}
+                onMouseDown={startDrawing}
+                onMouseMove={drawSignature}
+                onMouseUp={stopDrawing}
+                onMouseLeave={stopDrawing}
+                onTouchStart={startDrawing}
+                onTouchMove={drawSignature}
+                onTouchEnd={stopDrawing}
+              />
+            </div>
+
+            {/* Option to Upload Image instead */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Or upload scanned signature image (PNG / JPG):</span>
+              <input 
+                type="file" 
+                accept="image/png, image/jpeg, image/jpg"
+                onChange={handleSignatureUpload}
+                style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}
+              />
+            </div>
+
+            {/* Modal Actions */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+              <button className="btn-reset" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }} onClick={clearSignatureCanvas}>
+                Clear Drawpad
+              </button>
+              <button className="btn-upload" style={{ padding: '0.5rem 1.25rem', fontSize: '0.8rem' }} onClick={saveDrawnSignature}>
+                Save Signature
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="footer">
