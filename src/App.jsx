@@ -311,6 +311,41 @@ function App() {
   const [renderedPageDimensions, setRenderedPageDimensions] = useState({ w: 0, h: 0 });
   const [previewModalImage, setPreviewModalImage] = useState(null);
   const [previewModalTitle, setPreviewModalTitle] = useState('');
+  const [lightboxLoading, setLightboxLoading] = useState(false);
+
+  const openLightbox = async (fileObj, pageIndex, fallbackUrl, title) => {
+    setPreviewModalTitle(title || fileObj?.name || 'Page Preview');
+    setPreviewModalImage(fallbackUrl); // Show fallback instantly
+    
+    // Render high-res version on-demand if it's a PDF and we have the buffer
+    if (fileObj && fileObj.buffer && (fileObj.name?.toLowerCase().endsWith('.pdf') || fileObj.file?.name?.toLowerCase().endsWith('.pdf'))) {
+      setLightboxLoading(true);
+      try {
+        if (window.pdfjsLib) {
+          const loadingTask = window.pdfjsLib.getDocument({ data: fileObj.buffer.slice(0) });
+          const pdf = await loadingTask.promise;
+          const page = await pdf.getPage(pageIndex + 1);
+          
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d');
+          
+          // Render at scale 2.0 for ultra-crisp retina quality text
+          const viewport = page.getViewport({ scale: 2.0 });
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          
+          await page.render({ canvasContext: context, viewport }).promise;
+          const highResDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+          
+          setPreviewModalImage(highResDataUrl);
+        }
+      } catch (err) {
+        console.error('Error rendering high-res preview:', err);
+      } finally {
+        setLightboxLoading(false);
+      }
+    }
+  };
   
   const signatureCanvasRef = useRef(null);
   const isDrawingRef = useRef(false);
@@ -2280,8 +2315,7 @@ function App() {
                                   title="Preview Page" 
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setPreviewModalImage(file.firstPagePreview);
-                                    setPreviewModalTitle(file.name);
+                                    openLightbox(file, 0, file.firstPagePreview, file.name);
                                   }}
                                 >
                                   <Eye size={10} />
@@ -2342,8 +2376,7 @@ function App() {
                                     title="Preview Page" 
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      setPreviewModalImage(previewObj.dataUrl);
-                                      setPreviewModalTitle(`Page ${page.originalIndex + 1}`);
+                                      openLightbox(uploadedFiles[0], page.originalIndex, previewObj.dataUrl, `Page ${page.originalIndex + 1}`);
                                     }}
                                   >
                                     <Eye size={14} />
@@ -2397,8 +2430,7 @@ function App() {
                                       title="Preview Page" 
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        setPreviewModalImage(previewObj.dataUrl);
-                                        setPreviewModalTitle(`Page ${originalIdx + 1}`);
+                                        openLightbox(uploadedFiles[0], originalIdx, previewObj.dataUrl, `Page ${originalIdx + 1}`);
                                       }}
                                     >
                                       <Eye size={14} />
@@ -2514,8 +2546,7 @@ function App() {
                                         title="Preview Page" 
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          setPreviewModalImage(previewObj.dataUrl);
-                                          setPreviewModalTitle(`Page ${originalIdx + 1}`);
+                                          openLightbox(uploadedFiles[0], originalIdx, previewObj.dataUrl, `Page ${originalIdx + 1}`);
                                         }}
                                       >
                                         <Eye size={14} />
@@ -2565,8 +2596,7 @@ function App() {
                                 title="Preview Page" 
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setPreviewModalImage(file.firstPagePreview);
-                                  setPreviewModalTitle(file.name);
+                                  openLightbox(file, 0, file.firstPagePreview, file.name);
                                 }}
                               >
                                 <Eye size={14} />
@@ -2612,8 +2642,7 @@ function App() {
                               title="Preview Page" 
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setPreviewModalImage(uploadedFiles[0].firstPagePreview);
-                                setPreviewModalTitle(uploadedFiles[0].name);
+                                openLightbox(uploadedFiles[0], 0, uploadedFiles[0].firstPagePreview, uploadedFiles[0].name);
                               }}
                             >
                               <Eye size={14} />
@@ -3752,7 +3781,21 @@ function App() {
                 <X size={20} />
               </button>
             </div>
-            <div className="preview-lightbox-body">
+            <div className="preview-lightbox-body" style={{ position: 'relative' }}>
+              {lightboxLoading && (
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: 'rgba(15, 23, 42, 0.4)',
+                  backdropFilter: 'blur(3px)',
+                  zIndex: 20
+                }}>
+                  <div className="lightbox-loader"></div>
+                </div>
+              )}
               <img src={previewModalImage} alt="Page Preview" className="preview-lightbox-img" />
             </div>
           </div>
