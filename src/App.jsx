@@ -29,7 +29,8 @@ import {
   Copy,
   ChevronDown,
   Menu,
-  X
+  X,
+  Eye
 } from 'lucide-react';
 
 import { 
@@ -308,6 +309,8 @@ function App() {
   const [shareData, setShareData] = useState({ blob: null, name: '', type: '' });
   const [sigPos, setSigPos] = useState({ x: 50, y: 50, w: 120, h: 60 });
   const [renderedPageDimensions, setRenderedPageDimensions] = useState({ w: 0, h: 0 });
+  const [previewModalImage, setPreviewModalImage] = useState(null);
+  const [previewModalTitle, setPreviewModalTitle] = useState('');
   
   const signatureCanvasRef = useRef(null);
   const isDrawingRef = useRef(false);
@@ -2183,8 +2186,20 @@ function App() {
                             }}
                           >
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
-                              <div style={{ width: '32px', height: '40px', flexShrink: 0, border: '1px solid var(--border-color)', borderRadius: '2px', overflow: 'hidden' }}>
+                              <div style={{ width: '32px', height: '40px', flexShrink: 0, border: '1px solid var(--border-color)', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
                                 <img src={file.firstPagePreview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="pdf first page" />
+                                <button 
+                                  className="btn-preview-eye" 
+                                  style={{ width: '18px', height: '18px', bottom: '2px', right: '2px', padding: 0 }}
+                                  title="Preview Page" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPreviewModalImage(file.firstPagePreview);
+                                    setPreviewModalTitle(file.name);
+                                  }}
+                                >
+                                  <Eye size={10} />
+                                </button>
                               </div>
                               <div style={{ minWidth: 0, flex: 1 }}>
                                 <div style={{ fontSize: '0.85rem', fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</div>
@@ -2235,6 +2250,19 @@ function App() {
                                     <Trash2 size={12} />
                                   </button>
                                 </div>
+                                {previewObj && (
+                                  <button 
+                                    className="btn-preview-eye" 
+                                    title="Preview Page" 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setPreviewModalImage(previewObj.dataUrl);
+                                      setPreviewModalTitle(`Page ${page.originalIndex + 1}`);
+                                    }}
+                                  >
+                                    <Eye size={14} />
+                                  </button>
+                                )}
                               </div>
                               <div className="file-preview-info">
                                 <div className="file-preview-name">Page {page.originalIndex + 1}</div>
@@ -2270,13 +2298,26 @@ function App() {
                               style={{ cursor: 'pointer' }}
                             >
                               <div className="select-badge">✓</div>
-                              <div className="file-preview-thumbnail">
+                              <div className="file-preview-thumbnail" style={{ position: 'relative' }}>
                                 {previewObj ? (
-                                  <img 
-                                    src={previewObj.dataUrl} 
-                                    className="file-preview-img"
-                                    alt={`Page ${originalIdx + 1}`}
-                                  />
+                                  <>
+                                    <img 
+                                      src={previewObj.dataUrl} 
+                                      className="file-preview-img"
+                                      alt={`Page ${originalIdx + 1}`}
+                                    />
+                                    <button 
+                                      className="btn-preview-eye" 
+                                      title="Preview Page" 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setPreviewModalImage(previewObj.dataUrl);
+                                        setPreviewModalTitle(`Page ${originalIdx + 1}`);
+                                      }}
+                                    >
+                                      <Eye size={14} />
+                                    </button>
+                                  </>
                                 ) : (
                                   <div className="skeleton-pulse" />
                                 )}
@@ -2374,13 +2415,26 @@ function App() {
                                     {pageStampCount}
                                   </div>
                                 )}
-                                <div className="file-preview-thumbnail">
+                                <div className="file-preview-thumbnail" style={{ position: 'relative' }}>
                                   {previewObj ? (
-                                    <img 
-                                      src={previewObj.dataUrl} 
-                                      className="file-preview-img"
-                                      alt={`Page ${originalIdx + 1}`}
-                                    />
+                                    <>
+                                      <img 
+                                        src={previewObj.dataUrl} 
+                                        className="file-preview-img"
+                                        alt={`Page ${originalIdx + 1}`}
+                                      />
+                                      <button 
+                                        className="btn-preview-eye" 
+                                        title="Preview Page" 
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setPreviewModalImage(previewObj.dataUrl);
+                                          setPreviewModalTitle(`Page ${originalIdx + 1}`);
+                                        }}
+                                      >
+                                        <Eye size={14} />
+                                      </button>
+                                    </>
                                   ) : (
                                     <div className="skeleton-pulse" />
                                   )}
@@ -2413,13 +2467,24 @@ function App() {
                       <div className="files-grid">
                         {uploadedFiles.map((file, idx) => (
                           <div key={idx} className="file-preview-card">
-                            <div className="file-preview-thumbnail">
+                            <div className="file-preview-thumbnail" style={{ position: 'relative' }}>
                               <img src={file.firstPagePreview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="uploaded" />
                               <div className="card-actions">
                                 <button className="btn-card-action" title="Delete Image" onClick={() => removeFile(idx)}>
                                   <Trash2 size={12} />
                                 </button>
                               </div>
+                              <button 
+                                className="btn-preview-eye" 
+                                title="Preview Page" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPreviewModalImage(file.firstPagePreview);
+                                  setPreviewModalTitle(file.name);
+                                }}
+                              >
+                                <Eye size={14} />
+                              </button>
                             </div>
                             <div className="file-preview-info">
                               <div className="file-preview-name">{file.name}</div>
@@ -2450,10 +2515,24 @@ function App() {
                         backgroundColor: 'var(--bg-primary)',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        position: 'relative'
                       }}>
                         {uploadedFiles[0].firstPagePreview ? (
-                          <img src={uploadedFiles[0].firstPagePreview} style={{ width: '100%', height: '100%', objectFit: 'contain' }} alt="File Preview" />
+                          <>
+                            <img src={uploadedFiles[0].firstPagePreview} style={{ width: '100%', height: '100%', objectFit: 'contain' }} alt="File Preview" />
+                            <button 
+                              className="btn-preview-eye" 
+                              title="Preview Page" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPreviewModalImage(uploadedFiles[0].firstPagePreview);
+                                setPreviewModalTitle(uploadedFiles[0].name);
+                              }}
+                            >
+                              <Eye size={14} />
+                            </button>
+                          </>
                         ) : (
                           <FileText size={48} style={{ color: 'var(--accent-color)' }} />
                         )}
@@ -3572,6 +3651,23 @@ function App() {
                   <Copy size={14} /> Copy App Link
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PREVIEW LIGHTBOX MODAL */}
+      {previewModalImage && (
+        <div className="preview-lightbox-backdrop" onClick={() => setPreviewModalImage(null)}>
+          <div className="preview-lightbox-content" onClick={(e) => e.stopPropagation()}>
+            <div className="preview-lightbox-header">
+              <span className="preview-lightbox-title">{previewModalTitle || 'Page Preview'}</span>
+              <button className="preview-lightbox-close" onClick={() => setPreviewModalImage(null)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="preview-lightbox-body">
+              <img src={previewModalImage} alt="Page Preview" className="preview-lightbox-img" />
             </div>
           </div>
         </div>
