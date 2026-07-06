@@ -1554,8 +1554,8 @@ function App() {
               </div>
             ) : null}
 
-            {/* Sub-View: 1. Processing Screen */}
-            {activeTool !== 'qr-generator' && processing ? (
+            {/* Sub-View: 1-5 — All non-QR tool views */}
+            {activeTool !== 'qr-generator' && (processing ? (
               <div className="workspace-main" style={{ minHeight: '380px' }}>
                 <div className="progress-container">
                   <div className="spinner"></div>
@@ -2841,7 +2841,7 @@ function App() {
                   </button>
                 </div>
               </div>
-            )}
+            ))}
           </div>
         )}
       </main>
