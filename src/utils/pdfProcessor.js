@@ -708,10 +708,222 @@ export async function convertPdfToPptx(pdfBuffer, onProgress) {
     }
   }
   
-  const outBuffer = await pptx.write('blob');
+  const outBuffer = pptx.write('blob');
   return outBuffer;
 }
 
+// 18. Convert Excel (XLSX) to PDF
+export async function convertXlsxToPdf(xlsxBuffer) {
+  if (!window.XLSX) {
+    throw new Error('SheetJS library is not loaded. Please refresh the page and try again.');
+  }
+  if (!window.html2pdf) {
+    throw new Error('html2pdf library is not loaded. Please refresh the page and try again.');
+  }
 
+  // Read workbook
+  const workbook = window.XLSX.read(xlsxBuffer, { type: 'array' });
+  
+  // Render each sheet to HTML tables inside a container
+  const tempDiv = document.createElement('div');
+  tempDiv.id = 'xlsx-temp-render';
+  tempDiv.style.position = 'absolute';
+  tempDiv.style.left = '-9999px';
+  tempDiv.style.top = '-9999px';
+  tempDiv.style.width = '1000px';
+  tempDiv.style.padding = '40px';
+  tempDiv.style.boxSizing = 'border-box';
+  tempDiv.style.fontFamily = '"Plus Jakarta Sans", Arial, sans-serif';
+  tempDiv.style.backgroundColor = '#ffffff';
 
+  let sheetsHtml = `
+    <style>
+      .xlsx-sheet { margin-bottom: 3rem; page-break-after: always; }
+      .xlsx-sheet-title { font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 1rem; border-bottom: 2px solid #dc2626; padding-bottom: 0.5rem; }
+      .xlsx-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; font-size: 12px; }
+      .xlsx-table th, .xlsx-table td { border: 1px solid #cbd5e1; padding: 6px 10px; text-align: left; }
+      .xlsx-table th { background-color: #f1f5f9; font-weight: 600; color: #334155; }
+      .xlsx-table tr:nth-child(even) { background-color: #f8fafc; }
+    </style>
+  `;
 
+  workbook.SheetNames.forEach((sheetName) => {
+    const worksheet = workbook.Sheets[sheetName];
+    const tableHtml = window.XLSX.utils.sheet_to_html(worksheet, { header: '', footer: '' });
+    const cleanTableHtml = tableHtml.replace('<table>', '<table class="xlsx-table">');
+
+    sheetsHtml += `
+      <div class="xlsx-sheet">
+        <div class="xlsx-sheet-title">Sheet: ${sheetName}</div>
+        ${cleanTableHtml}
+      </div>
+    `;
+  });
+
+  tempDiv.innerHTML = sheetsHtml;
+  document.body.appendChild(tempDiv);
+
+  const opt = {
+    margin: [15, 15, 15, 15],
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 1.5, useCORS: true, logging: false },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+  };
+
+  try {
+    const pdfArrayBuffer = await window.html2pdf()
+      .from(tempDiv)
+      .set(opt)
+      .outputPdf('arraybuffer');
+      
+    return new Uint8Array(pdfArrayBuffer);
+  } finally {
+    document.body.removeChild(tempDiv);
+  }
+}
+
+// 19. Convert HTML to PDF
+export async function convertHtmlToPdf(htmlBuffer) {
+  if (!window.html2pdf) {
+    throw new Error('html2pdf library is not loaded. Please refresh the page and try again.');
+  }
+
+  const decoder = new TextDecoder('utf-8');
+  const htmlContent = decoder.decode(htmlBuffer);
+
+  const tempDiv = document.createElement('div');
+  tempDiv.id = 'html-temp-render';
+  tempDiv.style.position = 'absolute';
+  tempDiv.style.left = '-9999px';
+  tempDiv.style.top = '-9999px';
+  tempDiv.style.width = '800px';
+  tempDiv.style.padding = '30px';
+  tempDiv.style.boxSizing = 'border-box';
+  tempDiv.style.backgroundColor = '#ffffff';
+  tempDiv.innerHTML = htmlContent;
+
+  document.body.appendChild(tempDiv);
+
+  const opt = {
+    margin: [15, 15, 15, 15],
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 1.5, useCORS: true, logging: false },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  try {
+    const pdfArrayBuffer = await window.html2pdf()
+      .from(tempDiv)
+      .set(opt)
+      .outputPdf('arraybuffer');
+      
+    return new Uint8Array(pdfArrayBuffer);
+  } finally {
+    document.body.removeChild(tempDiv);
+  }
+}
+
+// 20. Convert PDF to Excel (XLSX)
+export async function convertPdfToXlsx(pdfBuffer, onProgress) {
+  if (!window.pdfjsLib) {
+    throw new Error('PDF.js is not loaded yet.');
+  }
+  if (!window.XLSX) {
+    throw new Error('SheetJS library is not loaded.');
+  }
+
+  const loadingTask = window.pdfjsLib.getDocument({ data: pdfBuffer });
+  const pdf = await loadingTask.promise;
+  const numPages = pdf.numPages;
+  
+  const workbook = window.XLSX.utils.book_new();
+
+  for (let i = 1; i <= numPages; i++) {
+    const page = await pdf.getPage(i);
+    const textContent = await page.getTextContent();
+    const items = textContent.items;
+
+    const lineGroups = {};
+    for (const item of items) {
+      const y = Math.round(item.transform[5]);
+      if (!lineGroups[y]) lineGroups[y] = [];
+      lineGroups[y].push(item);
+    }
+
+    const sortedYs = Object.keys(lineGroups).sort((a, b) => b - a);
+    const sheetData = [];
+
+    for (const y of sortedYs) {
+      const lineItems = lineGroups[y].sort((a, b) => a.transform[4] - b.transform[4]);
+      
+      const row = [];
+      let lastX = -999;
+      let currentCell = '';
+
+      for (const item of lineItems) {
+        const x = item.transform[4];
+        if (lastX !== -999 && (x - lastX) > 28) {
+          row.push(currentCell.trim());
+          currentCell = item.str;
+        } else {
+          currentCell += (currentCell ? ' ' : '') + item.str;
+        }
+        lastX = x + (item.width || 0);
+      }
+      if (currentCell) {
+        row.push(currentCell.trim());
+      }
+
+      if (row.length > 0) {
+        sheetData.push(row);
+      }
+    }
+
+    const worksheet = window.XLSX.utils.aoa_to_sheet(sheetData);
+    window.XLSX.utils.book_append_sheet(workbook, worksheet, `Page ${i}`);
+
+    if (onProgress) {
+      onProgress(Math.round((i / numPages) * 100));
+    }
+  }
+
+  const excelOut = window.XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+  return new Blob([excelOut], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+
+// 21. Convert PDF to PDF/A
+export async function convertPdfToPdfA(pdfBuffer) {
+  const pdfDoc = await PDFDocument.load(pdfBuffer);
+  
+  pdfDoc.setCreator('pdfCraft PDF/A Archiver');
+  pdfDoc.setProducer('pdfCraft Engine');
+  
+  const xmpMetadata = `<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description rdf:about=""
+    xmlns:pdf="http://ns.adobe.com/pdf/1.3/"
+    xmlns:xmp="http://ns.xap/1.0/"
+    xmlns:dc="http://purl.org/dc/elements/1.1/"
+    xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/">
+   <pdf:Producer>pdfCraft Engine</pdf:Producer>
+   <xmp:CreatorTool>pdfCraft PDF/A Archiver</xmp:CreatorTool>
+   <xmp:CreateDate>${new Date().toISOString()}</xmp:CreateDate>
+   <xmp:ModifyDate>${new Date().toISOString()}</xmp:ModifyDate>
+   <dc:format>application/pdf</dc:format>
+   <pdfaid:part>1</pdfaid:part>
+   <pdfaid:conformance>B</pdfaid:conformance>
+  </rdf:Description>
+ </rdf:RDF>
+</x:xmpmeta>
+<?xpacket end="w"?>`;
+
+  const metadataStream = pdfDoc.context.stream(xmpMetadata, {
+    Type: 'Metadata',
+    Subtype: 'XML',
+  });
+  const metadataStreamRef = pdfDoc.context.register(metadataStream);
+  pdfDoc.catalog.set(pdfDoc.context.obj('Metadata'), metadataStreamRef);
+
+  return await pdfDoc.save();
+}

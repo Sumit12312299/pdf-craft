@@ -49,8 +49,97 @@ import {
   convertDocxToPdf,
   convertPptxToPdf,
   convertPdfToDocx,
-  convertPdfToPptx
+  convertPdfToPptx,
+  convertXlsxToPdf,
+  convertHtmlToPdf,
+  convertPdfToXlsx,
+  convertPdfToPdfA
 } from './utils/pdfProcessor';
+
+// Beautiful Custom SVG Icons representing document conversions
+const IconJpgToPdf = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+    <rect x="3" y="3" width="18" height="22" rx="3" fill="#fef08a" stroke="#eab308" strokeWidth="1.5" />
+    <path d="M6 18 L11 12 L18 19 H6Z" fill="#eab308" />
+    <circle cx="15" cy="10" r="1.5" fill="#eab308" />
+    <path d="M22 22 L28 28 M28 24 L28 28 L24 28" stroke="#ca8a04" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const IconWordToPdf = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+    <rect x="3" y="3" width="18" height="22" rx="3" fill="#dbeafe" stroke="#3b82f6" strokeWidth="1.5" />
+    <text x="7" y="18" fill="#1d4ed8" fontSize="11" fontWeight="bold" fontFamily="system-ui, -apple-system, sans-serif">W</text>
+    <path d="M22 22 L28 28 M28 24 L28 28 L24 28" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const IconPptToPdf = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+    <rect x="3" y="3" width="18" height="22" rx="3" fill="#ffedd5" stroke="#f97316" strokeWidth="1.5" />
+    <text x="8" y="18" fill="#c2410c" fontSize="11" fontWeight="bold" fontFamily="system-ui, -apple-system, sans-serif">P</text>
+    <path d="M22 22 L28 28 M28 24 L28 28 L24 28" stroke="#ea580c" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const IconExcelToPdf = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+    <rect x="3" y="3" width="18" height="22" rx="3" fill="#d1fae5" stroke="#10b981" strokeWidth="1.5" />
+    <text x="8" y="18" fill="#047857" fontSize="11" fontWeight="bold" fontFamily="system-ui, -apple-system, sans-serif">X</text>
+    <path d="M22 22 L28 28 M28 24 L28 28 L24 28" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const IconHtmlToPdf = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+    <rect x="3" y="3" width="18" height="22" rx="3" fill="#fef9c3" stroke="#eab308" strokeWidth="1.5" />
+    <circle cx="12" cy="14" r="5" stroke="#a16207" strokeWidth="1.2" />
+    <path d="M7 14 H17" stroke="#a16207" strokeWidth="0.8" />
+    <path d="M12 9 A5 5 0 0 0 12 19" stroke="#a16207" strokeWidth="0.8" />
+    <path d="M22 22 L28 28 M28 24 L28 28 L24 28" stroke="#854d0e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const IconPdfToJpg = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+    <rect x="9" y="5" width="18" height="22" rx="3" fill="#fef08a" stroke="#eab308" strokeWidth="1.5" />
+    <path d="M12 20 L17 14 L24 21 H12Z" fill="#eab308" />
+    <circle cx="21" cy="12" r="1.5" fill="#eab308" />
+    <path d="M10 10 L4 4 M4 8 L4 4 L8 4" stroke="#ca8a04" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const IconPdfToWord = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+    <rect x="9" y="5" width="18" height="22" rx="3" fill="#dbeafe" stroke="#3b82f6" strokeWidth="1.5" />
+    <text x="13" y="20" fill="#1d4ed8" fontSize="11" fontWeight="bold" fontFamily="system-ui, -apple-system, sans-serif">W</text>
+    <path d="M10 10 L4 4 M4 8 L4 4 L8 4" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const IconPdfToPpt = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+    <rect x="9" y="5" width="18" height="22" rx="3" fill="#ffedd5" stroke="#f97316" strokeWidth="1.5" />
+    <text x="14" y="20" fill="#c2410c" fontSize="11" fontWeight="bold" fontFamily="system-ui, -apple-system, sans-serif">P</text>
+    <path d="M10 10 L4 4 M4 8 L4 4 L8 4" stroke="#ea580c" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const IconPdfToExcel = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+    <rect x="9" y="5" width="18" height="22" rx="3" fill="#d1fae5" stroke="#10b981" strokeWidth="1.5" />
+    <text x="14" y="20" fill="#047857" fontSize="11" fontWeight="bold" fontFamily="system-ui, -apple-system, sans-serif">X</text>
+    <path d="M10 10 L4 4 M4 8 L4 4 L8 4" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const IconPdfToPdfA = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+    <rect x="9" y="5" width="18" height="22" rx="3" fill="#e0f2fe" stroke="#0284c7" strokeWidth="1.5" />
+    <text x="10" y="20" fill="#0369a1" fontSize="9" fontWeight="bold" fontFamily="system-ui, -apple-system, sans-serif">/A</text>
+    <path d="M10 10 L4 4 M4 8 L4 4 L8 4" stroke="#075985" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
 
 // Parallel/Batch PDF Page Pre-renderer to Cache Base64 Images
 const renderPdfPagesToImages = async (fileBuffer, onProgress) => {
@@ -376,16 +465,52 @@ function App() {
       id: 'img-to-pdf',
       title: 'JPG to PDF',
       description: 'Convert JPG, JPEG, and PNG images into a clean, paginated PDF file.',
-      icon: <ImageIcon size={24} />,
+      icon: <IconJpgToPdf size={28} />,
       category: 'Convert to PDF',
       multiple: true,
       accept: '.jpg,.jpeg,.png'
     },
     {
+      id: 'docx-to-pdf',
+      title: 'Word to PDF',
+      description: 'Convert Microsoft Word (.docx) files into clean, readable PDF documents client-side.',
+      icon: <IconWordToPdf size={28} />,
+      category: 'Convert to PDF',
+      multiple: false,
+      accept: '.docx'
+    },
+    {
+      id: 'pptx-to-pdf',
+      title: 'PowerPoint to PDF',
+      description: 'Convert PowerPoint (.pptx) presentation slides into a PDF document client-side.',
+      icon: <IconPptToPdf size={28} />,
+      category: 'Convert to PDF',
+      multiple: false,
+      accept: '.pptx'
+    },
+    {
+      id: 'xlsx-to-pdf',
+      title: 'Excel to PDF',
+      description: 'Convert Excel spreadsheets (.xlsx, .xls) into clean, tabular PDF documents client-side.',
+      icon: <IconExcelToPdf size={28} />,
+      category: 'Convert to PDF',
+      multiple: false,
+      accept: '.xlsx,.xls'
+    },
+    {
+      id: 'html-to-pdf',
+      title: 'HTML to PDF',
+      description: 'Convert web page HTML files into a structured PDF document client-side.',
+      icon: <IconHtmlToPdf size={28} />,
+      category: 'Convert to PDF',
+      multiple: false,
+      accept: '.html,.htm'
+    },
+    {
       id: 'pdf-to-img',
       title: 'PDF to JPG',
       description: 'Convert and extract every page of a PDF document into standard JPG images.',
-      icon: <FileImage size={24} />,
+      icon: <IconPdfToJpg size={28} />,
       category: 'Convert from PDF',
       multiple: false,
       accept: '.pdf'
@@ -403,7 +528,7 @@ function App() {
       id: 'pdf-to-docx',
       title: 'PDF to Word',
       description: 'Convert your PDF document into an editable Microsoft Word DOCX file client-side.',
-      icon: <FileText size={24} />,
+      icon: <IconPdfToWord size={28} />,
       category: 'Convert from PDF',
       multiple: false,
       accept: '.pdf'
@@ -412,28 +537,28 @@ function App() {
       id: 'pdf-to-pptx',
       title: 'PDF to PowerPoint',
       description: 'Convert your PDF pages into editable PowerPoint slides (.pptx) client-side.',
-      icon: <FileText size={24} />,
+      icon: <IconPdfToPpt size={28} />,
       category: 'Convert from PDF',
       multiple: false,
       accept: '.pdf'
     },
     {
-      id: 'docx-to-pdf',
-      title: 'Word to PDF',
-      description: 'Convert Microsoft Word (.docx) files into clean, readable PDF documents client-side.',
-      icon: <FileText size={24} />,
-      category: 'Convert to PDF',
+      id: 'pdf-to-xlsx',
+      title: 'PDF to Excel',
+      description: 'Extract tables and structured rows from your PDF into an Excel spreadsheet (.xlsx) client-side.',
+      icon: <IconPdfToExcel size={28} />,
+      category: 'Convert from PDF',
       multiple: false,
-      accept: '.docx'
+      accept: '.pdf'
     },
     {
-      id: 'pptx-to-pdf',
-      title: 'PowerPoint to PDF',
-      description: 'Convert PowerPoint (.pptx) presentation slides into a PDF document client-side.',
-      icon: <FileText size={24} />,
-      category: 'Convert to PDF',
+      id: 'pdf-to-pdfa',
+      title: 'PDF to PDF/A',
+      description: 'Convert your PDF to standard PDF/A-1b format for long-term archiving and compliance.',
+      icon: <IconPdfToPdfA size={28} />,
+      category: 'Convert from PDF',
       multiple: false,
-      accept: '.pptx'
+      accept: '.pdf'
     },
     {
       id: 'page-numbers',
@@ -1182,6 +1307,42 @@ function App() {
         filename = `${file.name.replace('.pptx', '')}.pdf`;
       }
 
+      else if (activeTool === 'xlsx-to-pdf') {
+        setProcessingStatus('Converting Excel spreadsheet to PDF...');
+        const file = uploadedFiles[0];
+        outputBytes = await convertXlsxToPdf(file.buffer);
+        filename = `${file.name.replace(/\.[^/.]+$/, '')}.pdf`;
+      }
+
+      else if (activeTool === 'html-to-pdf') {
+        setProcessingStatus('Converting HTML file to PDF...');
+        const file = uploadedFiles[0];
+        outputBytes = await convertHtmlToPdf(file.buffer);
+        filename = `${file.name.replace(/\.[^/.]+$/, '')}.pdf`;
+      }
+
+      else if (activeTool === 'pdf-to-xlsx') {
+        setProcessingStatus('Converting PDF to Excel spreadsheet...');
+        const file = uploadedFiles[0];
+        const xlsxBlob = await convertPdfToXlsx(file.buffer, (prog) => {
+          setProgress(20 + Math.round(prog * 0.7));
+        });
+        setResultBlob(xlsxBlob);
+        setResultName(`${file.name.replace('.pdf', '')}.xlsx`);
+        setProgress(100);
+        setTimeout(() => {
+          setProcessing(false);
+        }, 150);
+        return;
+      }
+
+      else if (activeTool === 'pdf-to-pdfa') {
+        setProcessingStatus('Converting PDF to PDF/A archive format...');
+        const file = uploadedFiles[0];
+        outputBytes = await convertPdfToPdfA(file.buffer);
+        filename = `${file.name.replace('.pdf', '')}_pdfa.pdf`;
+      }
+
       else if (activeTool === 'extract-text') {
         setProcessingStatus('Extracting text content...');
         const file = uploadedFiles[0];
@@ -1411,28 +1572,37 @@ function App() {
                 <div className="dropdown-column">
                   <div className="dropdown-col-title">CONVERT TO PDF</div>
                   <a href="#img-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('img-to-pdf'); }} className="dropdown-link">
-                    <span className="link-icon">🖼️</span> JPG to PDF
+                    <span className="link-icon"><IconJpgToPdf size={28} /></span> JPG to PDF
                   </a>
                   <a href="#docx-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('docx-to-pdf'); }} className="dropdown-link">
-                    <span className="link-icon">📝</span> Word to PDF
+                    <span className="link-icon"><IconWordToPdf size={28} /></span> WORD to PDF
                   </a>
                   <a href="#pptx-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('pptx-to-pdf'); }} className="dropdown-link">
-                    <span className="link-icon">📊</span> PowerPoint to PDF
+                    <span className="link-icon"><IconPptToPdf size={28} /></span> POWERPOINT to PDF
+                  </a>
+                  <a href="#xlsx-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('xlsx-to-pdf'); }} className="dropdown-link">
+                    <span className="link-icon"><IconExcelToPdf size={28} /></span> EXCEL to PDF
+                  </a>
+                  <a href="#html-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('html-to-pdf'); }} className="dropdown-link">
+                    <span className="link-icon"><IconHtmlToPdf size={28} /></span> HTML to PDF
                   </a>
                 </div>
                 <div className="dropdown-column">
                   <div className="dropdown-col-title">CONVERT FROM PDF</div>
+                  <a href="#pdf-to-img" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-img'); }} className="dropdown-link">
+                    <span className="link-icon"><IconPdfToJpg size={28} /></span> PDF to JPG
+                  </a>
                   <a href="#pdf-to-docx" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-docx'); }} className="dropdown-link">
-                    <span className="link-icon">📄</span> PDF to Word
+                    <span className="link-icon"><IconPdfToWord size={28} /></span> PDF to WORD
                   </a>
                   <a href="#pdf-to-pptx" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-pptx'); }} className="dropdown-link">
-                    <span className="link-icon">📉</span> PDF to PowerPoint
+                    <span className="link-icon"><IconPdfToPpt size={28} /></span> PDF to POWERPOINT
                   </a>
-                  <a href="#pdf-to-img" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-img'); }} className="dropdown-link">
-                    <span className="link-icon">🖼️</span> PDF to JPG
+                  <a href="#pdf-to-xlsx" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-xlsx'); }} className="dropdown-link">
+                    <span className="link-icon"><IconPdfToExcel size={28} /></span> PDF to EXCEL
                   </a>
-                  <a href="#extract-text" onClick={(e) => { e.preventDefault(); navigateToTool('extract-text'); }} className="dropdown-link">
-                    <span className="link-icon">🔤</span> Extract Text
+                  <a href="#pdf-to-pdfa" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-pdfa'); }} className="dropdown-link">
+                    <span className="link-icon"><IconPdfToPdfA size={28} /></span> PDF to PDF/A
                   </a>
                 </div>
               </div>
@@ -1464,9 +1634,13 @@ function App() {
                   <a href="#docx-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('docx-to-pdf'); }} className="dropdown-link">Word to PDF</a>
                   <a href="#pptx-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('pptx-to-pdf'); }} className="dropdown-link">PowerPoint to PDF</a>
                   <a href="#img-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('img-to-pdf'); }} className="dropdown-link">JPG to PDF</a>
+                  <a href="#xlsx-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('xlsx-to-pdf'); }} className="dropdown-link">Excel to PDF</a>
+                  <a href="#html-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('html-to-pdf'); }} className="dropdown-link">HTML to PDF</a>
+                  <a href="#pdf-to-img" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-img'); }} className="dropdown-link">PDF to JPG</a>
                   <a href="#pdf-to-docx" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-docx'); }} className="dropdown-link">PDF to Word</a>
                   <a href="#pdf-to-pptx" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-pptx'); }} className="dropdown-link">PDF to PowerPoint</a>
-                  <a href="#pdf-to-img" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-img'); }} className="dropdown-link">PDF to JPG</a>
+                  <a href="#pdf-to-xlsx" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-xlsx'); }} className="dropdown-link">PDF to Excel</a>
+                  <a href="#pdf-to-pdfa" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-pdfa'); }} className="dropdown-link">PDF to PDF/A</a>
                   <a href="#extract-text" onClick={(e) => { e.preventDefault(); navigateToTool('extract-text'); }} className="dropdown-link">Extract Text</a>
                 </div>
                 <div className="dropdown-column">
@@ -1557,9 +1731,13 @@ function App() {
                     <a href="#img-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('img-to-pdf'); setMobileMenuOpen(false); }} className="drawer-subitem">JPG to PDF</a>
                     <a href="#docx-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('docx-to-pdf'); setMobileMenuOpen(false); }} className="drawer-subitem">Word to PDF</a>
                     <a href="#pptx-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('pptx-to-pdf'); setMobileMenuOpen(false); }} className="drawer-subitem">PowerPoint to PDF</a>
+                    <a href="#xlsx-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('xlsx-to-pdf'); setMobileMenuOpen(false); }} className="drawer-subitem">Excel to PDF</a>
+                    <a href="#html-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('html-to-pdf'); setMobileMenuOpen(false); }} className="drawer-subitem">HTML to PDF</a>
+                    <a href="#pdf-to-img" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-img'); setMobileMenuOpen(false); }} className="drawer-subitem">PDF to JPG</a>
                     <a href="#pdf-to-docx" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-docx'); setMobileMenuOpen(false); }} className="drawer-subitem">PDF to Word</a>
                     <a href="#pdf-to-pptx" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-pptx'); setMobileMenuOpen(false); }} className="drawer-subitem">PDF to PowerPoint</a>
-                    <a href="#pdf-to-img" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-img'); setMobileMenuOpen(false); }} className="drawer-subitem">PDF to JPG</a>
+                    <a href="#pdf-to-xlsx" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-xlsx'); setMobileMenuOpen(false); }} className="drawer-subitem">PDF to Excel</a>
+                    <a href="#pdf-to-pdfa" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-pdfa'); setMobileMenuOpen(false); }} className="drawer-subitem">PDF to PDF/A</a>
                     <a href="#extract-text" onClick={(e) => { e.preventDefault(); navigateToTool('extract-text'); setMobileMenuOpen(false); }} className="drawer-subitem">Extract Text</a>
                   </div>
                 </div>
@@ -1676,9 +1854,10 @@ function App() {
                           {qrGenText}
                         </p>
                       </div>
-                      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center', width: '100%', maxWidth: '280px' }}>
                         <button
                           className="btn-download-success"
+                          style={{ width: '100%', padding: '0.75rem' }}
                           onClick={() => {
                             const a = document.createElement('a');
                             a.href = qrGenDataUrl;
@@ -1689,21 +1868,6 @@ function App() {
                           }}
                         >
                           <Download size={18} /> Download PNG
-                        </button>
-                        <button
-                          className="btn-share-file"
-                          onClick={async () => {
-                            if (!qrGenDataUrl) return;
-                            try {
-                              const res = await fetch(qrGenDataUrl);
-                              const blob = await res.blob();
-                              handleShareClick(blob, `qrcode_${Date.now()}.png`, 'image/png');
-                            } catch (err) {
-                              console.error('Failed to share QR:', err);
-                            }
-                          }}
-                        >
-                          <Share2 size={18} /> Share QR
                         </button>
                       </div>
                     </div>
@@ -1839,84 +2003,20 @@ function App() {
                     <p>The processing completed entirely in your browser. Click download to retrieve your file.</p>
                   </div>
                   <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap', width: '100%', maxWidth: '400px' }}>
-                    <button className="btn-download-success" onClick={triggerDownload} style={{ flex: '1 1 180px' }}>
+                    <button className="btn-download-success" onClick={triggerDownload} style={{ width: '100%', padding: '0.75rem' }}>
                       <Download size={18} /> Download {
                         currentTool.id === 'pdf-to-img' ? 'ZIP' : 
                         currentTool.id === 'pdf-to-docx' ? 'Word DOCX' : 
                         currentTool.id === 'pdf-to-pptx' ? 'PowerPoint PPTX' : 
+                        currentTool.id === 'pdf-to-xlsx' ? 'Excel XLSX' : 
                         'PDF'
                       }
-                    </button>
-                    <button className="btn-share-file" onClick={shareProcessedFile} style={{ flex: '1 1 180px' }}>
-                      <Share2 size={18} /> Share File
                     </button>
                   </div>
                   <button className="btn-reset" onClick={resetToolState} style={{ marginTop: '0.5rem' }}>
                     Perform Another Operation
                   </button>
 
-                  <div style={{
-                    marginTop: '2rem',
-                    paddingTop: '1.5rem',
-                    borderTop: '1px solid var(--border-color)',
-                    width: '100%',
-                    maxWidth: '400px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '0.75rem'
-                  }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                      Share pdfCraft with others:
-                    </span>
-                    <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-                      <a 
-                        href={`https://api.whatsapp.com/send?text=${encodeURIComponent("I just processed my document securely on pdfCraft! It's super fast, free, and runs entirely in the browser. Check it out: https://pdf-craft-sand.vercel.app/")}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="share-btn whatsapp"
-                        title="Share on WhatsApp"
-                      >
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                          <path d="M12.012 2c-5.506 0-9.988 4.482-9.988 9.988 0 1.76.457 3.473 1.328 4.982L2.03 22l5.182-1.36c1.464.798 3.11 1.218 4.793 1.218 5.507 0 9.988-4.482 9.988-9.988C22 6.482 17.52 2 12.012 2zm6.262 14.372c-.258.73-1.488 1.428-2.046 1.482-.5.05-1.155.08-3.328-.82-2.777-1.15-4.57-3.98-4.71-4.168-.14-.19-1.123-1.493-1.123-2.846 0-1.353.708-2.015.96-2.28.25-.268.55-.333.73-.333.18 0 .36 0 .52.01.17 0 .4.01.61.51.22.53.76 1.86.83 1.99.07.13.11.29.02.46-.08.17-.18.28-.35.48-.17.2-.36.45-.52.6-.18.17-.37.36-.16.73.21.36.93 1.54 2 2.49 1.38 1.23 2.54 1.62 2.9 1.8.36.18.57.15.79-.09.21-.24.93-1.08 1.18-1.45.25-.37.5-.31.84-.18.35.13 2.2 1.04 2.58 1.23.38.19.64.28.73.43.08.16.08.93-.18 1.66z"/>
-                        </svg>
-                      </a>
-                      
-                      <a 
-                        href={`https://t.me/share/url?url=${encodeURIComponent("https://pdf-craft-sand.vercel.app/")}&text=${encodeURIComponent("I just processed my document securely on pdfCraft! It's super fast, free, and runs entirely in the browser. Check it out:")}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="share-btn telegram"
-                        title="Share on Telegram"
-                      >
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-1-.65-.35-1 .22-1.6.15-.15 2.76-2.53 2.81-2.75.01-.03.01-.1-.04-.15-.05-.05-.12-.03-.17-.02-.07.02-1.29.83-3.64 2.42-.34.24-.66.35-.95.34-.32-.01-.94-.18-1.4-.33-.56-.18-1-.28-.96-.6.02-.17.25-.34.69-.53 2.7-1.17 4.5-1.95 5.4-2.33 2.56-1.09 3.09-1.28 3.44-1.28.08 0 .25.02.36.11.1.08.13.2.14.3-.01.06-.01.12-.02.18z"/>
-                        </svg>
-                      </a>
-                      
-                      <a 
-                        href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent("https://pdf-craft-sand.vercel.app/")}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="share-btn linkedin"
-                        title="Share on LinkedIn"
-                      >
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                          <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/>
-                        </svg>
-                      </a>
-                      
-                      <a 
-                        href={`mailto:?subject=${encodeURIComponent("Secure PDF & Office Tools - pdfCraft")}&body=${encodeURIComponent("Hi,\n\nI just processed my document securely using pdfCraft. It runs completely client-side in the browser, meaning your files never leave your computer.\n\nTry it here: https://pdf-craft-sand.vercel.app/")}`}
-                        className="share-btn email"
-                        title="Share via Email"
-                      >
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                          <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
-                        </svg>
-                      </a>
-                    </div>
-                  </div>
                 </div>
               </div>
             ) : extractedText ? (
