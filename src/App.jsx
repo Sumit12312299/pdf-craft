@@ -1619,38 +1619,84 @@ function App() {
               <div className="nav-dropdown-menu mega-all">
                 <div className="dropdown-column">
                   <div className="dropdown-col-title">ORGANIZE PDF</div>
-                  <a href="#merge" onClick={(e) => { e.preventDefault(); navigateToTool('merge'); }} className="dropdown-link">Merge PDF</a>
-                  <a href="#split" onClick={(e) => { e.preventDefault(); navigateToTool('split'); }} className="dropdown-link">Split PDF</a>
-                  <a href="#organize" onClick={(e) => { e.preventDefault(); navigateToTool('organize'); }} className="dropdown-link">Organize PDF</a>
-                  <a href="#rotate" onClick={(e) => { e.preventDefault(); navigateToTool('rotate'); }} className="dropdown-link">Rotate PDF</a>
+                  <a href="#merge" onClick={(e) => { e.preventDefault(); navigateToTool('merge'); }} className="dropdown-link">
+                    <span className="link-icon"><Combine size={18} /></span> Merge PDF
+                  </a>
+                  <a href="#split" onClick={(e) => { e.preventDefault(); navigateToTool('split'); }} className="dropdown-link">
+                    <span className="link-icon"><Scissors size={18} /></span> Split PDF
+                  </a>
+                  <a href="#organize" onClick={(e) => { e.preventDefault(); navigateToTool('organize'); }} className="dropdown-link">
+                    <span className="link-icon"><Layers size={18} /></span> Organize PDF
+                  </a>
+                  <a href="#rotate" onClick={(e) => { e.preventDefault(); navigateToTool('rotate'); }} className="dropdown-link">
+                    <span className="link-icon"><RotateCw size={18} /></span> Rotate PDF
+                  </a>
                 </div>
                 <div className="dropdown-column">
                   <div className="dropdown-col-title">EDIT PDF</div>
-                  <a href="#sign" onClick={(e) => { e.preventDefault(); navigateToTool('sign'); }} className="dropdown-link">Sign PDF</a>
-                  <a href="#qr" onClick={(e) => { e.preventDefault(); navigateToTool('qr'); }} className="dropdown-link">Stamp QR Code</a>
-                  <a href="#page-numbers" onClick={(e) => { e.preventDefault(); navigateToTool('page-numbers'); }} className="dropdown-link">Add Page Numbers</a>
-                  <a href="#watermark" onClick={(e) => { e.preventDefault(); navigateToTool('watermark'); }} className="dropdown-link">Add Watermark</a>
-                  <a href="#metadata" onClick={(e) => { e.preventDefault(); navigateToTool('metadata'); }} className="dropdown-link">Edit Metadata</a>
+                  <a href="#sign" onClick={(e) => { e.preventDefault(); navigateToTool('sign'); }} className="dropdown-link">
+                    <span className="link-icon"><PenTool size={18} /></span> Sign PDF
+                  </a>
+                  <a href="#qr" onClick={(e) => { e.preventDefault(); navigateToTool('qr'); }} className="dropdown-link">
+                    <span className="link-icon"><QrCode size={18} /></span> Stamp QR Code
+                  </a>
+                  <a href="#page-numbers" onClick={(e) => { e.preventDefault(); navigateToTool('page-numbers'); }} className="dropdown-link">
+                    <span className="link-icon"><Hash size={18} /></span> Add Page Numbers
+                  </a>
+                  <a href="#watermark" onClick={(e) => { e.preventDefault(); navigateToTool('watermark'); }} className="dropdown-link">
+                    <span className="link-icon"><Type size={18} /></span> Add Watermark
+                  </a>
+                  <a href="#metadata" onClick={(e) => { e.preventDefault(); navigateToTool('metadata'); }} className="dropdown-link">
+                    <span className="link-icon"><Settings size={18} /></span> Edit Metadata
+                  </a>
                 </div>
                 <div className="dropdown-column">
                   <div className="dropdown-col-title">CONVERT</div>
-                  <a href="#docx-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('docx-to-pdf'); }} className="dropdown-link">Word to PDF</a>
-                  <a href="#pptx-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('pptx-to-pdf'); }} className="dropdown-link">PowerPoint to PDF</a>
-                  <a href="#img-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('img-to-pdf'); }} className="dropdown-link">JPG to PDF</a>
-                  <a href="#xlsx-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('xlsx-to-pdf'); }} className="dropdown-link">Excel to PDF</a>
-                  <a href="#html-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('html-to-pdf'); }} className="dropdown-link">HTML to PDF</a>
-                  <a href="#pdf-to-img" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-img'); }} className="dropdown-link">PDF to JPG</a>
-                  <a href="#pdf-to-docx" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-docx'); }} className="dropdown-link">PDF to Word</a>
-                  <a href="#pdf-to-pptx" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-pptx'); }} className="dropdown-link">PDF to PowerPoint</a>
-                  <a href="#pdf-to-xlsx" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-xlsx'); }} className="dropdown-link">PDF to Excel</a>
-                  <a href="#pdf-to-pdfa" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-pdfa'); }} className="dropdown-link">PDF to PDF/A</a>
-                  <a href="#extract-text" onClick={(e) => { e.preventDefault(); navigateToTool('extract-text'); }} className="dropdown-link">Extract Text</a>
+                  <a href="#docx-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('docx-to-pdf'); }} className="dropdown-link">
+                    <span className="link-icon"><IconWordToPdf size={20} /></span> Word to PDF
+                  </a>
+                  <a href="#pptx-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('pptx-to-pdf'); }} className="dropdown-link">
+                    <span className="link-icon"><IconPptToPdf size={20} /></span> PowerPoint to PDF
+                  </a>
+                  <a href="#img-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('img-to-pdf'); }} className="dropdown-link">
+                    <span className="link-icon"><IconJpgToPdf size={20} /></span> JPG to PDF
+                  </a>
+                  <a href="#xlsx-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('xlsx-to-pdf'); }} className="dropdown-link">
+                    <span className="link-icon"><IconExcelToPdf size={20} /></span> Excel to PDF
+                  </a>
+                  <a href="#html-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('html-to-pdf'); }} className="dropdown-link">
+                    <span className="link-icon"><IconHtmlToPdf size={20} /></span> HTML to PDF
+                  </a>
+                  <a href="#pdf-to-img" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-img'); }} className="dropdown-link">
+                    <span className="link-icon"><IconPdfToJpg size={20} /></span> PDF to JPG
+                  </a>
+                  <a href="#pdf-to-docx" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-docx'); }} className="dropdown-link">
+                    <span className="link-icon"><IconPdfToWord size={20} /></span> PDF to Word
+                  </a>
+                  <a href="#pdf-to-pptx" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-pptx'); }} className="dropdown-link">
+                    <span className="link-icon"><IconPdfToPpt size={20} /></span> PDF to PowerPoint
+                  </a>
+                  <a href="#pdf-to-xlsx" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-xlsx'); }} className="dropdown-link">
+                    <span className="link-icon"><IconPdfToExcel size={20} /></span> PDF to Excel
+                  </a>
+                  <a href="#pdf-to-pdfa" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-pdfa'); }} className="dropdown-link">
+                    <span className="link-icon"><IconPdfToPdfA size={20} /></span> PDF to PDF/A
+                  </a>
+                  <a href="#extract-text" onClick={(e) => { e.preventDefault(); navigateToTool('extract-text'); }} className="dropdown-link">
+                    <span className="link-icon"><FileText size={18} /></span> Extract Text
+                  </a>
                 </div>
                 <div className="dropdown-column">
                   <div className="dropdown-col-title">SECURITY & UTILITIES</div>
-                  <a href="#compress" onClick={(e) => { e.preventDefault(); navigateToTool('compress'); }} className="dropdown-link font-semibold">Compress PDF</a>
-                  <a href="#protect" onClick={(e) => { e.preventDefault(); navigateToTool('protect'); }} className="dropdown-link">Protect PDF</a>
-                  <a href="#qr-generator" onClick={(e) => { e.preventDefault(); navigateToTool('qr-generator'); }} className="dropdown-link highlight">QR Generator</a>
+                  <a href="#compress" onClick={(e) => { e.preventDefault(); navigateToTool('compress'); }} className="dropdown-link font-semibold">
+                    <span className="link-icon"><Sliders size={18} /></span> Compress PDF
+                  </a>
+                  <a href="#protect" onClick={(e) => { e.preventDefault(); navigateToTool('protect'); }} className="dropdown-link">
+                    <span className="link-icon"><Lock size={18} /></span> Protect PDF
+                  </a>
+                  <a href="#qr-generator" onClick={(e) => { e.preventDefault(); navigateToTool('qr-generator'); }} className="dropdown-link highlight">
+                    <span className="link-icon"><QrCode size={18} /></span> QR Generator
+                  </a>
                 </div>
               </div>
             </div>
@@ -1718,30 +1764,52 @@ function App() {
               </div>
               <div className="drawer-body">
                 <a href="#merge" className="drawer-item" onClick={(e) => { e.preventDefault(); navigateToTool('merge'); setMobileMenuOpen(false); }}>
-                  Merge PDF
+                  <Combine size={18} /> Merge PDF
                 </a>
                 <a href="#split" className="drawer-item" onClick={(e) => { e.preventDefault(); navigateToTool('split'); setMobileMenuOpen(false); }}>
-                  Split PDF
+                  <Scissors size={18} /> Split PDF
                 </a>
                 <a href="#compress" className="drawer-item" onClick={(e) => { e.preventDefault(); navigateToTool('compress'); setMobileMenuOpen(false); }}>
-                  Compress PDF
+                  <Sliders size={18} /> Compress PDF
                 </a>
                 
                 {/* Convert Group */}
                 <div className="drawer-group">
                   <div className="drawer-group-title">Convert PDF</div>
                   <div className="drawer-group-items">
-                    <a href="#img-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('img-to-pdf'); setMobileMenuOpen(false); }} className="drawer-subitem">JPG to PDF</a>
-                    <a href="#docx-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('docx-to-pdf'); setMobileMenuOpen(false); }} className="drawer-subitem">Word to PDF</a>
-                    <a href="#pptx-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('pptx-to-pdf'); setMobileMenuOpen(false); }} className="drawer-subitem">PowerPoint to PDF</a>
-                    <a href="#xlsx-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('xlsx-to-pdf'); setMobileMenuOpen(false); }} className="drawer-subitem">Excel to PDF</a>
-                    <a href="#html-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('html-to-pdf'); setMobileMenuOpen(false); }} className="drawer-subitem">HTML to PDF</a>
-                    <a href="#pdf-to-img" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-img'); setMobileMenuOpen(false); }} className="drawer-subitem">PDF to JPG</a>
-                    <a href="#pdf-to-docx" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-docx'); setMobileMenuOpen(false); }} className="drawer-subitem">PDF to Word</a>
-                    <a href="#pdf-to-pptx" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-pptx'); setMobileMenuOpen(false); }} className="drawer-subitem">PDF to PowerPoint</a>
-                    <a href="#pdf-to-xlsx" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-xlsx'); setMobileMenuOpen(false); }} className="drawer-subitem">PDF to Excel</a>
-                    <a href="#pdf-to-pdfa" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-pdfa'); setMobileMenuOpen(false); }} className="drawer-subitem">PDF to PDF/A</a>
-                    <a href="#extract-text" onClick={(e) => { e.preventDefault(); navigateToTool('extract-text'); setMobileMenuOpen(false); }} className="drawer-subitem">Extract Text</a>
+                    <a href="#img-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('img-to-pdf'); setMobileMenuOpen(false); }} className="drawer-subitem">
+                      <IconJpgToPdf size={20} /> JPG to PDF
+                    </a>
+                    <a href="#docx-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('docx-to-pdf'); setMobileMenuOpen(false); }} className="drawer-subitem">
+                      <IconWordToPdf size={20} /> Word to PDF
+                    </a>
+                    <a href="#pptx-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('pptx-to-pdf'); setMobileMenuOpen(false); }} className="drawer-subitem">
+                      <IconPptToPdf size={20} /> PowerPoint to PDF
+                    </a>
+                    <a href="#xlsx-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('xlsx-to-pdf'); setMobileMenuOpen(false); }} className="drawer-subitem">
+                      <IconExcelToPdf size={20} /> Excel to PDF
+                    </a>
+                    <a href="#html-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('html-to-pdf'); setMobileMenuOpen(false); }} className="drawer-subitem">
+                      <IconHtmlToPdf size={20} /> HTML to PDF
+                    </a>
+                    <a href="#pdf-to-img" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-img'); setMobileMenuOpen(false); }} className="drawer-subitem">
+                      <IconPdfToJpg size={20} /> PDF to JPG
+                    </a>
+                    <a href="#pdf-to-docx" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-docx'); setMobileMenuOpen(false); }} className="drawer-subitem">
+                      <IconPdfToWord size={20} /> PDF to Word
+                    </a>
+                    <a href="#pdf-to-pptx" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-pptx'); setMobileMenuOpen(false); }} className="drawer-subitem">
+                      <IconPdfToPpt size={20} /> PDF to PowerPoint
+                    </a>
+                    <a href="#pdf-to-xlsx" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-xlsx'); setMobileMenuOpen(false); }} className="drawer-subitem">
+                      <IconPdfToExcel size={20} /> PDF to Excel
+                    </a>
+                    <a href="#pdf-to-pdfa" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-pdfa'); setMobileMenuOpen(false); }} className="drawer-subitem">
+                      <IconPdfToPdfA size={20} /> PDF to PDF/A
+                    </a>
+                    <a href="#extract-text" onClick={(e) => { e.preventDefault(); navigateToTool('extract-text'); setMobileMenuOpen(false); }} className="drawer-subitem">
+                      <FileText size={18} /> Extract Text
+                    </a>
                   </div>
                 </div>
 
@@ -1749,15 +1817,33 @@ function App() {
                 <div className="drawer-group">
                   <div className="drawer-group-title">All Tools</div>
                   <div className="drawer-group-items">
-                    <a href="#organize" onClick={(e) => { e.preventDefault(); navigateToTool('organize'); setMobileMenuOpen(false); }} className="drawer-subitem">Organize PDF</a>
-                    <a href="#rotate" onClick={(e) => { e.preventDefault(); navigateToTool('rotate'); setMobileMenuOpen(false); }} className="drawer-subitem">Rotate PDF</a>
-                    <a href="#sign" onClick={(e) => { e.preventDefault(); navigateToTool('sign'); setMobileMenuOpen(false); }} className="drawer-subitem">Sign PDF</a>
-                    <a href="#qr" onClick={(e) => { e.preventDefault(); navigateToTool('qr'); setMobileMenuOpen(false); }} className="drawer-subitem">Stamp QR Code</a>
-                    <a href="#page-numbers" onClick={(e) => { e.preventDefault(); navigateToTool('page-numbers'); setMobileMenuOpen(false); }} className="drawer-subitem">Add Page Numbers</a>
-                    <a href="#watermark" onClick={(e) => { e.preventDefault(); navigateToTool('watermark'); setMobileMenuOpen(false); }} className="drawer-subitem">Add Watermark</a>
-                    <a href="#metadata" onClick={(e) => { e.preventDefault(); navigateToTool('metadata'); setMobileMenuOpen(false); }} className="drawer-subitem">Edit Metadata</a>
-                    <a href="#protect" onClick={(e) => { e.preventDefault(); navigateToTool('protect'); setMobileMenuOpen(false); }} className="drawer-subitem">Protect PDF</a>
-                    <a href="#qr-generator" onClick={(e) => { e.preventDefault(); navigateToTool('qr-generator'); setMobileMenuOpen(false); }} className="drawer-subitem font-semibold color-accent">QR Code Generator</a>
+                    <a href="#organize" onClick={(e) => { e.preventDefault(); navigateToTool('organize'); setMobileMenuOpen(false); }} className="drawer-subitem">
+                      <Layers size={18} /> Organize PDF
+                    </a>
+                    <a href="#rotate" onClick={(e) => { e.preventDefault(); navigateToTool('rotate'); setMobileMenuOpen(false); }} className="drawer-subitem">
+                      <RotateCw size={18} /> Rotate PDF
+                    </a>
+                    <a href="#sign" onClick={(e) => { e.preventDefault(); navigateToTool('sign'); setMobileMenuOpen(false); }} className="drawer-subitem">
+                      <PenTool size={18} /> Sign PDF
+                    </a>
+                    <a href="#qr" onClick={(e) => { e.preventDefault(); navigateToTool('qr'); setMobileMenuOpen(false); }} className="drawer-subitem">
+                      <QrCode size={18} /> Stamp QR Code
+                    </a>
+                    <a href="#page-numbers" onClick={(e) => { e.preventDefault(); navigateToTool('page-numbers'); setMobileMenuOpen(false); }} className="drawer-subitem">
+                      <Hash size={18} /> Add Page Numbers
+                    </a>
+                    <a href="#watermark" onClick={(e) => { e.preventDefault(); navigateToTool('watermark'); setMobileMenuOpen(false); }} className="drawer-subitem">
+                      <Type size={18} /> Add Watermark
+                    </a>
+                    <a href="#metadata" onClick={(e) => { e.preventDefault(); navigateToTool('metadata'); setMobileMenuOpen(false); }} className="drawer-subitem">
+                      <Settings size={18} /> Edit Metadata
+                    </a>
+                    <a href="#protect" onClick={(e) => { e.preventDefault(); navigateToTool('protect'); setMobileMenuOpen(false); }} className="drawer-subitem">
+                      <Lock size={18} /> Protect PDF
+                    </a>
+                    <a href="#qr-generator" onClick={(e) => { e.preventDefault(); navigateToTool('qr-generator'); setMobileMenuOpen(false); }} className="drawer-subitem font-semibold color-accent">
+                      <QrCode size={18} /> QR Code Generator
+                    </a>
                   </div>
                 </div>
               </div>

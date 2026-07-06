@@ -517,7 +517,9 @@ html.dark .navbar {
   padding: 0.5rem 0.75rem;
   border-radius: var(--radius-sm);
   transition: all var(--transition-fast);
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .drawer-item:hover {
@@ -556,7 +558,9 @@ html.dark .navbar {
   padding: 0.4rem 0.75rem;
   border-radius: var(--radius-sm);
   transition: all var(--transition-fast);
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .drawer-subitem:hover {
