@@ -2056,23 +2056,83 @@ function App() {
                         <button 
                           className={`option-select-btn ${compressLevel === 'high' ? 'active' : ''}`}
                           onClick={() => setCompressLevel('high')}
+                          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', textAlign: 'left', width: '100%', gap: '0.5rem' }}
                         >
-                          Extreme Compression
-                          <div style={{ fontSize: '0.7rem', fontWeight: '400', opacity: 0.8 }}>Less quality, smallest file</div>
+                          <div>
+                            <div style={{ fontWeight: '600' }}>Extreme Compression</div>
+                            <div style={{ fontSize: '0.7rem', fontWeight: '400', opacity: 0.8 }}>Less quality, smallest file</div>
+                          </div>
+                          {uploadedFiles[0] && (
+                            <span className="compress-size-badge" style={{
+                              fontSize: '0.75rem',
+                              fontWeight: '700',
+                              backgroundColor: compressLevel === 'high' ? 'rgba(255,255,255,0.2)' : 'var(--bg-secondary)',
+                              color: compressLevel === 'high' ? 'white' : 'var(--text-secondary)',
+                              padding: '4px 8px',
+                              borderRadius: 'var(--radius-sm)',
+                              border: compressLevel === 'high' ? 'none' : '1px solid var(--border-color)',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              ~{(uploadedFiles[0].size * 0.3 / 1024 / 1024) >= 0.1 
+                                ? `${(uploadedFiles[0].size * 0.3 / 1024 / 1024).toFixed(2)} MB`
+                                : `${(uploadedFiles[0].size * 0.3 / 1024).toFixed(0)} KB`
+                              }
+                            </span>
+                          )}
                         </button>
                         <button 
                           className={`option-select-btn ${compressLevel === 'recommended' ? 'active' : ''}`}
                           onClick={() => setCompressLevel('recommended')}
+                          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', textAlign: 'left', width: '100%', gap: '0.5rem' }}
                         >
-                          Recommended Compression
-                          <div style={{ fontSize: '0.7rem', fontWeight: '400', opacity: 0.8 }}>Good quality and size</div>
+                          <div>
+                            <div style={{ fontWeight: '600' }}>Recommended Compression</div>
+                            <div style={{ fontSize: '0.7rem', fontWeight: '400', opacity: 0.8 }}>Good quality and size</div>
+                          </div>
+                          {uploadedFiles[0] && (
+                            <span className="compress-size-badge" style={{
+                              fontSize: '0.75rem',
+                              fontWeight: '700',
+                              backgroundColor: compressLevel === 'recommended' ? 'rgba(255,255,255,0.2)' : 'var(--bg-secondary)',
+                              color: compressLevel === 'recommended' ? 'white' : 'var(--text-secondary)',
+                              padding: '4px 8px',
+                              borderRadius: 'var(--radius-sm)',
+                              border: compressLevel === 'recommended' ? 'none' : '1px solid var(--border-color)',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              ~{(uploadedFiles[0].size * 0.5 / 1024 / 1024) >= 0.1 
+                                ? `${(uploadedFiles[0].size * 0.5 / 1024 / 1024).toFixed(2)} MB`
+                                : `${(uploadedFiles[0].size * 0.5 / 1024).toFixed(0)} KB`
+                              }
+                            </span>
+                          )}
                         </button>
                         <button 
                           className={`option-select-btn ${compressLevel === 'low' ? 'active' : ''}`}
                           onClick={() => setCompressLevel('low')}
+                          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', textAlign: 'left', width: '100%', gap: '0.5rem' }}
                         >
-                          Less Compression
-                          <div style={{ fontSize: '0.7rem', fontWeight: '400', opacity: 0.8 }}>High quality, larger file</div>
+                          <div>
+                            <div style={{ fontWeight: '600' }}>Less Compression</div>
+                            <div style={{ fontSize: '0.7rem', fontWeight: '400', opacity: 0.8 }}>High quality, larger file</div>
+                          </div>
+                          {uploadedFiles[0] && (
+                            <span className="compress-size-badge" style={{
+                              fontSize: '0.75rem',
+                              fontWeight: '700',
+                              backgroundColor: compressLevel === 'low' ? 'rgba(255,255,255,0.2)' : 'var(--bg-secondary)',
+                              color: compressLevel === 'low' ? 'white' : 'var(--text-secondary)',
+                              padding: '4px 8px',
+                              borderRadius: 'var(--radius-sm)',
+                              border: compressLevel === 'low' ? 'none' : '1px solid var(--border-color)',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              ~{(uploadedFiles[0].size * 0.8 / 1024 / 1024) >= 0.1 
+                                ? `${(uploadedFiles[0].size * 0.8 / 1024 / 1024).toFixed(2)} MB`
+                                : `${(uploadedFiles[0].size * 0.8 / 1024).toFixed(0)} KB`
+                              }
+                            </span>
+                          )}
                         </button>
                       </div>
                     </div>
