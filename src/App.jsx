@@ -21,8 +21,8 @@ import {
   Moon, 
   Info,
   FileText,
-  FileSearch,
-  PenTool
+  PenTool,
+  Lock
 } from 'lucide-react';
 
 import { 
@@ -36,7 +36,8 @@ import {
   addWatermark, 
   editMetadata, 
   extractTextFromPdf,
-  stampSignatures
+  stampSignatures,
+  encryptPdfFile
 } from './utils/pdfProcessor';
 
 // Parallel/Batch PDF Page Pre-renderer to Cache Base64 Images
@@ -171,6 +172,15 @@ function App() {
     creator: 'PDFCraft Online'
   });
 
+  // Protect PDF States
+  const [protectPassword, setProtectPassword] = useState('');
+  const [protectOptions, setProtectOptions] = useState({
+    allowPrinting: true,
+    allowCopying: true,
+    allowModifying: true,
+    algorithm: 'AES-256'
+  });
+
   // Signature States
   const [signatureDataUrl, setSignatureDataUrl] = useState(null); // Drawn signature PNG
   const [signatureAspectRatio, setSignatureAspectRatio] = useState(2); // width / height
@@ -247,6 +257,15 @@ function App() {
       description: 'Draw or upload your signature, then visually place and resize it on any page of the PDF.',
       icon: <PenTool size={24} />,
       category: 'Edits',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'protect',
+      title: 'Protect PDF',
+      description: 'Encrypt your PDF with a secure password to restrict unauthorized opening or modifications.',
+      icon: <Lock size={24} />,
+      category: 'Security',
       multiple: false,
       accept: '.pdf'
     },
@@ -507,6 +526,13 @@ function App() {
       subject: '',
       keywords: '',
       creator: 'PDFCraft Online'
+    });
+    setProtectPassword('');
+    setProtectOptions({
+      allowPrinting: true,
+      allowCopying: true,
+      allowModifying: true,
+      algorithm: 'AES-256'
     });
   };
 
@@ -927,6 +953,18 @@ function App() {
         
         outputBytes = await stampSignatures(file.buffer, placedSignatures);
         filename = `${file.name.replace('.pdf', '')}_signed.pdf`;
+      }
+
+      else if (activeTool === 'protect') {
+        setProcessingStatus('Encrypting document...');
+        const file = uploadedFiles[0];
+        if (!protectPassword.trim()) {
+          throw new Error('Please enter a password to protect the PDF.');
+        }
+        
+        const encryptedBytes = await encryptPdfFile(file.buffer, protectPassword, protectOptions);
+        outputBytes = encryptedBytes;
+        filename = `${file.name.replace('.pdf', '')}_protected.pdf`;
       }
 
       else if (activeTool === 'extract-text') {
@@ -1499,7 +1537,7 @@ function App() {
                             <div className="card-nav-buttons">
                               <button className="btn-icon btn-nav" disabled={idx === 0} onClick={() => moveFileOrder(idx, -1)}>
                                 ◀
-                                </button>
+                              </button>
                               <button className="btn-icon btn-nav" disabled={idx === uploadedFiles.length - 1} onClick={() => moveFileOrder(idx, 1)}>
                                 ▶
                               </button>
@@ -1630,6 +1668,83 @@ function App() {
                           </div>
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {activeTool === 'protect' && (
+                    <div className="sidebar-section" style={{ gap: '1rem' }}>
+                      <h3>Security Settings</h3>
+                      
+                      <div className="form-group">
+                        <label>Enter Password</label>
+                        <input 
+                          type="password" 
+                          className="form-control"
+                          placeholder="Password to open PDF"
+                          value={protectPassword}
+                          onChange={(e) => setProtectPassword(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label>Encryption Algorithm</label>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button 
+                            className={`option-select-btn ${protectOptions.algorithm === 'AES-256' ? 'active' : ''}`}
+                            style={{ flex: 1 }}
+                            onClick={() => setProtectOptions({...protectOptions, algorithm: 'AES-256'})}
+                          >
+                            AES-256 (Strong)
+                          </button>
+                          <button 
+                            className={`option-select-btn ${protectOptions.algorithm === 'RC4' ? 'active' : ''}`}
+                            style={{ flex: 1 }}
+                            onClick={() => setProtectOptions({...protectOptions, algorithm: 'RC4'})}
+                          >
+                            RC4 (Legacy)
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="form-group" style={{ gap: '0.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+                        <label style={{ marginBottom: '0.25rem' }}>Permissions</label>
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.25rem 0' }}>
+                          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Allow Printing</span>
+                          <label className="toggle-switch">
+                            <input 
+                              type="checkbox" 
+                              checked={protectOptions.allowPrinting} 
+                              onChange={(e) => setProtectOptions({...protectOptions, allowPrinting: e.target.checked})}
+                            />
+                            <span className="slider"></span>
+                          </label>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.25rem 0' }}>
+                          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Allow Copying Text/Images</span>
+                          <label className="toggle-switch">
+                            <input 
+                              type="checkbox" 
+                              checked={protectOptions.allowCopying} 
+                              onChange={(e) => setProtectOptions({...protectOptions, allowCopying: e.target.checked})}
+                            />
+                            <span className="slider"></span>
+                          </label>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.25rem 0' }}>
+                          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Allow Modifications</span>
+                          <label className="toggle-switch">
+                            <input 
+                              type="checkbox" 
+                              checked={protectOptions.allowModifying} 
+                              onChange={(e) => setProtectOptions({...protectOptions, allowModifying: e.target.checked})}
+                            />
+                            <span className="slider"></span>
+                          </label>
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -1966,7 +2081,8 @@ function App() {
                     disabled={
                       (activeTool === 'split' && !splitRanges.trim()) ||
                       (activeTool === 'sign' && placedSignatures.length === 0) ||
-                      (activeTool === 'sign' && activePageToSign !== null) // Disable save while visual placement editor is open
+                      (activeTool === 'sign' && activePageToSign !== null) ||
+                      (activeTool === 'protect' && !protectPassword.trim())
                     }
                   >
                     {activeTool === 'extract-text' ? 'Extract Text' : `Convert to ${currentTool.id === 'pdf-to-img' ? 'Images' : 'PDF'}`}

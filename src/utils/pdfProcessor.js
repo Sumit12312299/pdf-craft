@@ -1,4 +1,6 @@
 import { PDFDocument, rgb, degrees, StandardFonts } from 'pdf-lib';
+import { encryptPDF } from '@pdfsmaller/pdf-encrypt';
+
 
 // Helper to convert HEX to PDF-lib RGB colors (0 to 1 range)
 function hexToRgbPercent(hex) {
@@ -358,4 +360,23 @@ export async function stampSignatures(pdfBuffer, signatures) {
   
   return await pdfDoc.save();
 }
+
+// 12. Encrypt PDF with Password Protection
+export async function encryptPdfFile(pdfBuffer, password, options = {}) {
+  const pdfBytes = new Uint8Array(pdfBuffer);
+  
+  const config = {
+    algorithm: options.algorithm || 'AES-256',
+    ownerPassword: options.ownerPassword || password,
+    allowPrinting: options.allowPrinting !== undefined ? options.allowPrinting : true,
+    allowCopying: options.allowCopying !== undefined ? options.allowCopying : true,
+    allowModifying: options.allowModifying !== undefined ? options.allowModifying : true,
+    allowAnnotating: options.allowAnnotating !== undefined ? options.allowAnnotating : true,
+    allowFillingForms: options.allowFillingForms !== undefined ? options.allowFillingForms : true,
+  };
+  
+  const encryptedBytes = await encryptPDF(pdfBytes, password, config);
+  return encryptedBytes;
+}
+
 
