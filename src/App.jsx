@@ -26,7 +26,10 @@ import {
   Lock,
   QrCode,
   Share2,
-  Copy
+  Copy,
+  ChevronDown,
+  Menu,
+  X
 } from 'lucide-react';
 
 import { 
@@ -125,6 +128,8 @@ function App() {
   
   // Navigation
   const [activeTool, setActiveTool] = useState(null);
+  const [gridMenuOpen, setGridMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // File States
   const [uploadedFiles, setUploadedFiles] = useState([]); // { file, buffer, pageCount, name, size, type, previewUrl, firstPagePreview }
@@ -671,6 +676,11 @@ function App() {
   const backToHome = () => {
     resetToolState();
     setActiveTool(null);
+  };
+
+  const navigateToTool = (toolId) => {
+    resetToolState();
+    setActiveTool(toolId);
   };
 
   // Up/down ordering for Merge PDF (Takes 0ms, very responsive)
@@ -1261,51 +1271,83 @@ function App() {
 
   const handleShareClick = (blob, name, type) => {
     setShareData({ blob, name, type });
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const file = new File([blob], name, { type });
     
-    if (isMobile && navigator.canShare && navigator.canShare({ files: [new File([blob], name, { type })] })) {
-      const file = new File([blob], name, { type });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
       navigator.share({
         files: [file],
         title: name,
         text: 'Here is your file from pdfCraft!',
       }).catch(err => {
-        if (err.name !== 'AbortError') {
-          setShowShareModal(true);
-        }
+        // Even if they cancel (AbortError) or it fails, open the modal so they have other options
+        setShowShareModal(true);
       });
     } else {
       setShowShareModal(true);
     }
   };
 
-  const handleDesktopShare = (platform) => {
+  const copyFileToClipboard = async (blob) => {
+    try {
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          [blob.type]: blob
+        })
+      ]);
+      return true;
+    } catch (err) {
+      console.warn('Clipboard write failed:', err);
+      return false;
+    }
+  };
+
+  const handleDesktopShare = async (platform) => {
     if (!shareData.blob) return;
 
-    // 1. Download file automatically
-    downloadBlob(shareData.blob, shareData.name);
+    // Try to copy the file/image to clipboard so the user can paste it directly
+    const copied = await copyFileToClipboard(shareData.blob);
 
-    // 2. Determine target Web app URL
-    let url = '';
-    const websiteUrl = 'https://pdf-craft-sand.vercel.app/';
-    const messageText = `Hi, I just processed my file securely and 100% locally using pdfCraft. Website: ${websiteUrl}`;
-    
-    if (platform === 'whatsapp') {
-      url = `https://web.whatsapp.com/send?text=${encodeURIComponent(messageText)}`;
-    } else if (platform === 'telegram') {
-      url = `https://t.me/share/url?url=${encodeURIComponent(websiteUrl)}&text=${encodeURIComponent('I just processed my file securely and 100% locally using pdfCraft!')}`;
-    } else if (platform === 'gmail') {
-      url = `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent('Processed File: ' + shareData.name)}&body=${encodeURIComponent("Hi,\n\nPlease find attached the file that I processed securely using pdfCraft.\n\nWebsite: https://pdf-craft-sand.vercel.app/")}`;
-    } else if (platform === 'email') {
-      url = `mailto:?subject=${encodeURIComponent('Processed File: ' + shareData.name)}&body=${encodeURIComponent("Hi,\n\nPlease find attached the file that I processed securely using pdfCraft.\n\nWebsite: https://pdf-craft-sand.vercel.app/")}`;
+    const openPlatform = () => {
+      let url = '';
+      const websiteUrl = 'https://pdf-craft-sand.vercel.app/';
+      const messageText = `Hi, I just processed my file securely and 100% locally using pdfCraft. Website: ${websiteUrl}`;
+      
+      if (platform === 'whatsapp') {
+        url = `https://web.whatsapp.com/send?text=${encodeURIComponent(messageText)}`;
+      } else if (platform === 'telegram') {
+        url = `https://t.me/share/url?url=${encodeURIComponent(websiteUrl)}&text=${encodeURIComponent('I just processed my file securely and 100% locally using pdfCraft!')}`;
+      } else if (platform === 'gmail') {
+        url = `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent('Processed File: ' + shareData.name)}&body=${encodeURIComponent("Hi,\n\nPlease find attached the file that I processed securely using pdfCraft.\n\nWebsite: https://pdf-craft-sand.vercel.app/")}`;
+      } else if (platform === 'email') {
+        url = `mailto:?subject=${encodeURIComponent('Processed File: ' + shareData.name)}&body=${encodeURIComponent("Hi,\n\nPlease find attached the file that I processed securely using pdfCraft.\n\nWebsite: https://pdf-craft-sand.vercel.app/")}`;
+      }
+
+      if (url) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
+    };
+
+    const file = new File([shareData.blob], shareData.name, { type: shareData.type });
+
+    // If native share is supported and available, prioritize it
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({
+        files: [file],
+        title: shareData.name,
+        text: 'Here is your file from pdfCraft!',
+      }).catch(err => {
+        if (err.name !== 'AbortError') {
+          openPlatform();
+        }
+      });
+    } else {
+      openPlatform();
+      if (copied) {
+        alert(`File "${shareData.name}" has been copied to your clipboard!\n\nWe have opened the chat/email window. Simply press Ctrl+V (or Paste) to attach it directly!`);
+      } else {
+        alert(`We have opened the chat/email window.\n\nTo share the file, please click the "Download File" button in the modal to save it, and then attach it manually.`);
+      }
     }
-
-    if (url) {
-      window.open(url, '_blank', 'noopener,noreferrer');
-    }
-
-    // 3. Show standard user-friendly notification
-    alert(`File "${shareData.name}" has been downloaded successfully to your computer.\n\nPlease drag & drop or attach the downloaded file in the newly opened ${platform === 'gmail' ? 'Gmail' : platform === 'whatsapp' ? 'WhatsApp' : platform === 'telegram' ? 'Telegram' : 'Email'} window to send it!`);
   };
 
   const shareProcessedFile = async () => {
@@ -1342,16 +1384,205 @@ function App() {
     <div className="app-container">
       {/* Header */}
       <header className="navbar">
-        <a href="/" className="nav-brand" onClick={(e) => { e.preventDefault(); backToHome(); }}>
-          <span>pdf</span><span className="accent">Craft</span>
-        </a>
-        
-        <div className="nav-links">
-          <a href="#tools" className="nav-link" onClick={(e) => { e.preventDefault(); backToHome(); }}>All Tools</a>
+        <div className="navbar-left">
+          <a href="/" className="nav-brand" onClick={(e) => { e.preventDefault(); backToHome(); }}>
+            <span className="logo-pdf">pdf</span>
+            <span className="logo-heart">❤️</span>
+            <span className="logo-craft">Craft</span>
+          </a>
+          
+          <nav className="nav-menu">
+            <a href="#merge" className={`nav-item ${activeTool === 'merge' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); navigateToTool('merge'); }}>
+              MERGE PDF
+            </a>
+            <a href="#split" className={`nav-item ${activeTool === 'split' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); navigateToTool('split'); }}>
+              SPLIT PDF
+            </a>
+            <a href="#compress" className={`nav-item ${activeTool === 'compress' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); navigateToTool('compress'); }}>
+              COMPRESS PDF
+            </a>
+            
+            {/* Convert PDF Dropdown */}
+            <div className="nav-dropdown-trigger">
+              <span className="nav-item-dropdown">
+                CONVERT PDF <ChevronDown size={14} className="dropdown-arrow" />
+              </span>
+              <div className="nav-dropdown-menu mega-convert">
+                <div className="dropdown-column">
+                  <div className="dropdown-col-title">CONVERT TO PDF</div>
+                  <a href="#img-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('img-to-pdf'); }} className="dropdown-link">
+                    <span className="link-icon">🖼️</span> JPG to PDF
+                  </a>
+                  <a href="#docx-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('docx-to-pdf'); }} className="dropdown-link">
+                    <span className="link-icon">📝</span> Word to PDF
+                  </a>
+                  <a href="#pptx-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('pptx-to-pdf'); }} className="dropdown-link">
+                    <span className="link-icon">📊</span> PowerPoint to PDF
+                  </a>
+                </div>
+                <div className="dropdown-column">
+                  <div className="dropdown-col-title">CONVERT FROM PDF</div>
+                  <a href="#pdf-to-docx" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-docx'); }} className="dropdown-link">
+                    <span className="link-icon">📄</span> PDF to Word
+                  </a>
+                  <a href="#pdf-to-pptx" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-pptx'); }} className="dropdown-link">
+                    <span className="link-icon">📉</span> PDF to PowerPoint
+                  </a>
+                  <a href="#pdf-to-img" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-img'); }} className="dropdown-link">
+                    <span className="link-icon">🖼️</span> PDF to JPG
+                  </a>
+                  <a href="#extract-text" onClick={(e) => { e.preventDefault(); navigateToTool('extract-text'); }} className="dropdown-link">
+                    <span className="link-icon">🔤</span> Extract Text
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* All PDF Tools Mega Dropdown */}
+            <div className="nav-dropdown-trigger">
+              <span className="nav-item-dropdown">
+                ALL PDF TOOLS <ChevronDown size={14} className="dropdown-arrow" />
+              </span>
+              <div className="nav-dropdown-menu mega-all">
+                <div className="dropdown-column">
+                  <div className="dropdown-col-title">ORGANIZE PDF</div>
+                  <a href="#merge" onClick={(e) => { e.preventDefault(); navigateToTool('merge'); }} className="dropdown-link">Merge PDF</a>
+                  <a href="#split" onClick={(e) => { e.preventDefault(); navigateToTool('split'); }} className="dropdown-link">Split PDF</a>
+                  <a href="#organize" onClick={(e) => { e.preventDefault(); navigateToTool('organize'); }} className="dropdown-link">Organize PDF</a>
+                  <a href="#rotate" onClick={(e) => { e.preventDefault(); navigateToTool('rotate'); }} className="dropdown-link">Rotate PDF</a>
+                </div>
+                <div className="dropdown-column">
+                  <div className="dropdown-col-title">EDIT PDF</div>
+                  <a href="#sign" onClick={(e) => { e.preventDefault(); navigateToTool('sign'); }} className="dropdown-link">Sign PDF</a>
+                  <a href="#qr" onClick={(e) => { e.preventDefault(); navigateToTool('qr'); }} className="dropdown-link">Stamp QR Code</a>
+                  <a href="#page-numbers" onClick={(e) => { e.preventDefault(); navigateToTool('page-numbers'); }} className="dropdown-link">Add Page Numbers</a>
+                  <a href="#watermark" onClick={(e) => { e.preventDefault(); navigateToTool('watermark'); }} className="dropdown-link">Add Watermark</a>
+                  <a href="#metadata" onClick={(e) => { e.preventDefault(); navigateToTool('metadata'); }} className="dropdown-link">Edit Metadata</a>
+                </div>
+                <div className="dropdown-column">
+                  <div className="dropdown-col-title">CONVERT</div>
+                  <a href="#docx-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('docx-to-pdf'); }} className="dropdown-link">Word to PDF</a>
+                  <a href="#pptx-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('pptx-to-pdf'); }} className="dropdown-link">PowerPoint to PDF</a>
+                  <a href="#img-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('img-to-pdf'); }} className="dropdown-link">JPG to PDF</a>
+                  <a href="#pdf-to-docx" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-docx'); }} className="dropdown-link">PDF to Word</a>
+                  <a href="#pdf-to-pptx" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-pptx'); }} className="dropdown-link">PDF to PowerPoint</a>
+                  <a href="#pdf-to-img" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-img'); }} className="dropdown-link">PDF to JPG</a>
+                  <a href="#extract-text" onClick={(e) => { e.preventDefault(); navigateToTool('extract-text'); }} className="dropdown-link">Extract Text</a>
+                </div>
+                <div className="dropdown-column">
+                  <div className="dropdown-col-title">SECURITY & UTILITIES</div>
+                  <a href="#compress" onClick={(e) => { e.preventDefault(); navigateToTool('compress'); }} className="dropdown-link font-semibold">Compress PDF</a>
+                  <a href="#protect" onClick={(e) => { e.preventDefault(); navigateToTool('protect'); }} className="dropdown-link">Protect PDF</a>
+                  <a href="#qr-generator" onClick={(e) => { e.preventDefault(); navigateToTool('qr-generator'); }} className="dropdown-link highlight">QR Generator</a>
+                </div>
+              </div>
+            </div>
+          </nav>
+        </div>
+
+        <div className="navbar-right">
           <button onClick={toggleTheme} className="btn-icon" title="Toggle theme">
             {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
           </button>
+
+          {/* 9-Dot Menu Button */}
+          <div className="grid-menu-trigger">
+            <button className="btn-icon btn-grid-menu" title="All tools grid" onClick={() => setGridMenuOpen(!gridMenuOpen)}>
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                <rect x="3" y="3" width="4" height="4" rx="1" />
+                <rect x="10" y="3" width="4" height="4" rx="1" />
+                <rect x="17" y="3" width="4" height="4" rx="1" />
+                <rect x="3" y="10" width="4" height="4" rx="1" />
+                <rect x="10" y="10" width="4" height="4" rx="1" />
+                <rect x="17" y="10" width="4" height="4" rx="1" />
+                <rect x="3" y="17" width="4" height="4" rx="1" />
+                <rect x="10" y="17" width="4" height="4" rx="1" />
+                <rect x="17" y="17" width="4" height="4" rx="1" />
+              </svg>
+            </button>
+            {gridMenuOpen && (
+              <div className="grid-menu-dropdown">
+                <div className="grid-menu-header">
+                  <span>Quick Access Tools</span>
+                  <button className="grid-menu-close" onClick={() => setGridMenuOpen(false)}>×</button>
+                </div>
+                <div className="grid-menu-body">
+                  {tools.map(tool => (
+                    <button key={tool.id} className="grid-menu-item" onClick={() => { navigateToTool(tool.id); setGridMenuOpen(false); }}>
+                      <span className="grid-menu-icon">{tool.icon}</span>
+                      <span className="grid-menu-label">{tool.title}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Mobile Menu Toggle Button */}
+          <button className="btn-icon btn-burger-menu" title="Menu" onClick={() => setMobileMenuOpen(true)}>
+            <Menu size={20} />
+          </button>
         </div>
+
+        {/* Mobile Side Drawer Menu */}
+        {mobileMenuOpen && (
+          <div className="mobile-menu-drawer">
+            <div className="drawer-overlay" onClick={() => setMobileMenuOpen(false)}></div>
+            <div className="drawer-content">
+              <div className="drawer-header">
+                <a href="/" className="nav-brand" onClick={(e) => { e.preventDefault(); backToHome(); setMobileMenuOpen(false); }}>
+                  <span className="logo-pdf">pdf</span>
+                  <span className="logo-heart">❤️</span>
+                  <span className="logo-craft">Craft</span>
+                </a>
+                <button className="btn-icon btn-close-drawer" onClick={() => setMobileMenuOpen(false)}>
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="drawer-body">
+                <a href="#merge" className="drawer-item" onClick={(e) => { e.preventDefault(); navigateToTool('merge'); setMobileMenuOpen(false); }}>
+                  Merge PDF
+                </a>
+                <a href="#split" className="drawer-item" onClick={(e) => { e.preventDefault(); navigateToTool('split'); setMobileMenuOpen(false); }}>
+                  Split PDF
+                </a>
+                <a href="#compress" className="drawer-item" onClick={(e) => { e.preventDefault(); navigateToTool('compress'); setMobileMenuOpen(false); }}>
+                  Compress PDF
+                </a>
+                
+                {/* Convert Group */}
+                <div className="drawer-group">
+                  <div className="drawer-group-title">Convert PDF</div>
+                  <div className="drawer-group-items">
+                    <a href="#img-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('img-to-pdf'); setMobileMenuOpen(false); }} className="drawer-subitem">JPG to PDF</a>
+                    <a href="#docx-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('docx-to-pdf'); setMobileMenuOpen(false); }} className="drawer-subitem">Word to PDF</a>
+                    <a href="#pptx-to-pdf" onClick={(e) => { e.preventDefault(); navigateToTool('pptx-to-pdf'); setMobileMenuOpen(false); }} className="drawer-subitem">PowerPoint to PDF</a>
+                    <a href="#pdf-to-docx" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-docx'); setMobileMenuOpen(false); }} className="drawer-subitem">PDF to Word</a>
+                    <a href="#pdf-to-pptx" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-pptx'); setMobileMenuOpen(false); }} className="drawer-subitem">PDF to PowerPoint</a>
+                    <a href="#pdf-to-img" onClick={(e) => { e.preventDefault(); navigateToTool('pdf-to-img'); setMobileMenuOpen(false); }} className="drawer-subitem">PDF to JPG</a>
+                    <a href="#extract-text" onClick={(e) => { e.preventDefault(); navigateToTool('extract-text'); setMobileMenuOpen(false); }} className="drawer-subitem">Extract Text</a>
+                  </div>
+                </div>
+
+                {/* Edit & Organize Group */}
+                <div className="drawer-group">
+                  <div className="drawer-group-title">All Tools</div>
+                  <div className="drawer-group-items">
+                    <a href="#organize" onClick={(e) => { e.preventDefault(); navigateToTool('organize'); setMobileMenuOpen(false); }} className="drawer-subitem">Organize PDF</a>
+                    <a href="#rotate" onClick={(e) => { e.preventDefault(); navigateToTool('rotate'); setMobileMenuOpen(false); }} className="drawer-subitem">Rotate PDF</a>
+                    <a href="#sign" onClick={(e) => { e.preventDefault(); navigateToTool('sign'); setMobileMenuOpen(false); }} className="drawer-subitem">Sign PDF</a>
+                    <a href="#qr" onClick={(e) => { e.preventDefault(); navigateToTool('qr'); setMobileMenuOpen(false); }} className="drawer-subitem">Stamp QR Code</a>
+                    <a href="#page-numbers" onClick={(e) => { e.preventDefault(); navigateToTool('page-numbers'); setMobileMenuOpen(false); }} className="drawer-subitem">Add Page Numbers</a>
+                    <a href="#watermark" onClick={(e) => { e.preventDefault(); navigateToTool('watermark'); setMobileMenuOpen(false); }} className="drawer-subitem">Add Watermark</a>
+                    <a href="#metadata" onClick={(e) => { e.preventDefault(); navigateToTool('metadata'); setMobileMenuOpen(false); }} className="drawer-subitem">Edit Metadata</a>
+                    <a href="#protect" onClick={(e) => { e.preventDefault(); navigateToTool('protect'); setMobileMenuOpen(false); }} className="drawer-subitem">Protect PDF</a>
+                    <a href="#qr-generator" onClick={(e) => { e.preventDefault(); navigateToTool('qr-generator'); setMobileMenuOpen(false); }} className="drawer-subitem font-semibold color-accent">QR Code Generator</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Main Container */}
@@ -3039,8 +3270,39 @@ function App() {
 
             {/* Direct Share Buttons */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {navigator.canShare && navigator.canShare({ files: [new File([shareData.blob], shareData.name, { type: shareData.type })] }) && (
+                <button
+                  className="btn-download-success"
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    fontSize: '0.9rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    marginBottom: '0.25rem'
+                  }}
+                  onClick={async () => {
+                    try {
+                      const file = new File([shareData.blob], shareData.name, { type: shareData.type });
+                      await navigator.share({
+                        files: [file],
+                        title: shareData.name,
+                        text: 'Here is your file from pdfCraft!',
+                      });
+                    } catch (err) {
+                      if (err.name !== 'AbortError') {
+                        alert('Sharing failed: ' + err.message);
+                      }
+                    }
+                  }}
+                >
+                  <Share2 size={16} /> Share via System Dialog (WhatsApp, Telegram, etc.)
+                </button>
+              )}
               <div style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                Share directly via desktop apps:
+                Share via Web Apps:
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <button
@@ -3153,7 +3415,7 @@ function App() {
               margin: '0',
               lineHeight: '1.4'
             }}>
-              💡 <strong>How it works:</strong> Clicking any app button will automatically download your file and open the app. Just drag & drop the downloaded file into the chat/compose window.
+              💡 <strong>How it works:</strong> We copy the file/image directly to your clipboard and open the app. Simply press <strong>Ctrl+V (or Paste)</strong> in the chat to share it. If your browser doesn't support clipboard files, click <strong>Download File</strong> below to download and attach it manually.
             </div>
 
             {/* Actions Grid */}
