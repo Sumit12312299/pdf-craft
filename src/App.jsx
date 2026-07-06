@@ -2126,7 +2126,7 @@ function App() {
                     <h3>Your file is ready!</h3>
                     <p>The processing completed entirely in your browser. Click download to retrieve your file.</p>
                   </div>
-                  <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap', width: '100%', maxWidth: '400px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', justifyContent: 'center', width: '100%', maxWidth: '400px' }}>
                     <button className="btn-download-success" onClick={triggerDownload} style={{ width: '100%', padding: '0.75rem' }}>
                       <Download size={18} /> Download {
                         currentTool.id === 'pdf-to-img' ? 'ZIP' : 
@@ -2136,6 +2136,25 @@ function App() {
                         'PDF'
                       }
                     </button>
+                    {navigator.share && (
+                      <button 
+                        className="btn-upload" 
+                        onClick={() => handleShareClick(resultBlob, resultName, resultBlob.type || 'application/pdf')}
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.75rem', 
+                          backgroundColor: 'var(--accent-color)', 
+                          color: 'white',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.5rem',
+                          margin: 0
+                        }}
+                      >
+                        <Share2 size={18} /> Share File
+                      </button>
+                    )}
                   </div>
                   <button className="btn-reset" onClick={resetToolState} style={{ marginTop: '0.5rem' }}>
                     Perform Another Operation
