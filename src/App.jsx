@@ -189,11 +189,19 @@ function App() {
     algorithm: 'AES-256'
   });
 
-  // QR Code States
+  // QR Code States (for PDF Stamp tool)
   const [qrText, setQrText] = useState('https://pdfcraft.online');
   const [qrFgColor, setQrFgColor] = useState('#000000');
   const [qrBgColor, setQrBgColor] = useState('#ffffff');
   const [qrDataUrl, setQrDataUrl] = useState('');
+
+  // QR Generator (standalone tool) States
+  const [qrGenText, setQrGenText] = useState('https://');
+  const [qrGenFgColor, setQrGenFgColor] = useState('#000000');
+  const [qrGenBgColor, setQrGenBgColor] = useState('#ffffff');
+  const [qrGenSize, setQrGenSize] = useState(300);
+  const [qrGenDataUrl, setQrGenDataUrl] = useState('');
+  const [qrGenError, setQrGenError] = useState('');
 
   // Signature States
   const [signatureDataUrl, setSignatureDataUrl] = useState(null); // Drawn signature PNG or QR Code PNG
@@ -255,6 +263,32 @@ function App() {
       .catch(err => console.error(err));
     }
   }, [qrText, qrFgColor, qrBgColor, activeTool]);
+
+  // Standalone QR Generator real-time generation
+  useEffect(() => {
+    if (activeTool === 'qr-generator') {
+      if (!qrGenText.trim()) {
+        setQrGenDataUrl('');
+        setQrGenError('Please enter a URL or text to generate QR code.');
+        return;
+      }
+      setQrGenError('');
+      QRCode.toDataURL(qrGenText, {
+        color: {
+          dark: qrGenFgColor,
+          light: qrGenBgColor
+        },
+        margin: 2,
+        width: qrGenSize,
+        errorCorrectionLevel: 'H'
+      })
+      .then(url => setQrGenDataUrl(url))
+      .catch(err => {
+        setQrGenError('Failed to generate QR code: ' + err.message);
+        setQrGenDataUrl('');
+      });
+    }
+  }, [qrGenText, qrGenFgColor, qrGenBgColor, qrGenSize, activeTool]);
 
   // Define tools catalog
   const tools = [
@@ -419,6 +453,15 @@ function App() {
       category: 'Edits',
       multiple: false,
       accept: '.pdf'
+    },
+    {
+      id: 'qr-generator',
+      title: 'QR Code Generator',
+      description: 'Convert any link or text into a downloadable QR code image instantly.',
+      icon: <QrCode size={24} />,
+      category: 'Utilities',
+      multiple: false,
+      accept: null // No file needed
     }
   ];
 
@@ -1254,7 +1297,7 @@ function App() {
   }, {});
 
   // Explicit category display order
-  const categoryOrder = ['Organize', 'Edits', 'Optimize', 'Security', 'Convert to PDF', 'Convert from PDF'];
+  const categoryOrder = ['Organize', 'Edits', 'Optimize', 'Security', 'Convert to PDF', 'Convert from PDF', 'Utilities'];
   const orderedCategories = categoryOrder.filter(cat => categorizedTools[cat]);
   // Append any unlisted categories at the end
   Object.keys(categorizedTools).forEach(cat => {
@@ -1335,8 +1378,184 @@ function App() {
               </div>
             )}
 
+            {/* Sub-View: QR Generator (No file needed) */}
+            {activeTool === 'qr-generator' ? (
+              <div className="workspace-layout">
+                {/* Left: QR Preview */}
+                <div className="workspace-main" style={{ justifyContent: 'center', alignItems: 'center', gap: '1.5rem' }}>
+                  {qrGenError && (
+                    <div style={{ color: 'var(--accent-color)', fontSize: '0.85rem', fontWeight: '600', textAlign: 'center' }}>
+                      {qrGenError}
+                    </div>
+                  )}
+                  {qrGenDataUrl ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
+                      <div style={{
+                        padding: '1.5rem',
+                        backgroundColor: qrGenBgColor,
+                        borderRadius: 'var(--radius-lg)',
+                        border: '1px solid var(--border-color)',
+                        boxShadow: 'var(--shadow-md)',
+                      }}>
+                        <img 
+                          src={qrGenDataUrl} 
+                          alt="Generated QR Code" 
+                          style={{ width: `${Math.min(qrGenSize, 280)}px`, height: `${Math.min(qrGenSize, 280)}px`, display: 'block' }} 
+                        />
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                          Scan this QR Code to open:
+                        </p>
+                        <p style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-primary)', wordBreak: 'break-all', maxWidth: '300px' }}>
+                          {qrGenText}
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                        <button
+                          className="btn-download-success"
+                          onClick={() => {
+                            const a = document.createElement('a');
+                            a.href = qrGenDataUrl;
+                            a.download = `qrcode_${Date.now()}.png`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                          }}
+                        >
+                          <Download size={18} /> Download PNG
+                        </button>
+                        <button
+                          className="btn-share-file"
+                          onClick={async () => {
+                            try {
+                              const res = await fetch(qrGenDataUrl);
+                              const blob = await res.blob();
+                              const file = new File([blob], `qrcode_${Date.now()}.png`, { type: 'image/png' });
+                              if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                                await navigator.share({ files: [file], title: 'QR Code', text: 'Scanned from pdfCraft QR Generator' });
+                              } else {
+                                alert('Sharing not supported by your browser. Please download the image and share manually.');
+                              }
+                            } catch (err) {
+                              if (err.name !== 'AbortError') alert('Could not share: ' + err.message);
+                            }
+                          }}
+                        >
+                          <Share2 size={18} /> Share QR
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+                      <QrCode size={72} style={{ opacity: 0.3 }} />
+                      <p style={{ fontSize: '0.9rem' }}>Enter a URL or text in the right panel to generate your QR code</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Right: Controls Sidebar */}
+                <div className="workspace-sidebar">
+                  <div className="sidebar-section">
+                    <h3>QR Content</h3>
+                    <div className="form-group">
+                      <label>URL or Text</label>
+                      <textarea
+                        className="form-control"
+                        rows={4}
+                        placeholder="https://example.com or any text..."
+                        value={qrGenText}
+                        onChange={(e) => setQrGenText(e.target.value)}
+                        style={{ resize: 'vertical', fontFamily: 'monospace', fontSize: '0.85rem' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="sidebar-section">
+                    <h3>Appearance</h3>
+                    <div className="form-group">
+                      <label>QR Color (Foreground)</label>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <input
+                          type="color"
+                          value={qrGenFgColor}
+                          onChange={(e) => setQrGenFgColor(e.target.value)}
+                          style={{ width: '44px', height: '36px', padding: '2px', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', backgroundColor: 'var(--bg-secondary)' }}
+                        />
+                        <input
+                          className="form-control"
+                          type="text"
+                          value={qrGenFgColor}
+                          onChange={(e) => setQrGenFgColor(e.target.value)}
+                          style={{ flex: 1, fontFamily: 'monospace' }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Background Color</label>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <input
+                          type="color"
+                          value={qrGenBgColor}
+                          onChange={(e) => setQrGenBgColor(e.target.value)}
+                          style={{ width: '44px', height: '36px', padding: '2px', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', backgroundColor: 'var(--bg-secondary)' }}
+                        />
+                        <input
+                          className="form-control"
+                          type="text"
+                          value={qrGenBgColor}
+                          onChange={(e) => setQrGenBgColor(e.target.value)}
+                          style={{ flex: 1, fontFamily: 'monospace' }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Size: {qrGenSize}px</label>
+                      <input
+                        type="range"
+                        min={128}
+                        max={1024}
+                        step={64}
+                        value={qrGenSize}
+                        onChange={(e) => setQrGenSize(Number(e.target.value))}
+                        style={{ width: '100%', accentColor: 'var(--accent-color)' }}
+                      />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                        <span>128px</span>
+                        <span>1024px</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="sidebar-section">
+                    <h3>Quick Presets</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {[
+                        { label: '🖤 Classic (B&W)', fg: '#000000', bg: '#ffffff' },
+                        { label: '🔴 Red Accent', fg: '#e11d48', bg: '#ffffff' },
+                        { label: '🌑 Dark Mode', fg: '#f1f5f9', bg: '#0f172a' },
+                        { label: '💙 Corporate Blue', fg: '#1e40af', bg: '#eff6ff' },
+                      ].map((preset) => (
+                        <button
+                          key={preset.label}
+                          className="option-select-btn"
+                          onClick={() => { setQrGenFgColor(preset.fg); setQrGenBgColor(preset.bg); }}
+                          style={{ textAlign: 'left', padding: '0.5rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        >
+                          <span style={{ display: 'inline-block', width: '14px', height: '14px', borderRadius: '2px', background: preset.fg, border: '1px solid var(--border-color)' }}></span>
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
             {/* Sub-View: 1. Processing Screen */}
-            {processing ? (
+            {activeTool !== 'qr-generator' && processing ? (
               <div className="workspace-main" style={{ minHeight: '380px' }}>
                 <div className="progress-container">
                   <div className="spinner"></div>
@@ -1347,7 +1566,7 @@ function App() {
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{progress}% Complete</div>
                 </div>
               </div>
-            ) : resultBlob ? (
+            ) : (activeTool !== 'qr-generator' && resultBlob) ? (
               /* Sub-View: 2. Success screen */
               <div className="workspace-main" style={{ minHeight: '380px' }}>
                 <div className="success-screen">
@@ -1483,7 +1702,7 @@ function App() {
                   </div>
                 </div>
               </div>
-            ) : uploadedFiles.length === 0 ? (
+            ) : (activeTool !== 'qr-generator' && uploadedFiles.length === 0) ? (
               /* Sub-View: 4. Empty state Dropzone */
               <div 
                 className={`workspace-main dropzone ${dragActive ? 'active' : ''}`}
