@@ -1703,7 +1703,7 @@ function App() {
                 </div>
               </div>
             ) : (activeTool !== 'qr-generator' && uploadedFiles.length === 0) ? (
-              /* Sub-View: 4. Empty state Dropzone */
+              /* Sub-View: 4. Empty state */
               <div 
                 className={`workspace-main dropzone ${dragActive ? 'active' : ''}`}
                 onDragEnter={handleDrag}
@@ -1711,15 +1711,35 @@ function App() {
                 onDragLeave={handleDrag}
                 onDrop={handleDrop}
                 onClick={() => document.getElementById('workspace-file-input').click()}
+                style={{ minHeight: '460px', gap: '1.5rem' }}
               >
-                <UploadCloud size={48} className="dropzone-icon" />
-                <div>
-                  <h3>Drag & Drop files here</h3>
-                  <p>or click to browse from your computer</p>
+                <div style={{
+                  width: '88px', height: '88px', borderRadius: '50%',
+                  backgroundColor: 'var(--accent-light)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: '2px solid var(--accent-color)',
+                  boxShadow: '0 0 0 8px var(--accent-light)',
+                }}>
+                  <UploadCloud size={36} style={{ color: 'var(--accent-color)' }} />
                 </div>
-                <button className="btn-upload" onClick={(e) => { e.stopPropagation(); document.getElementById('workspace-file-input').click(); }}>
-                  Select Files
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', alignItems: 'center' }}>
+                  <h3 style={{ fontSize: '1.3rem', fontWeight: '800', color: 'var(--text-primary)' }}>
+                    Drag &amp; Drop your file here
+                  </h3>
+                  <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                    or click anywhere to browse from your computer
+                  </p>
+                </div>
+
+                <button 
+                  className="btn-upload" 
+                  style={{ padding: '0.75rem 2.5rem', fontSize: '0.95rem', fontWeight: '700', borderRadius: 'var(--radius-md)' }}
+                  onClick={(e) => { e.stopPropagation(); document.getElementById('workspace-file-input').click(); }}
+                >
+                  Select {currentTool.multiple ? 'Files' : 'File'}
                 </button>
+
                 <input 
                   id="workspace-file-input" 
                   type="file" 
@@ -1728,9 +1748,20 @@ function App() {
                   accept={currentTool.accept}
                   onChange={handleFileInput}
                 />
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                  Supported formats: {currentTool.accept.toUpperCase().replace(/\./g, ' ')}
-                </span>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '500' }}>Supported:</span>
+                  {currentTool.accept.split(',').map(fmt => (
+                    <span key={fmt} style={{
+                      fontSize: '0.7rem', fontWeight: '700', padding: '0.2rem 0.6rem',
+                      backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)',
+                      borderRadius: 'var(--radius-full)', color: 'var(--text-secondary)',
+                      textTransform: 'uppercase', letterSpacing: '0.05em'
+                    }}>
+                      {fmt.trim().replace('.', '')}
+                    </span>
+                  ))}
+                </div>
               </div>
             ) : (
               /* Sub-View: 5. File workspace with sidebars */

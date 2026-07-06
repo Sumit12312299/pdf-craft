@@ -359,7 +359,7 @@ body {
 /* Upload Dropzone */
 .dropzone {
   width: 100%;
-  max-width: 600px;
+  max-width: 520px;
   border: 2px dashed var(--border-color);
   border-radius: var(--radius-lg);
   padding: 4rem 2rem;
@@ -374,9 +374,23 @@ body {
   transition: all var(--transition-fast);
 }
 
+/* When the WHOLE workspace-main is the dropzone, reset its constraints */
+.workspace-main.dropzone {
+  max-width: none;
+  min-height: 460px;
+  border-style: dashed;
+  border-width: 2px;
+  padding: 4rem 2rem;
+}
+
 .dropzone:hover, .dropzone.active {
   border-color: var(--accent-color);
   background-color: var(--bg-secondary);
+}
+
+.workspace-main.dropzone:hover, .workspace-main.dropzone.active {
+  border-color: var(--accent-color);
+  background-color: var(--accent-light);
 }
 
 .dropzone-icon {
