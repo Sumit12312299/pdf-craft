@@ -25,7 +25,8 @@ import {
   PenTool,
   Lock,
   QrCode,
-  Share2
+  Share2,
+  Copy
 } from 'lucide-react';
 
 import { 
@@ -209,6 +210,8 @@ function App() {
   const [placedSignatures, setPlacedSignatures] = useState([]); // Array of { pageIndex, dataUrl, x, y, width, height, pageW, pageH }
   const [activePageToSign, setActivePageToSign] = useState(null); // index of page being stamped
   const [showSignatureModal, setShowSignatureModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareData, setShareData] = useState({ blob: null, name: '', type: '' });
   const [sigPos, setSigPos] = useState({ x: 50, y: 50, w: 120, h: 60 });
   const [renderedPageDimensions, setRenderedPageDimensions] = useState({ w: 0, h: 0 });
   
@@ -1256,27 +1259,29 @@ function App() {
     }
   };
 
+  const handleShareClick = (blob, name, type) => {
+    setShareData({ blob, name, type });
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    if (isMobile && navigator.canShare && navigator.canShare({ files: [new File([blob], name, { type })] })) {
+      const file = new File([blob], name, { type });
+      navigator.share({
+        files: [file],
+        title: name,
+        text: 'Here is your file from pdfCraft!',
+      }).catch(err => {
+        if (err.name !== 'AbortError') {
+          setShowShareModal(true);
+        }
+      });
+    } else {
+      setShowShareModal(true);
+    }
+  };
+
   const shareProcessedFile = async () => {
     if (!resultBlob || !resultName) return;
-    
-    // Convert Blob to File object so Web Share API can accept it
-    const file = new File([resultBlob], resultName, { type: resultBlob.type });
-    
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({
-          files: [file],
-          title: resultName,
-          text: 'Here is your processed document from pdfCraft!',
-        });
-      } catch (err) {
-        if (err.name !== 'AbortError') {
-          alert('Could not share file: ' + err.message);
-        }
-      }
-    } else {
-      alert('Native file sharing is not supported by your browser. Please download the file first and share it manually.');
-    }
+    handleShareClick(resultBlob, resultName, resultBlob.type);
   };
 
   const downloadQrCodeImage = () => {
@@ -1428,17 +1433,13 @@ function App() {
                         <button
                           className="btn-share-file"
                           onClick={async () => {
+                            if (!qrGenDataUrl) return;
                             try {
                               const res = await fetch(qrGenDataUrl);
                               const blob = await res.blob();
-                              const file = new File([blob], `qrcode_${Date.now()}.png`, { type: 'image/png' });
-                              if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                                await navigator.share({ files: [file], title: 'QR Code', text: 'Scanned from pdfCraft QR Generator' });
-                              } else {
-                                alert('Sharing not supported by your browser. Please download the image and share manually.');
-                              }
+                              handleShareClick(blob, `qrcode_${Date.now()}.png`, 'image/png');
                             } catch (err) {
-                              if (err.name !== 'AbortError') alert('Could not share: ' + err.message);
+                              console.error('Failed to share QR:', err);
                             }
                           }}
                         >
@@ -2921,6 +2922,171 @@ function App() {
               <button className="btn-upload" style={{ padding: '0.5rem 1.25rem', fontSize: '0.8rem' }} onClick={saveDrawnSignature}>
                 Save Signature
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DESKTOP SHARE MODAL */}
+      {showShareModal && shareData.blob && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 110,
+          animation: 'fadeIn 0.2s ease',
+          padding: '1rem'
+        }}>
+          <div style={{
+            backgroundColor: 'var(--bg-primary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '1.75rem',
+            width: '100%',
+            maxWidth: '480px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.25rem',
+            boxShadow: 'var(--shadow-xl)',
+            animation: 'scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+            position: 'relative'
+          }}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Share2 size={20} style={{ color: 'var(--accent-color)' }} />
+                {shareData.type === 'image/png' ? 'Share QR Code' : 'Share File'}
+              </h3>
+              <button 
+                className="btn-icon" 
+                style={{ padding: '4px 8px', fontSize: '0.85rem', cursor: 'pointer' }} 
+                onClick={() => {
+                  setShowShareModal(false);
+                  setShareData({ blob: null, name: '', type: '' });
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* File Info Card */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem',
+              padding: '1rem',
+              backgroundColor: 'var(--bg-secondary)',
+              border: '1.5px dashed var(--border-color)',
+              borderRadius: 'var(--radius-md)'
+            }}>
+              {shareData.type === 'image/png' ? (
+                <div style={{ color: 'var(--accent-color)' }}><QrCode size={32} /></div>
+              ) : (
+                <div style={{ color: 'var(--accent-color)' }}><FileText size={32} /></div>
+              )}
+              <div style={{ overflow: 'hidden', flex: 1 }}>
+                <div style={{
+                  fontSize: '0.9rem',
+                  fontWeight: '700',
+                  color: 'var(--text-primary)',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  {shareData.name}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                  Size: {shareData.blob.size ? ((shareData.blob.size / 1024).toFixed(1) > 1024 
+                    ? `${(shareData.blob.size / (1024 * 1024)).toFixed(2)} MB` 
+                    : `${(shareData.blob.size / 1024).toFixed(1)} KB`)
+                    : 'Unknown'
+                  }
+                </div>
+              </div>
+            </div>
+
+            {/* Information / Steps */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+              <p style={{ display: 'flex', gap: '0.35rem', margin: 0, fontWeight: '500', color: 'var(--text-primary)' }}>
+                <span>🔒</span> 
+                <span><strong>Security & Privacy First:</strong> pdfCraft runs 100% locally. Your files never touch a server, so we cannot generate a public download link.</span>
+              </p>
+              
+              <div style={{
+                marginTop: '0.5rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem'
+              }}>
+                <div style={{ fontWeight: '700', color: 'var(--text-primary)' }}>To share this on desktop:</div>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                  <span style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent-color)', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 'bold', flexShrink: 0, marginTop: '2px' }}>1</span>
+                  <span>Click <strong>Download File</strong> to save it to your computer.</span>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                  <span style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent-color)', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 'bold', flexShrink: 0, marginTop: '2px' }}>2</span>
+                  <span>Open WhatsApp Web, Telegram, Slack, or Email, and attach/upload the downloaded file.</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions Grid */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.75rem',
+              marginTop: '0.5rem',
+              borderTop: '1px solid var(--border-color)',
+              paddingTop: '1rem'
+            }}>
+              {/* Primary Download Button */}
+              <button 
+                className="btn-download-success" 
+                style={{ width: '100%', padding: '0.75rem', fontSize: '0.95rem' }} 
+                onClick={() => downloadBlob(shareData.blob, shareData.name)}
+              >
+                <Download size={18} /> Download File
+              </button>
+
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                {/* Copy Image Button (only for QR Codes/Images) */}
+                {shareData.type === 'image/png' && (
+                  <button 
+                    className="btn-reset" 
+                    style={{ flex: 1, padding: '0.6rem 0.75rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', border: '1px solid var(--accent-color)', color: 'var(--accent-color)' }}
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.write([
+                          new ClipboardItem({
+                            [shareData.type]: shareData.blob
+                          })
+                        ]);
+                        alert('QR Code image copied to clipboard! Paste (Ctrl+V) it anywhere.');
+                      } catch (err) {
+                        console.error(err);
+                        alert('Clipboard copy is not supported in this browser. Please download the PNG.');
+                      }
+                    }}
+                  >
+                    <Copy size={14} /> Copy Image
+                  </button>
+                )}
+
+                {/* Share App Link Button */}
+                <button 
+                  className="btn-reset" 
+                  style={{ flex: 1, padding: '0.6rem 0.75rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                  onClick={() => {
+                    navigator.clipboard.writeText('https://pdf-craft-sand.vercel.app/');
+                    alert('pdfCraft website link copied to clipboard!');
+                  }}
+                >
+                  <Copy size={14} /> Copy App Link
+                </button>
+              </div>
             </div>
           </div>
         </div>
