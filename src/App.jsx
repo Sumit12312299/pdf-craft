@@ -873,22 +873,39 @@ function App() {
   };
 
   // Save placed signature stamp details
-  const saveSignaturePlacement = () => {
+  const saveSignaturePlacement = (applyToAll = false) => {
     if (renderedPageDimensions.w === 0 || renderedPageDimensions.h === 0) return;
     
-    const newStamp = {
-      pageIndex: activePageToSign,
-      dataUrl: signatureDataUrl,
-      x: sigPos.x,
-      y: sigPos.y,
-      width: sigPos.w,
-      height: sigPos.h,
-      pageW: renderedPageDimensions.w,
-      pageH: renderedPageDimensions.h
-    };
-    
-    setPlacedSignatures([...placedSignatures, newStamp]);
-    setActivePageToSign(null); // return to signature page grid
+    if (applyToAll) {
+      const totalPages = uploadedFiles[0]?.pageCount || 0;
+      const newStamps = [];
+      for (let i = 0; i < totalPages; i++) {
+        newStamps.push({
+          pageIndex: i,
+          dataUrl: signatureDataUrl,
+          x: sigPos.x,
+          y: sigPos.y,
+          width: sigPos.w,
+          height: sigPos.h,
+          pageW: renderedPageDimensions.w,
+          pageH: renderedPageDimensions.h
+        });
+      }
+      setPlacedSignatures([...placedSignatures, ...newStamps]);
+    } else {
+      const newStamp = {
+        pageIndex: activePageToSign,
+        dataUrl: signatureDataUrl,
+        x: sigPos.x,
+        y: sigPos.y,
+        width: sigPos.w,
+        height: sigPos.h,
+        pageW: renderedPageDimensions.w,
+        pageH: renderedPageDimensions.h
+      };
+      setPlacedSignatures([...placedSignatures, newStamp]);
+    }
+    setActivePageToSign(null); // return to signature/qr page grid
   };
 
   const removePlacedSignature = (index) => {
@@ -1474,14 +1491,19 @@ function App() {
                     activePageToSign !== null ? (
                       /* visual page placement zoom view */
                       <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', marginBottom: '1rem', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', marginBottom: '1rem', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                           <button className="btn-back" style={{ padding: '0.35rem 0.6rem' }} onClick={() => setActivePageToSign(null)}>
-                            ◀ Cancel placement
+                            ◀ Cancel
                           </button>
                           <span style={{ fontSize: '0.85rem', fontWeight: '700' }}>Placing {activeTool === 'qr' ? 'QR Code' : 'signature'} on Page {activePageToSign + 1}</span>
-                          <button className="btn-upload" style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', backgroundColor: 'var(--success-color)' }} onClick={saveSignaturePlacement}>
-                            Apply Placement
-                          </button>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button className="btn-upload" style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', backgroundColor: 'var(--border-color)', color: 'var(--text-primary)' }} onClick={() => saveSignaturePlacement(false)}>
+                              Apply to This Page
+                            </button>
+                            <button className="btn-upload" style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', backgroundColor: 'var(--success-color)' }} onClick={() => saveSignaturePlacement(true)}>
+                              Apply to All Pages
+                            </button>
+                          </div>
                         </div>
                         
                         {/* Interactive Page Canvas Wrapper */}
