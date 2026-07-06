@@ -220,6 +220,7 @@ function App() {
   const [activeTool, setActiveTool] = useState(null);
   const [gridMenuOpen, setGridMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileTab, setMobileTab] = useState('all');
 
   // File States
   const [uploadedFiles, setUploadedFiles] = useState([]); // { file, buffer, pageCount, name, size, type, previewUrl, firstPagePreview }
@@ -1588,10 +1589,20 @@ function App() {
   // Explicit category display order
   const categoryOrder = ['Organize', 'Edits', 'Optimize', 'Security', 'Convert to PDF', 'Convert from PDF', 'Utilities'];
   const orderedCategories = categoryOrder.filter(cat => categorizedTools[cat]);
-  // Append any unlisted categories at the end
-  Object.keys(categorizedTools).forEach(cat => {
-    if (!orderedCategories.includes(cat)) orderedCategories.push(cat);
-  });
+  // Filter categories based on mobileTab selection
+  const getFilteredCategories = () => {
+    if (mobileTab === 'all') return orderedCategories;
+    if (mobileTab === 'organize') {
+      return orderedCategories.filter(cat => cat === 'Organize' || cat === 'Edits');
+    }
+    if (mobileTab === 'convert') {
+      return orderedCategories.filter(cat => cat === 'Convert to PDF' || cat === 'Convert from PDF');
+    }
+    if (mobileTab === 'security') {
+      return orderedCategories.filter(cat => cat === 'Security' || cat === 'Optimize' || cat === 'Utilities');
+    }
+    return orderedCategories;
+  };
 
   return (
     <div className="app-container">
@@ -1913,7 +1924,7 @@ function App() {
             </div>
             
             <div id="tools" className="tool-sections-container">
-              {orderedCategories.map((category) => (
+              {getFilteredCategories().map((category) => (
                 <div key={category} className="tool-category-section">
                   <h2 className="tool-section-title">{category}</h2>
                   <div className="tool-grid">
@@ -3844,6 +3855,53 @@ function App() {
         </div>
         <div>© {new Date().getFullYear()} pdfCraft. Clean & secure browser utilities.</div>
       </footer>
+      {/* Premium Glassmorphic Bottom Navigation Bar for Mobile */}
+      <div className="bottom-nav">
+        <button 
+          className={`bottom-nav-item ${mobileTab === 'all' && activeTool === null ? 'active' : ''}`}
+          onClick={() => {
+            setActiveTool(null);
+            setMobileTab('all');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        >
+          <Layers size={20} />
+          <span>All Tools</span>
+        </button>
+        <button 
+          className={`bottom-nav-item ${mobileTab === 'organize' && activeTool === null ? 'active' : ''}`}
+          onClick={() => {
+            setActiveTool(null);
+            setMobileTab('organize');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        >
+          <Scissors size={20} />
+          <span>Organize</span>
+        </button>
+        <button 
+          className={`bottom-nav-item ${mobileTab === 'convert' && activeTool === null ? 'active' : ''}`}
+          onClick={() => {
+            setActiveTool(null);
+            setMobileTab('convert');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        >
+          <Combine size={20} />
+          <span>Convert</span>
+        </button>
+        <button 
+          className={`bottom-nav-item ${mobileTab === 'security' && activeTool === null ? 'active' : ''}`}
+          onClick={() => {
+            setActiveTool(null);
+            setMobileTab('security');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        >
+          <Lock size={20} />
+          <span>Security</span>
+        </button>
+      </div>
     </div>
   );
 }
