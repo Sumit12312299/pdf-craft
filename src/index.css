@@ -90,17 +90,18 @@ body::before {
   width: 100vw;
   height: 100vh;
   z-index: -1;
-  background-image: url('./assets/hero.png');
+  background-image: url('./assets/pdfcraft_background.png');
   background-repeat: no-repeat;
   background-position: center;
   background-size: cover;
-  opacity: 0.08;
+  opacity: 0.06;
   pointer-events: none;
   transition: opacity var(--transition-normal);
 }
 
 html.dark body::before {
-  opacity: 0.04;
+  opacity: 0.03;
+  filter: invert(0.9) brightness(0.5) contrast(1.2);
 }
 
 /* Scrollbar styles */
