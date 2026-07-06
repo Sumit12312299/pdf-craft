@@ -476,7 +476,7 @@ html.dark .navbar {
 .drawer-content {
   position: absolute;
   top: 0;
-  right: 0;
+  left: 0;
   width: 280px;
   height: 100%;
   background-color: var(--bg-primary);
@@ -488,7 +488,7 @@ html.dark .navbar {
 }
 
 @keyframes slideInLeft {
-  from { transform: translateX(100%); }
+  from { transform: translateX(-100%); }
   to { transform: translateX(0); }
 }
 
@@ -1580,6 +1580,10 @@ input:checked + .slider:before {
     padding-top: calc(0.75rem + env(safe-area-inset-top, 0px));
     padding-left: calc(1rem + env(safe-area-inset-left, 0px));
     padding-right: calc(1rem + env(safe-area-inset-right, 0px));
+  }
+  
+  .navbar-left {
+    gap: 1rem;
   }
   
   .footer {

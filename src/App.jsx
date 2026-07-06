@@ -1584,6 +1584,11 @@ function App() {
       {/* Header */}
       <header className="navbar">
         <div className="navbar-left">
+          {/* Mobile Menu Toggle Button */}
+          <button className="btn-icon btn-burger-menu" title="Menu" onClick={() => setMobileMenuOpen(true)}>
+            <Menu size={20} />
+          </button>
+          
           <a href="/" className="nav-brand" onClick={(e) => { e.preventDefault(); backToHome(); }}>
             <span className="logo-pdf">pdf</span>
             <span className="logo-heart">❤️</span>
@@ -1776,10 +1781,6 @@ function App() {
             )}
           </div>
 
-          {/* Mobile Menu Toggle Button */}
-          <button className="btn-icon btn-burger-menu" title="Menu" onClick={() => setMobileMenuOpen(true)}>
-            <Menu size={20} />
-          </button>
         </div>
 
         {/* Mobile Side Drawer Menu */}
