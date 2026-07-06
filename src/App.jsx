@@ -1279,6 +1279,35 @@ function App() {
     }
   };
 
+  const handleDesktopShare = (platform) => {
+    if (!shareData.blob) return;
+
+    // 1. Download file automatically
+    downloadBlob(shareData.blob, shareData.name);
+
+    // 2. Determine target Web app URL
+    let url = '';
+    const websiteUrl = 'https://pdf-craft-sand.vercel.app/';
+    const messageText = `Hi, I just processed my file securely and 100% locally using pdfCraft. Website: ${websiteUrl}`;
+    
+    if (platform === 'whatsapp') {
+      url = `https://web.whatsapp.com/send?text=${encodeURIComponent(messageText)}`;
+    } else if (platform === 'telegram') {
+      url = `https://t.me/share/url?url=${encodeURIComponent(websiteUrl)}&text=${encodeURIComponent('I just processed my file securely and 100% locally using pdfCraft!')}`;
+    } else if (platform === 'gmail') {
+      url = `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent('Processed File: ' + shareData.name)}&body=${encodeURIComponent("Hi,\n\nPlease find attached the file that I processed securely using pdfCraft.\n\nWebsite: https://pdf-craft-sand.vercel.app/")}`;
+    } else if (platform === 'email') {
+      url = `mailto:?subject=${encodeURIComponent('Processed File: ' + shareData.name)}&body=${encodeURIComponent("Hi,\n\nPlease find attached the file that I processed securely using pdfCraft.\n\nWebsite: https://pdf-craft-sand.vercel.app/")}`;
+    }
+
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+
+    // 3. Show standard user-friendly notification
+    alert(`File "${shareData.name}" has been downloaded successfully to your computer.\n\nPlease drag & drop or attach the downloaded file in the newly opened ${platform === 'gmail' ? 'Gmail' : platform === 'whatsapp' ? 'WhatsApp' : platform === 'telegram' ? 'Telegram' : 'Email'} window to send it!`);
+  };
+
   const shareProcessedFile = async () => {
     if (!resultBlob || !resultName) return;
     handleShareClick(resultBlob, resultName, resultBlob.type);
@@ -3008,29 +3037,123 @@ function App() {
               </div>
             </div>
 
-            {/* Information / Steps */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-              <p style={{ display: 'flex', gap: '0.35rem', margin: 0, fontWeight: '500', color: 'var(--text-primary)' }}>
-                <span>🔒</span> 
-                <span><strong>Security & Privacy First:</strong> pdfCraft runs 100% locally. Your files never touch a server, so we cannot generate a public download link.</span>
-              </p>
-              
-              <div style={{
-                marginTop: '0.5rem',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.5rem'
-              }}>
-                <div style={{ fontWeight: '700', color: 'var(--text-primary)' }}>To share this on desktop:</div>
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-                  <span style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent-color)', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 'bold', flexShrink: 0, marginTop: '2px' }}>1</span>
-                  <span>Click <strong>Download File</strong> to save it to your computer.</span>
-                </div>
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-                  <span style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent-color)', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 'bold', flexShrink: 0, marginTop: '2px' }}>2</span>
-                  <span>Open WhatsApp Web, Telegram, Slack, or Email, and attach/upload the downloaded file.</span>
-                </div>
+            {/* Direct Share Buttons */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                Share directly via desktop apps:
               </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <button
+                  onClick={() => handleDesktopShare('whatsapp')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    padding: '0.65rem',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid #22c55e',
+                    backgroundColor: 'rgba(34, 197, 94, 0.08)',
+                    color: '#15803d',
+                    fontWeight: '600',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all var(--transition-fast)'
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                    <path d="M12.012 2c-5.506 0-9.988 4.482-9.988 9.988 0 1.76.457 3.473 1.328 4.982L2.03 22l5.182-1.36c1.464.798 3.11 1.218 4.793 1.218 5.507 0 9.988-4.482 9.988-9.988C22 6.482 17.52 2 12.012 2zm6.262 14.372c-.258.73-1.488 1.428-2.046 1.482-.5.05-1.155.08-3.328-.82-2.777-1.15-4.57-3.98-4.71-4.168-.14-.19-1.123-1.493-1.123-2.846 0-1.353.708-2.015.96-2.28.25-.268.55-.333.73-.333.18 0 .36 0 .52.01.17 0 .4.01.61.51.22.53.76 1.86.83 1.99.07.13.11.29.02.46-.08.17-.18.28-.35.48-.17.2-.36.45-.52.6-.18.17-.37.36-.16.73.21.36.93 1.54 2 2.49 1.38 1.23 2.54 1.62 2.9 1.8.36.18.57.15.79-.09.21-.24.93-1.08 1.18-1.45.25-.37.5-.31.84-.18.35.13 2.2 1.04 2.58 1.23.38.19.64.28.73.43.08.16.08.93-.18 1.66z"/>
+                  </svg>
+                  WhatsApp
+                </button>
+
+                <button
+                  onClick={() => handleDesktopShare('telegram')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    padding: '0.65rem',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid #0ea5e9',
+                    backgroundColor: 'rgba(14, 165, 233, 0.08)',
+                    color: '#0369a1',
+                    fontWeight: '600',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all var(--transition-fast)'
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-1-.65-.35-1 .22-1.6.15-.15 2.76-2.53 2.81-2.75.01-.03.01-.1-.04-.15-.05-.05-.12-.03-.17-.02-.07.02-1.29.83-3.64 2.42-.34.24-.66.35-.95.34-.32-.01-.94-.18-1.4-.33-.56-.18-1-.28-.96-.6.02-.17.25-.34.69-.53 2.7-1.17 4.5-1.95 5.4-2.33 2.56-1.09 3.09-1.28 3.44-1.28.08 0 .25.02.36.11.1.08.13.2.14.3-.01.06-.01.12-.02.18z"/>
+                  </svg>
+                  Telegram
+                </button>
+
+                <button
+                  onClick={() => handleDesktopShare('gmail')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    padding: '0.65rem',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid #ef4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                    color: '#b91c1c',
+                    fontWeight: '600',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all var(--transition-fast)'
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                    <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                  </svg>
+                  Gmail
+                </button>
+
+                <button
+                  onClick={() => handleDesktopShare('email')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    padding: '0.65rem',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--text-secondary)',
+                    backgroundColor: 'var(--bg-tertiary)',
+                    color: 'var(--text-primary)',
+                    fontWeight: '600',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all var(--transition-fast)'
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <polyline points="22,6 12,13 2,6"/>
+                  </svg>
+                  Other Email
+                </button>
+              </div>
+            </div>
+
+            {/* Instruction Banner */}
+            <div style={{
+              fontSize: '0.8rem',
+              color: 'var(--text-secondary)',
+              padding: '0.75rem 1rem',
+              backgroundColor: 'var(--bg-tertiary)',
+              borderRadius: 'var(--radius-md)',
+              borderLeft: '4px solid var(--accent-color)',
+              margin: '0',
+              lineHeight: '1.4'
+            }}>
+              💡 <strong>How it works:</strong> Clicking any app button will automatically download your file and open the app. Just drag & drop the downloaded file into the chat/compose window.
             </div>
 
             {/* Actions Grid */}
@@ -3038,7 +3161,7 @@ function App() {
               display: 'flex',
               flexDirection: 'column',
               gap: '0.75rem',
-              marginTop: '0.5rem',
+              marginTop: '0.25rem',
               borderTop: '1px solid var(--border-color)',
               paddingTop: '1rem'
             }}>
