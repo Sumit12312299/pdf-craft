@@ -1826,6 +1826,9 @@ function App() {
                 </div>
               </div>
             </div>
+            <a href="#qr-generator" className={`nav-item ${activeTool === 'qr-generator' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); navigateToTool('qr-generator'); }}>
+              QR CODE GENERATOR
+            </a>
           </nav>
         </div>
 
