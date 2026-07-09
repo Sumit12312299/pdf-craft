@@ -2176,6 +2176,13 @@ function App() {
                         { label: '🔴 Red Accent', fg: '#e11d48', bg: '#ffffff' },
                         { label: '🌑 Dark Mode', fg: '#f1f5f9', bg: '#0f172a' },
                         { label: '💙 Corporate Blue', fg: '#1e40af', bg: '#eff6ff' },
+                        { label: '💚 Forest Green', fg: '#15803d', bg: '#f0fdf4' },
+                        { label: '🍊 Sunset Orange', fg: '#ea580c', bg: '#fff7ed' },
+                        { label: '💜 Royal Purple', fg: '#6d28d9', bg: '#faf5ff' },
+                        { label: '💖 Vibrant Pink', fg: '#db2777', bg: '#fdf2f8' },
+                        { label: '🧪 Cyberpunk Neon', fg: '#06b6d4', bg: '#0b0f19' },
+                        { label: '✨ Luxury Gold', fg: '#b45309', bg: '#fffbeb' },
+                        { label: '🍵 Mint Fresh', fg: '#0d9488', bg: '#f0fdfa' },
                       ].map((preset) => (
                         <button
                           key={preset.label}
