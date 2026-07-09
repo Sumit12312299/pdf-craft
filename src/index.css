@@ -1571,6 +1571,10 @@ input:checked + .slider:before {
   display: none;
 }
 
+.btn-share-file-action {
+  display: none !important;
+}
+
 /* Native Mobile App Enhancements */
 @media (max-width: 768px) {
   body {
@@ -1780,5 +1784,26 @@ input:checked + .slider:before {
   /* Padding adjustments to prevent navbar overlap */
   .app-container {
     padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .btn-share-file-action {
+    display: flex !important;
+    width: 100%;
+    padding: 0.75rem;
+    background-color: var(--accent-color);
+    color: white;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin: 0;
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: var(--shadow-md);
+    transition: all var(--transition-fast);
+  }
+  .btn-share-file-action:hover {
+    background-color: var(--accent-hover);
   }
 }

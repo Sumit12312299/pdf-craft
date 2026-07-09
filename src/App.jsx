@@ -2226,19 +2226,8 @@ function App() {
                     </button>
                     {navigator.share && (
                       <button
-                        className="btn-upload"
+                        className="btn-share-file-action"
                         onClick={() => handleShareClick(resultBlob, resultName, resultBlob.type || 'application/pdf')}
-                        style={{
-                          width: '100%',
-                          padding: '0.75rem',
-                          backgroundColor: 'var(--accent-color)',
-                          color: 'white',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.5rem',
-                          margin: 0
-                        }}
                       >
                         <Share2 size={18} /> Share File
                       </button>
