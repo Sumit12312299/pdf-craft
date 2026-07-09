@@ -318,11 +318,13 @@ function App() {
   const [unlockPassword, setUnlockPassword] = useState('');
   const [previewModalRotation, setPreviewModalRotation] = useState(0);
   const [isHighResRendered, setIsHighResRendered] = useState(false);
+  const [previewModalPageIndex, setPreviewModalPageIndex] = useState(null);
 
   const openLightbox = async (fileObj, pageIndex, fallbackUrl, title, rotation = 0) => {
     setPreviewModalTitle(title || fileObj?.name || 'Page Preview');
     setPreviewModalRotation(rotation);
     setPreviewModalImage(fallbackUrl); // Show fallback instantly
+    setPreviewModalPageIndex(pageIndex);
     setIsHighResRendered(false);
 
     // Render high-res version on-demand if it's a PDF and we have the buffer
@@ -2631,12 +2633,35 @@ function App() {
                                 )}
                                 <div className="file-preview-thumbnail" style={{ position: 'relative' }}>
                                   {previewObj ? (
-                                    <>
+                                    <div style={{ position: 'relative', display: 'inline-flex', maxHeight: '100%', maxWidth: '100%' }}>
                                       <img
                                         src={previewObj.dataUrl}
                                         className="file-preview-img"
                                         alt={`Page ${originalIdx + 1}`}
+                                        style={{ display: 'block', maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
                                       />
+                                      {placedSignatures.filter(s => s.pageIndex === originalIdx).map((stamp, sIdx) => {
+                                        const leftPct = (stamp.x / stamp.pageW) * 100;
+                                        const topPct = (stamp.y / stamp.pageH) * 100;
+                                        const widthPct = (stamp.width / stamp.pageW) * 100;
+                                        const heightPct = (stamp.height / stamp.pageH) * 100;
+
+                                        return (
+                                          <img
+                                            key={sIdx}
+                                            src={stamp.dataUrl}
+                                            style={{
+                                              position: 'absolute',
+                                              left: `${leftPct}%`,
+                                              top: `${topPct}%`,
+                                              width: `${widthPct}%`,
+                                              height: `${heightPct}%`,
+                                              pointerEvents: 'none'
+                                            }}
+                                            alt="signature overlay"
+                                          />
+                                        );
+                                      })}
                                       <button
                                         className="btn-preview-eye"
                                         title="Preview Page"
@@ -2647,7 +2672,7 @@ function App() {
                                       >
                                         <Eye size={14} />
                                       </button>
-                                    </>
+                                    </div>
                                   ) : (
                                     <div className="skeleton-pulse" />
                                   )}
@@ -3912,15 +3937,15 @@ function App() {
 
       {/* PREVIEW LIGHTBOX MODAL */}
       {previewModalImage && (
-        <div className="preview-lightbox-backdrop" onClick={() => setPreviewModalImage(null)}>
+        <div className="preview-lightbox-backdrop" onClick={() => { setPreviewModalImage(null); setPreviewModalPageIndex(null); }}>
           <div className="preview-lightbox-content" onClick={(e) => e.stopPropagation()}>
             <div className="preview-lightbox-header">
               <span className="preview-lightbox-title">{previewModalTitle || 'Page Preview'}</span>
-              <button className="preview-lightbox-close" onClick={() => setPreviewModalImage(null)}>
+              <button className="preview-lightbox-close" onClick={() => { setPreviewModalImage(null); setPreviewModalPageIndex(null); }}>
                 <X size={20} />
               </button>
             </div>
-            <div className="preview-lightbox-body" style={{ position: 'relative' }}>
+            <div className="preview-lightbox-body" style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
               {lightboxLoading && (
                 <div style={{
                   position: 'absolute',
@@ -3935,17 +3960,49 @@ function App() {
                   <div className="lightbox-loader"></div>
                 </div>
               )}
-              <img 
-                src={previewModalImage} 
-                alt="Page Preview" 
-                className="preview-lightbox-img" 
-                style={{ 
-                  transform: (!isHighResRendered && previewModalRotation) ? `rotate(${previewModalRotation}deg)` : 'none',
-                  maxHeight: (!isHighResRendered && (previewModalRotation === 90 || previewModalRotation === 270)) ? '70vw' : '75vh',
-                  maxWidth: (!isHighResRendered && (previewModalRotation === 90 || previewModalRotation === 270)) ? '70vh' : '100%',
-                  transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
-                }} 
-              />
+              
+              <div style={{ position: 'relative', display: 'inline-flex', maxWidth: '100%' }}>
+                <img 
+                  src={previewModalImage} 
+                  alt="Page Preview" 
+                  className="preview-lightbox-img" 
+                  style={{ 
+                    display: 'block',
+                    transform: (!isHighResRendered && previewModalRotation) ? `rotate(${previewModalRotation}deg)` : 'none',
+                    maxHeight: (!isHighResRendered && (previewModalRotation === 90 || previewModalRotation === 270)) ? '70vw' : '75vh',
+                    maxWidth: (!isHighResRendered && (previewModalRotation === 90 || previewModalRotation === 270)) ? '70vh' : '100%',
+                    width: 'auto',
+                    height: 'auto',
+                    transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
+                  }} 
+                />
+                
+                {/* Visual signature / QR stamp overlays in the lightbox preview */}
+                {(activeTool === 'sign' || activeTool === 'qr') && previewModalPageIndex !== null && (
+                  placedSignatures.filter(s => s.pageIndex === previewModalPageIndex).map((stamp, sIdx) => {
+                    const leftPct = (stamp.x / stamp.pageW) * 100;
+                    const topPct = (stamp.y / stamp.pageH) * 100;
+                    const widthPct = (stamp.width / stamp.pageW) * 100;
+                    const heightPct = (stamp.height / stamp.pageH) * 100;
+
+                    return (
+                      <img
+                        key={sIdx}
+                        src={stamp.dataUrl}
+                        style={{
+                          position: 'absolute',
+                          left: `${leftPct}%`,
+                          top: `${topPct}%`,
+                          width: `${widthPct}%`,
+                          height: `${heightPct}%`,
+                          pointerEvents: 'none'
+                        }}
+                        alt="signature overlay"
+                      />
+                    );
+                  })
+                )}
+              </div>
             </div>
           </div>
         </div>
