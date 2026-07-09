@@ -103,24 +103,82 @@ export async function organizePdf(pdfBuffer, pageActions) {
   return await destPdf.save();
 }
 
-// 4. Compress PDF (Remove metadata & repack objects)
-export async function compressPdf(pdfBuffer, compressionLevel) {
-  const pdfDoc = await PDFDocument.load(pdfBuffer);
-  
-  // Clean up metadata for extreme compression
-  if (compressionLevel === 'high') {
-    pdfDoc.setTitle('');
-    pdfDoc.setAuthor('');
-    pdfDoc.setSubject('');
-    pdfDoc.setCreator('');
-    pdfDoc.setProducer('');
+// 4. Compress PDF (using high-performance client-side page rasterization)
+export async function compressPdf(pdfBuffer, compressionLevel, onProgress) {
+  if (!window.pdfjsLib) {
+    // Wait briefly if PDF.js is not loaded yet
+    await new Promise(resolve => setTimeout(resolve, 500));
+    if (!window.pdfjsLib) {
+      throw new Error('PDF.js library is not loaded. Please try again.');
+    }
   }
-  
-  // pdf-lib's useObjectStreams optimizes cross-reference stream sizes
-  return await pdfDoc.save({
-    useObjectStreams: true,
-    addDefaultPage: false
-  });
+
+  try {
+    const loadingTask = window.pdfjsLib.getDocument({ data: pdfBuffer.slice(0) });
+    const pdf = await loadingTask.promise;
+    const numPages = pdf.numPages;
+    const destPdf = await PDFDocument.create();
+
+    // Set compression settings (scale of rendering and JPEG quality)
+    let scale = 1.3;
+    let quality = 0.65;
+
+    if (compressionLevel === 'high') {
+      scale = 0.95;
+      quality = 0.45;
+    } else if (compressionLevel === 'low') {
+      scale = 1.8;
+      quality = 0.8;
+    }
+
+    for (let i = 1; i <= numPages; i++) {
+      const page = await pdf.getPage(i);
+      
+      const viewport = page.getViewport({ scale });
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const context = canvas.getContext('2d');
+
+      // Set white background to avoid transparent pages turning black in JPEG
+      context.fillStyle = '#ffffff';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+
+      await page.render({ canvasContext: context, viewport }).promise;
+
+      const jpegDataUrl = canvas.toDataURL('image/jpeg', quality);
+      const jpegBytes = await fetch(jpegDataUrl).then(res => res.arrayBuffer());
+
+      const embeddedImg = await destPdf.embedJpg(jpegBytes);
+      
+      // Page size in PDF points (1.0 scale)
+      const originalViewport = page.getViewport({ scale: 1.0 });
+      const destPage = destPdf.addPage([originalViewport.width, originalViewport.height]);
+
+      destPage.drawImage(embeddedImg, {
+        x: 0,
+        y: 0,
+        width: originalViewport.width,
+        height: originalViewport.height,
+      });
+
+      if (onProgress) {
+        onProgress(Math.round((i / numPages) * 100));
+      }
+    }
+
+    // Set metadata on compressed PDF
+    destPdf.setCreator('pdfCraft Compress Engine');
+    destPdf.setProducer('pdfCraft Engine');
+
+    return await destPdf.save({
+      useObjectStreams: true,
+      addDefaultPage: false
+    });
+  } catch (err) {
+    console.error('Error compressing PDF:', err);
+    throw new Error('Failed to compress PDF. Please check the file format.');
+  }
 }
 
 // 5. Rotate PDF (Global rotation)

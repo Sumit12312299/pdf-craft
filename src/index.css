@@ -1567,6 +1567,10 @@ input:checked + .slider:before {
   color: var(--text-primary);
 }
 
+.bottom-nav {
+  display: none;
+}
+
 /* Native Mobile App Enhancements */
 @media (max-width: 768px) {
   body {

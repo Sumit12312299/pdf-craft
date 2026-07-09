@@ -316,10 +316,14 @@ function App() {
   const [previewModalTitle, setPreviewModalTitle] = useState('');
   const [lightboxLoading, setLightboxLoading] = useState(false);
   const [unlockPassword, setUnlockPassword] = useState('');
+  const [previewModalRotation, setPreviewModalRotation] = useState(0);
+  const [isHighResRendered, setIsHighResRendered] = useState(false);
 
-  const openLightbox = async (fileObj, pageIndex, fallbackUrl, title) => {
+  const openLightbox = async (fileObj, pageIndex, fallbackUrl, title, rotation = 0) => {
     setPreviewModalTitle(title || fileObj?.name || 'Page Preview');
+    setPreviewModalRotation(rotation);
     setPreviewModalImage(fallbackUrl); // Show fallback instantly
+    setIsHighResRendered(false);
 
     // Render high-res version on-demand if it's a PDF and we have the buffer
     if (fileObj && fileObj.buffer && (fileObj.name?.toLowerCase().endsWith('.pdf') || fileObj.file?.name?.toLowerCase().endsWith('.pdf'))) {
@@ -334,7 +338,10 @@ function App() {
           const context = canvas.getContext('2d');
 
           // Render at scale 2.0 for ultra-crisp retina quality text
-          const viewport = page.getViewport({ scale: 2.0 });
+          // Combine inherent page rotation with the custom rotation (mod 360)
+          const inherentRotation = page.rotation || 0;
+          const totalRotation = (inherentRotation + rotation) % 360;
+          const viewport = page.getViewport({ scale: 2.0, rotation: totalRotation });
           canvas.width = viewport.width;
           canvas.height = viewport.height;
 
@@ -342,6 +349,7 @@ function App() {
           const highResDataUrl = canvas.toDataURL('image/jpeg', 0.95);
 
           setPreviewModalImage(highResDataUrl);
+          setIsHighResRendered(true);
         }
       } catch (err) {
         console.error('Error rendering high-res preview:', err);
@@ -1261,9 +1269,11 @@ function App() {
       }
 
       else if (activeTool === 'compress') {
-        setProcessingStatus('Compressing PDF structure...');
+        setProcessingStatus('Compressing PDF pages and images...');
         const file = uploadedFiles[0];
-        outputBytes = await compressPdf(file.buffer, compressLevel);
+        outputBytes = await compressPdf(file.buffer, compressLevel, (prog) => {
+          setProgress(20 + Math.round(prog * 0.7));
+        });
         filename = `${file.name.replace('.pdf', '')}_compressed.pdf`;
       }
 
@@ -2473,7 +2483,7 @@ function App() {
                                     title="Preview Page"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      openLightbox(uploadedFiles[0], page.originalIndex, previewObj.dataUrl, `Page ${page.originalIndex + 1}`);
+                                      openLightbox(uploadedFiles[0], page.originalIndex, previewObj.dataUrl, `Page ${page.originalIndex + 1}`, page.rotation);
                                     }}
                                   >
                                     <Eye size={14} />
@@ -2733,15 +2743,25 @@ function App() {
                       }}>
                         {uploadedFiles[0].firstPagePreview ? (
                           <>
-                            <img src={uploadedFiles[0].firstPagePreview} style={{ width: '100%', height: '100%', objectFit: 'contain' }} alt="File Preview" />
-                            <button
-                              className="btn-preview-eye"
-                              title="Preview Page"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openLightbox(uploadedFiles[0], 0, uploadedFiles[0].firstPagePreview, uploadedFiles[0].name);
-                              }}
-                            >
+                            <img 
+                               src={uploadedFiles[0].firstPagePreview} 
+                               style={{ 
+                                 width: '100%', 
+                                 height: '100%', 
+                                 objectFit: 'contain',
+                                 transform: activeTool === 'rotate' ? `rotate(${globalRotation}deg)` : 'none',
+                                 transition: 'transform 0.2s ease-in-out'
+                               }} 
+                               alt="File Preview" 
+                             />
+                             <button
+                               className="btn-preview-eye"
+                               title="Preview Page"
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 openLightbox(uploadedFiles[0], 0, uploadedFiles[0].firstPagePreview, uploadedFiles[0].name, activeTool === 'rotate' ? globalRotation : 0);
+                               }}
+                             >
                               <Eye size={14} />
                             </button>
                           </>
@@ -3926,7 +3946,17 @@ function App() {
                   <div className="lightbox-loader"></div>
                 </div>
               )}
-              <img src={previewModalImage} alt="Page Preview" className="preview-lightbox-img" />
+              <img 
+                src={previewModalImage} 
+                alt="Page Preview" 
+                className="preview-lightbox-img" 
+                style={{ 
+                  transform: (!isHighResRendered && previewModalRotation) ? `rotate(${previewModalRotation}deg)` : 'none',
+                  maxHeight: (!isHighResRendered && (previewModalRotation === 90 || previewModalRotation === 270)) ? '70vw' : '75vh',
+                  maxWidth: (!isHighResRendered && (previewModalRotation === 90 || previewModalRotation === 270)) ? '70vh' : '100%',
+                  transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
+                }} 
+              />
             </div>
           </div>
         </div>
