@@ -31,7 +31,9 @@ import {
   ChevronDown,
   Menu,
   X,
-  Eye
+  Eye,
+  Printer,
+  GripVertical
 } from 'lucide-react';
 
 import {
@@ -56,7 +58,8 @@ import {
   convertXlsxToPdf,
   convertHtmlToPdf,
   convertPdfToXlsx,
-  convertPdfToPdfA
+  convertPdfToPdfA,
+  convertToGrayscalePdf
 } from './utils/pdfProcessor';
 
 // Beautiful Custom SVG Icons representing document conversions
@@ -464,6 +467,7 @@ function App() {
 
   // Page level organize actions (for organize tool)
   const [organizePages, setOrganizePages] = useState([]); // Array of { id, originalIndex, rotation }
+  const [draggedPageIndex, setDraggedPageIndex] = useState(null);
 
   // Initializing Theme
   useEffect(() => {
@@ -805,6 +809,15 @@ function App() {
       category: 'Utilities',
       multiple: false,
       accept: null // No file needed
+    },
+    {
+      id: 'grayscale',
+      title: 'Grayscale PDF',
+      description: 'Convert your PDF pages to grayscale (black & white) to save printer ink and toner.',
+      icon: <Printer size={24} />,
+      category: 'Optimize',
+      multiple: false,
+      accept: '.pdf'
     }
   ];
 
@@ -1400,6 +1413,15 @@ function App() {
           setProgress(20 + Math.round(prog * 0.7));
         });
         filename = `${file.name.replace('.pdf', '')}_compressed.pdf`;
+      }
+
+      else if (activeTool === 'grayscale') {
+        setProcessingStatus('Converting PDF pages to grayscale (Ink-Saver)...');
+        const file = uploadedFiles[0];
+        outputBytes = await convertToGrayscalePdf(file.buffer, (prog) => {
+          setProgress(20 + Math.round(prog * 0.7));
+        });
+        filename = `${file.name.replace('.pdf', '')}_grayscale.pdf`;
       }
 
       else if (activeTool === 'rotate') {
@@ -2697,7 +2719,35 @@ function App() {
                         {organizePages.map((page, idx) => {
                           const previewObj = pagePreviews.find(p => p.originalIndex === page.originalIndex);
                           return (
-                            <div key={page.id} className="file-preview-card">
+                            <div
+                              key={page.id}
+                              className={`file-preview-card ${draggedPageIndex === idx ? 'dragging' : ''}`}
+                              draggable={true}
+                              onDragStart={(e) => {
+                                setDraggedPageIndex(idx);
+                                e.dataTransfer.effectAllowed = 'move';
+                                e.dataTransfer.setData('text/plain', idx);
+                              }}
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                if (draggedPageIndex === null || draggedPageIndex === idx) return;
+
+                                const list = [...organizePages];
+                                const draggedItem = list[draggedPageIndex];
+                                list.splice(draggedPageIndex, 1);
+                                list.splice(idx, 0, draggedItem);
+
+                                setDraggedPageIndex(idx);
+                                setOrganizePages(list);
+                              }}
+                              onDragEnd={() => setDraggedPageIndex(null)}
+                              style={{ 
+                                cursor: 'grab',
+                                opacity: draggedPageIndex === idx ? 0.4 : 1,
+                                transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                                border: draggedPageIndex === idx ? '2px dashed var(--accent-color)' : '1px solid var(--border-color)'
+                              }}
+                            >
                               <div className="file-preview-thumbnail">
                                 {previewObj ? (
                                   <img
@@ -2730,8 +2780,11 @@ function App() {
                                   </button>
                                 )}
                               </div>
-                              <div className="file-preview-info">
-                                <div className="file-preview-name">Page {page.originalIndex + 1}</div>
+                              <div className="file-preview-info" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0.5rem 0.75rem' }}>
+                                <div className="file-preview-name" style={{ margin: 0 }}>Page {page.originalIndex + 1}</div>
+                                <div style={{ display: 'flex', alignItems: 'center', color: 'var(--text-secondary)', cursor: 'grab' }}>
+                                  <GripVertical size={14} />
+                                </div>
                               </div>
                               <div className="card-nav-buttons">
                                 <button className="btn-icon btn-nav" disabled={idx === 0} onClick={() => moveOrganizePage(idx, -1)}>
@@ -3788,6 +3841,30 @@ function App() {
                     </div>
                   )}
 
+                  {activeTool === 'grayscale' && (
+                    <div className="sidebar-section">
+                      <h3>Grayscale Option</h3>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        Convert all colored elements (images, texts, shapes) of the PDF to grayscale. Perfect for saving colored printer ink.
+                      </p>
+                      <div className="option-info-box" style={{ 
+                        backgroundColor: 'var(--bg-secondary)', 
+                        border: '1px solid var(--border-color)', 
+                        borderRadius: 'var(--radius-md)', 
+                        padding: '0.75rem', 
+                        fontSize: '0.75rem', 
+                        marginTop: '0.5rem',
+                        color: 'var(--text-secondary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}>
+                        <Printer size={16} style={{ flexShrink: 0, color: 'var(--accent-color)' }} />
+                        <span>This operation is fully processed in your browser. Your files are 100% secure.</span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Primary Trigger Button */}
                   <button
                     className="btn-action-primary"
@@ -3804,7 +3881,8 @@ function App() {
                       activeTool === 'extract-text' ? 'Extract Text' :
                         activeTool === 'pdf-to-docx' ? 'Convert to Word' :
                           activeTool === 'pdf-to-pptx' ? 'Convert to PowerPoint' :
-                            `Convert to ${currentTool?.id === 'pdf-to-img' ? 'Images' : 'PDF'}`
+                            activeTool === 'grayscale' ? 'Convert to Grayscale' :
+                              `Convert to ${currentTool?.id === 'pdf-to-img' ? 'Images' : 'PDF'}`
                     }
                   </button>
                 </div>

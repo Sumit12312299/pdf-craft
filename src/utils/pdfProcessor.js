@@ -1007,3 +1007,71 @@ export async function convertPdfToPdfA(pdfBuffer) {
 
   return await pdfDoc.save();
 }
+
+// 22. Convert PDF to Grayscale (Ink-Saver)
+export async function convertToGrayscalePdf(pdfBuffer, onProgress) {
+  if (!window.pdfjsLib) {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    if (!window.pdfjsLib) {
+      throw new Error('PDF.js library is not loaded. Please try again.');
+    }
+  }
+
+  try {
+    const loadingTask = window.pdfjsLib.getDocument({ data: pdfBuffer.slice(0) });
+    const pdf = await loadingTask.promise;
+    const numPages = pdf.numPages;
+    const destPdf = await PDFDocument.create();
+
+    const scale = 1.8;
+    const quality = 0.85;
+
+    for (let i = 1; i <= numPages; i++) {
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale });
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const context = canvas.getContext('2d');
+
+      // Apply hardware accelerated grayscale filter
+      context.filter = 'grayscale(100%)';
+
+      context.fillStyle = '#ffffff';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+
+      await page.render({ canvasContext: context, viewport }).promise;
+
+      const jpegDataUrl = canvas.toDataURL('image/jpeg', quality);
+      const jpegBytes = await fetch(jpegDataUrl).then(res => res.arrayBuffer());
+
+      const embeddedImg = await destPdf.embedJpg(jpegBytes);
+      
+      const originalViewport = page.getViewport({ scale: 1.0 });
+      const destPage = destPdf.addPage([originalViewport.width, originalViewport.height]);
+
+      destPage.drawImage(embeddedImg, {
+        x: 0,
+        y: 0,
+        width: originalViewport.width,
+        height: originalViewport.height,
+      });
+
+      if (onProgress) {
+        onProgress(Math.round((i / numPages) * 100));
+      }
+    }
+
+    destPdf.setCreator('pdfCraft Grayscale Engine');
+    destPdf.setProducer('pdfCraft Engine');
+
+    return await destPdf.save({
+      useObjectStreams: true,
+      addDefaultPage: false
+    });
+  } catch (err) {
+    console.error('Error converting PDF to grayscale:', err);
+    throw new Error('Failed to convert PDF to grayscale.');
+  }
+}
+
