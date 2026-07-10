@@ -1075,3 +1075,36 @@ export async function convertToGrayscalePdf(pdfBuffer, onProgress) {
   }
 }
 
+// 23. Crop PDF pages visually
+export async function cropPdf(pdfBuffer, cropMargins, onProgress) {
+  const pdfDoc = await PDFDocument.load(pdfBuffer);
+  const pages = pdfDoc.getPages();
+  const numPages = pages.length;
+
+  for (let i = 0; i < numPages; i++) {
+    const page = pages[i];
+    const { x, y, width, height } = page.getMediaBox();
+
+    // cropMargins has left, right, top, bottom in percentages (0 to 100)
+    const leftPx = (cropMargins.left / 100) * width;
+    const rightPx = (cropMargins.right / 100) * width;
+    const topPx = (cropMargins.top / 100) * height;
+    const bottomPx = (cropMargins.bottom / 100) * height;
+
+    const newX = x + leftPx;
+    const newY = y + bottomPx;
+    const newWidth = Math.max(10, width - leftPx - rightPx);
+    const newHeight = Math.max(10, height - topPx - bottomPx);
+
+    page.setCropBox(newX, newY, newWidth, newHeight);
+    page.setMediaBox(newX, newY, newWidth, newHeight);
+
+    if (onProgress) {
+      onProgress(Math.round(((i + 1) / numPages) * 100));
+    }
+  }
+
+  return await pdfDoc.save();
+}
+
+

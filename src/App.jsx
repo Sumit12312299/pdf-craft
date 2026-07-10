@@ -33,7 +33,8 @@ import {
   X,
   Eye,
   Printer,
-  GripVertical
+  GripVertical,
+  Crop
 } from 'lucide-react';
 
 import {
@@ -59,7 +60,8 @@ import {
   convertHtmlToPdf,
   convertPdfToXlsx,
   convertPdfToPdfA,
-  convertToGrayscalePdf
+  convertToGrayscalePdf,
+  cropPdf
 } from './utils/pdfProcessor';
 
 // Beautiful Custom SVG Icons representing document conversions
@@ -410,6 +412,10 @@ function App() {
     }
   });
   const [newPresetName, setNewPresetName] = useState('');
+
+  // Crop States
+  const [cropMargins, setCropMargins] = useState({ top: 10, bottom: 10, left: 10, right: 10 });
+  const [activePageToCrop, setActivePageToCrop] = useState(null);
 
   // Signature States
   const [signatureDataUrl, setSignatureDataUrl] = useState(null); // Drawn signature PNG or QR Code PNG
@@ -826,6 +832,15 @@ function App() {
       accept: '.pdf'
     },
     {
+      id: 'crop',
+      title: 'Crop PDF',
+      description: 'Visually crop margins or selected sections of your PDF pages easily.',
+      icon: <Crop size={24} />,
+      category: 'Edits',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
       id: 'qr-generator',
       title: 'QR Code Generator',
       description: 'Convert any link or text into a downloadable QR code image instantly.',
@@ -989,6 +1004,7 @@ function App() {
       setSelectedPagesForSplit(new Set());
       setPlacedSignatures([]);
       setActivePageToSign(null);
+      setActivePageToCrop(null);
     }
   };
 
@@ -1000,6 +1016,8 @@ function App() {
     setSelectedPagesForSplit(new Set());
     setPlacedSignatures([]);
     setActivePageToSign(null);
+    setActivePageToCrop(null);
+    setCropMargins({ top: 10, bottom: 10, left: 10, right: 10 });
     setResultBlob(null);
     setResultName('');
     setProcessing(false);
@@ -1427,6 +1445,67 @@ function App() {
     }
   };
 
+  // Drag handler for Crop Bounding Box handles
+  const handleCropHandleMouseDown = (handle, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const isTouch = e.type === 'touchstart';
+    const rect = pageImageRef.current.getBoundingClientRect();
+    
+    const handleMove = (moveEvent) => {
+      const clientX = moveEvent.type === 'touchmove' ? moveEvent.touches[0].clientX : moveEvent.clientX;
+      const clientY = moveEvent.type === 'touchmove' ? moveEvent.touches[0].clientY : moveEvent.clientY;
+      
+      const pctX = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+      const pctY = Math.max(0, Math.min(100, ((clientY - rect.top) / rect.height) * 100));
+      
+      setCropMargins(prev => {
+        const next = { ...prev };
+        if (handle === 'tl') {
+          next.left = Math.min(100 - prev.right - 5, pctX);
+          next.top = Math.min(100 - prev.bottom - 5, pctY);
+        } else if (handle === 'tr') {
+          next.right = Math.min(100 - prev.left - 5, 100 - pctX);
+          next.top = Math.min(100 - prev.bottom - 5, pctY);
+        } else if (handle === 'bl') {
+          next.left = Math.min(100 - prev.right - 5, pctX);
+          next.bottom = Math.min(100 - prev.top - 5, 100 - pctY);
+        } else if (handle === 'br') {
+          next.right = Math.min(100 - prev.left - 5, 100 - pctX);
+          next.bottom = Math.min(100 - prev.top - 5, 100 - pctY);
+        } else if (handle === 'top') {
+          next.top = Math.min(100 - prev.bottom - 5, pctY);
+        } else if (handle === 'bottom') {
+          next.bottom = Math.min(100 - prev.top - 5, 100 - pctY);
+        } else if (handle === 'left') {
+          next.left = Math.min(100 - prev.right - 5, pctX);
+        } else if (handle === 'right') {
+          next.right = Math.min(100 - prev.left - 5, 100 - pctX);
+        }
+        return next;
+      });
+    };
+    
+    const handleEnd = () => {
+      if (isTouch) {
+        document.removeEventListener('touchmove', handleMove);
+        document.removeEventListener('touchend', handleEnd);
+      } else {
+        document.removeEventListener('mousemove', handleMove);
+        document.removeEventListener('mouseup', handleEnd);
+      }
+    };
+    
+    if (isTouch) {
+      document.addEventListener('touchmove', handleMove, { passive: false });
+      document.addEventListener('touchend', handleEnd);
+    } else {
+      document.addEventListener('mousemove', handleMove);
+      document.addEventListener('mouseup', handleEnd);
+    }
+  };
+
   // Save placed signature stamp details
   const saveSignaturePlacement = (applyToAll = false) => {
     if (renderedPageDimensions.w === 0 || renderedPageDimensions.h === 0) return;
@@ -1528,6 +1607,15 @@ function App() {
           setProgress(20 + Math.round(prog * 0.7));
         });
         filename = `${file.name.replace('.pdf', '')}_grayscale.pdf`;
+      }
+
+      else if (activeTool === 'crop') {
+        setProcessingStatus('Cropping PDF page margins...');
+        const file = uploadedFiles[0];
+        outputBytes = await cropPdf(file.buffer, cropMargins, (prog) => {
+          setProgress(20 + Math.round(prog * 0.7));
+        });
+        filename = `${file.name.replace('.pdf', '')}_cropped.pdf`;
       }
 
       else if (activeTool === 'rotate') {
@@ -3262,6 +3350,271 @@ function App() {
                         </div>
                       </div>
                     )
+                  ) : activeTool === 'crop' ? (
+                    /* Visual Bounding Box Crop Layout */
+                    activePageToCrop !== null ? (
+                      /* visual page placement crop view */
+                      <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', marginBottom: '1rem', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <button className="btn-back" style={{ padding: '0.35rem 0.6rem' }} onClick={() => setActivePageToCrop(null)}>
+                            ◀ Back to Pages
+                          </button>
+                          <span style={{ fontSize: '0.85rem', fontWeight: '700' }}>Adjusting Crop Bounding Box on Page {activePageToCrop + 1}</span>
+                          <button className="btn-upload" style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', backgroundColor: 'var(--success-color)' }} onClick={runProcess}>
+                            Crop PDF Document
+                          </button>
+                        </div>
+
+                        {/* Interactive Page Crop Canvas Wrapper */}
+                        <div style={{
+                          position: 'relative',
+                          border: '1px solid var(--border-color)',
+                          boxShadow: 'var(--shadow-md)',
+                          backgroundColor: 'var(--bg-secondary)',
+                          width: '100%',
+                          maxWidth: '100%',
+                          height: '420px',
+                          display: 'flex',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          overflow: 'hidden',
+                          userSelect: 'none'
+                        }}>
+                          {/* Inner container that bounds the actual page image */}
+                          <div style={{
+                            position: 'relative',
+                            display: 'inline-flex',
+                            maxHeight: '100%',
+                            maxWidth: '100%',
+                            backgroundColor: 'white',
+                            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
+                          }}>
+                            <img
+                              ref={pageImageRef}
+                              src={pagePreviews.find(p => p.originalIndex === activePageToCrop)?.dataUrl}
+                              onLoad={handlePageImageLoad}
+                              style={{ display: 'block', maxWidth: '100%', maxHeight: '420px', objectFit: 'contain', pointerEvents: 'none' }}
+                              alt="page to crop"
+                            />
+
+                            {/* Shaded/Translucent overlays representing cropped-out areas */}
+                            {/* Top mask */}
+                            <div style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              height: `${cropMargins.top}%`,
+                              backgroundColor: 'rgba(15, 23, 42, 0.55)',
+                              pointerEvents: 'none',
+                              backdropFilter: 'blur(1px)'
+                            }} />
+                            {/* Bottom mask */}
+                            <div style={{
+                              position: 'absolute',
+                              bottom: 0,
+                              left: 0,
+                              right: 0,
+                              height: `${cropMargins.bottom}%`,
+                              backgroundColor: 'rgba(15, 23, 42, 0.55)',
+                              pointerEvents: 'none',
+                              backdropFilter: 'blur(1px)'
+                            }} />
+                            {/* Left mask */}
+                            <div style={{
+                              position: 'absolute',
+                              top: `${cropMargins.top}%`,
+                              bottom: `${cropMargins.bottom}%`,
+                              left: 0,
+                              width: `${cropMargins.left}%`,
+                              backgroundColor: 'rgba(15, 23, 42, 0.55)',
+                              pointerEvents: 'none',
+                              backdropFilter: 'blur(1px)'
+                            }} />
+                            {/* Right mask */}
+                            <div style={{
+                              position: 'absolute',
+                              top: `${cropMargins.top}%`,
+                              bottom: `${cropMargins.bottom}%`,
+                              right: 0,
+                              width: `${cropMargins.right}%`,
+                              backgroundColor: 'rgba(15, 23, 42, 0.55)',
+                              pointerEvents: 'none',
+                              backdropFilter: 'blur(1px)'
+                            }} />
+
+                            {/* Bounding Box Outline */}
+                            <div
+                              style={{
+                                position: 'absolute',
+                                top: `${cropMargins.top}%`,
+                                bottom: `${cropMargins.bottom}%`,
+                                left: `${cropMargins.left}%`,
+                                right: `${cropMargins.right}%`,
+                                border: '2.5px dashed var(--accent-color)',
+                                boxSizing: 'border-box',
+                                zIndex: 10
+                              }}
+                            >
+                              {/* Edge drag handles */}
+                              {/* Top edge */}
+                              <div
+                                onMouseDown={(e) => handleCropHandleMouseDown('top', e)}
+                                onTouchStart={(e) => handleCropHandleMouseDown('top', e)}
+                                style={{ position: 'absolute', top: '-4px', left: '10px', right: '10px', height: '8px', cursor: 'ns-resize', zIndex: 15 }}
+                              />
+                              {/* Bottom edge */}
+                              <div
+                                onMouseDown={(e) => handleCropHandleMouseDown('bottom', e)}
+                                onTouchStart={(e) => handleCropHandleMouseDown('bottom', e)}
+                                style={{ position: 'absolute', bottom: '-4px', left: '10px', right: '10px', height: '8px', cursor: 'ns-resize', zIndex: 15 }}
+                              />
+                              {/* Left edge */}
+                              <div
+                                onMouseDown={(e) => handleCropHandleMouseDown('left', e)}
+                                onTouchStart={(e) => handleCropHandleMouseDown('left', e)}
+                                style={{ position: 'absolute', left: '-4px', top: '10px', bottom: '10px', width: '8px', cursor: 'ew-resize', zIndex: 15 }}
+                              />
+                              {/* Right edge */}
+                              <div
+                                onMouseDown={(e) => handleCropHandleMouseDown('right', e)}
+                                onTouchStart={(e) => handleCropHandleMouseDown('right', e)}
+                                style={{ position: 'absolute', right: '-4px', top: '10px', bottom: '10px', width: '8px', cursor: 'ew-resize', zIndex: 15 }}
+                              />
+
+                              {/* Corner drag handles */}
+                              {/* Top-Left */}
+                              <div
+                                onMouseDown={(e) => handleCropHandleMouseDown('tl', e)}
+                                onTouchStart={(e) => handleCropHandleMouseDown('tl', e)}
+                                style={{
+                                  position: 'absolute',
+                                  top: '-7px',
+                                  left: '-7px',
+                                  width: '14px',
+                                  height: '14px',
+                                  backgroundColor: '#ffffff',
+                                  border: '2.5px solid var(--accent-color)',
+                                  borderRadius: '2px',
+                                  cursor: 'nwse-resize',
+                                  zIndex: 20
+                                }}
+                              />
+                              {/* Top-Right */}
+                              <div
+                                onMouseDown={(e) => handleCropHandleMouseDown('tr', e)}
+                                onTouchStart={(e) => handleCropHandleMouseDown('tr', e)}
+                                style={{
+                                  position: 'absolute',
+                                  top: '-7px',
+                                  right: '-7px',
+                                  width: '14px',
+                                  height: '14px',
+                                  backgroundColor: '#ffffff',
+                                  border: '2.5px solid var(--accent-color)',
+                                  borderRadius: '2px',
+                                  cursor: 'nesw-resize',
+                                  zIndex: 20
+                                }}
+                              />
+                              {/* Bottom-Left */}
+                              <div
+                                onMouseDown={(e) => handleCropHandleMouseDown('bl', e)}
+                                onTouchStart={(e) => handleCropHandleMouseDown('bl', e)}
+                                style={{
+                                  position: 'absolute',
+                                  bottom: '-7px',
+                                  left: '-7px',
+                                  width: '14px',
+                                  height: '14px',
+                                  backgroundColor: '#ffffff',
+                                  border: '2.5px solid var(--accent-color)',
+                                  borderRadius: '2px',
+                                  cursor: 'nesw-resize',
+                                  zIndex: 20
+                                }}
+                              />
+                              {/* Bottom-Right */}
+                              <div
+                                onMouseDown={(e) => handleCropHandleMouseDown('br', e)}
+                                onTouchStart={(e) => handleCropHandleMouseDown('br', e)}
+                                style={{
+                                  position: 'absolute',
+                                  bottom: '-7px',
+                                  right: '-7px',
+                                  width: '14px',
+                                  height: '14px',
+                                  backgroundColor: '#ffffff',
+                                  border: '2.5px solid var(--accent-color)',
+                                  borderRadius: '2px',
+                                  cursor: 'nwse-resize',
+                                  zIndex: 20
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+                          Drag the dashed borders or corners to adjust crop margins. Or use sliders in the right panel.
+                        </span>
+                      </div>
+                    ) : (
+                      /* page selection list for cropping */
+                      <div className="files-preview-container">
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                          Choose a page below to visually preview and crop the page margins.
+                        </div>
+                        <div className="files-grid">
+                          {Array.from({ length: uploadedFiles[0].pageCount }).map((_, originalIdx) => {
+                            const previewObj = pagePreviews.find(p => p.originalIndex === originalIdx);
+                            return (
+                              <div
+                                key={originalIdx}
+                                className="file-preview-card"
+                                style={{ border: '1px solid var(--border-color)' }}
+                              >
+                                <div className="file-preview-thumbnail" style={{ position: 'relative' }}>
+                                  {previewObj ? (
+                                    <div style={{ position: 'relative', display: 'inline-flex', maxHeight: '100%', maxWidth: '100%' }}>
+                                      <img
+                                        src={previewObj.dataUrl}
+                                        className="file-preview-img"
+                                        alt={`Page ${originalIdx + 1}`}
+                                        style={{ display: 'block', maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                                      />
+                                      <button
+                                        className="btn-preview-eye"
+                                        title="Preview Page"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          openLightbox(uploadedFiles[0], originalIdx, previewObj.dataUrl, `Page ${originalIdx + 1}`);
+                                        }}
+                                      >
+                                        <Eye size={14} />
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div className="skeleton-pulse" />
+                                  )}
+                                </div>
+                                <div className="file-preview-info" style={{ marginTop: '4px' }}>
+                                  <div className="file-preview-name">Page {originalIdx + 1}</div>
+                                  <button
+                                    className="btn-upload"
+                                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', width: '100%', marginTop: '4px' }}
+                                    onClick={() => {
+                                      setActivePageToCrop(originalIdx);
+                                    }}
+                                  >
+                                    Crop Bounding Box
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )
                   ) : activeTool === 'img-to-pdf' ? (
                     /* Image list */
                     <div className="files-preview-container">
@@ -4126,6 +4479,84 @@ function App() {
                     </div>
                   )}
 
+                  {activeTool === 'crop' && (
+                    <div className="sidebar-section" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <h3>Crop Settings</h3>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        Drag the crop handles on the page preview to specify crop margins, or configure them using the sliders below.
+                      </p>
+
+                      <div className="form-group">
+                        <label style={{ fontSize: '0.75rem', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Top Margin</span>
+                          <strong>{cropMargins.top}%</strong>
+                        </label>
+                        <input
+                          type="range"
+                          min={0}
+                          max={80}
+                          value={cropMargins.top}
+                          onChange={(e) => setCropMargins({ ...cropMargins, top: Number(e.target.value) })}
+                          style={{ width: '100%', accentColor: 'var(--accent-color)' }}
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label style={{ fontSize: '0.75rem', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Bottom Margin</span>
+                          <strong>{cropMargins.bottom}%</strong>
+                        </label>
+                        <input
+                          type="range"
+                          min={0}
+                          max={80}
+                          value={cropMargins.bottom}
+                          onChange={(e) => setCropMargins({ ...cropMargins, bottom: Number(e.target.value) })}
+                          style={{ width: '100%', accentColor: 'var(--accent-color)' }}
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label style={{ fontSize: '0.75rem', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Left Margin</span>
+                          <strong>{cropMargins.left}%</strong>
+                        </label>
+                        <input
+                          type="range"
+                          min={0}
+                          max={80}
+                          value={cropMargins.left}
+                          onChange={(e) => setCropMargins({ ...cropMargins, left: Number(e.target.value) })}
+                          style={{ width: '100%', accentColor: 'var(--accent-color)' }}
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label style={{ fontSize: '0.75rem', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Right Margin</span>
+                          <strong>{cropMargins.right}%</strong>
+                        </label>
+                        <input
+                          type="range"
+                          min={0}
+                          max={80}
+                          value={cropMargins.right}
+                          onChange={(e) => setCropMargins({ ...cropMargins, right: Number(e.target.value) })}
+                          style={{ width: '100%', accentColor: 'var(--accent-color)' }}
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        className="option-select-btn"
+                        onClick={() => setCropMargins({ top: 10, bottom: 10, left: 10, right: 10 })}
+                        style={{ padding: '0.4rem', fontSize: '0.75rem', width: '100%', justifyContent: 'center', marginTop: '0.25rem' }}
+                      >
+                        Reset Crop Box
+                      </button>
+                    </div>
+                  )}
+
                   {/* Primary Trigger Button */}
                   <button
                     className="btn-action-primary"
@@ -4134,6 +4565,7 @@ function App() {
                       (activeTool === 'split' && !splitRanges.trim()) ||
                       ((activeTool === 'sign' || activeTool === 'qr') && placedSignatures.length === 0) ||
                       ((activeTool === 'sign' || activeTool === 'qr') && activePageToSign !== null) ||
+                      (activeTool === 'crop' && activePageToCrop === null) ||
                       (activeTool === 'protect' && !protectPassword.trim()) ||
                       (activeTool === 'unlock' && !unlockPassword.trim())
                     }
@@ -4143,7 +4575,8 @@ function App() {
                         activeTool === 'pdf-to-docx' ? 'Convert to Word' :
                           activeTool === 'pdf-to-pptx' ? 'Convert to PowerPoint' :
                             activeTool === 'grayscale' ? 'Convert to Grayscale' :
-                              `Convert to ${currentTool?.id === 'pdf-to-img' ? 'Images' : 'PDF'}`
+                              activeTool === 'crop' ? 'Crop PDF Document' :
+                                `Convert to ${currentTool?.id === 'pdf-to-img' ? 'Images' : 'PDF'}`
                     }
                   </button>
                 </div>
