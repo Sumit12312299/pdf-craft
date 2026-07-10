@@ -400,19 +400,6 @@ function App() {
   const [qrGenTopSpace, setQrGenTopSpace] = useState(20);
   const [qrGenBottomSpace, setQrGenBottomSpace] = useState(20);
   const [qrGenLabelPosition, setQrGenLabelPosition] = useState('bottom');
-
-  // Custom QR Preset States
-  const [customQrPresets, setCustomQrPresets] = useState(() => {
-    try {
-      const saved = localStorage.getItem('pdf-craft-custom-qr-presets');
-      return saved ? JSON.parse(saved) : [];
-    } catch (err) {
-      console.error('Error parsing custom QR presets:', err);
-      return [];
-    }
-  });
-  const [newPresetName, setNewPresetName] = useState('');
-
   // Crop States
   const [cropMargins, setCropMargins] = useState({ top: 10, bottom: 10, left: 10, right: 10 });
   const [activePageToCrop, setActivePageToCrop] = useState(null);
@@ -1386,36 +1373,6 @@ function App() {
       document.addEventListener('mousemove', handlePanMove);
       document.addEventListener('mouseup', handlePanEnd);
     }
-  };
-
-  const handleSaveCustomPreset = () => {
-    const label = newPresetName.trim();
-    if (!label) return;
-
-    const newPreset = {
-      id: Date.now().toString(),
-      label,
-      fg: qrGenFgColor,
-      bg: qrGenBgColor,
-      size: qrGenSize,
-      labelText: qrGenLabelText,
-      labelPosition: qrGenLabelPosition,
-      labelFontSize: qrGenLabelFontSize,
-      topSpace: qrGenTopSpace,
-      bottomSpace: qrGenBottomSpace
-    };
-
-    const updated = [...customQrPresets, newPreset];
-    setCustomQrPresets(updated);
-    localStorage.setItem('pdf-craft-custom-qr-presets', JSON.stringify(updated));
-    setNewPresetName('');
-  };
-
-  const handleDeleteCustomPreset = (id, e) => {
-    e.stopPropagation();
-    const updated = customQrPresets.filter(p => p.id !== id);
-    setCustomQrPresets(updated);
-    localStorage.setItem('pdf-craft-custom-qr-presets', JSON.stringify(updated));
   };
 
   // Adjust signature dimensions proportionally via sidebar size slider
@@ -2504,92 +2461,6 @@ function App() {
                           {preset.label}
                         </button>
                       ))}
-                    </div>
-
-                    <div style={{ marginTop: '1.25rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-                      <h3 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 0.5rem 0' }}>
-                        <span>Custom Presets</span>
-                        {customQrPresets.length > 0 && <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>{customQrPresets.length} saved</span>}
-                      </h3>
-                      
-                      {customQrPresets.length === 0 ? (
-                        <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontStyle: 'italic', margin: '0 0 0.75rem 0' }}>
-                          No custom presets saved yet.
-                        </p>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', maxHeight: '180px', overflowY: 'auto', marginBottom: '0.75rem', paddingRight: '2px' }}>
-                          {customQrPresets.map((preset) => (
-                            <div 
-                              key={preset.id} 
-                              className="option-select-btn"
-                              onClick={() => {
-                                setQrGenFgColor(preset.fg);
-                                setQrGenBgColor(preset.bg);
-                                if (preset.size !== undefined) setQrGenSize(preset.size);
-                                if (preset.labelText !== undefined) setQrGenLabelText(preset.labelText);
-                                if (preset.labelPosition !== undefined) setQrGenLabelPosition(preset.labelPosition);
-                                if (preset.labelFontSize !== undefined) setQrGenLabelFontSize(preset.labelFontSize);
-                                if (preset.topSpace !== undefined) setQrGenTopSpace(preset.topSpace);
-                                if (preset.bottomSpace !== undefined) setQrGenBottomSpace(preset.bottomSpace);
-                              }}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                padding: '0.35rem 0.5rem',
-                                fontSize: '0.75rem',
-                                width: '100%',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '2px', background: preset.fg, border: '1px solid var(--border-color)', flexShrink: 0 }}></span>
-                                <span>{preset.label}</span>
-                              </div>
-                              <button
-                                type="button"
-                                style={{
-                                  background: 'none',
-                                  border: 'none',
-                                  color: 'var(--text-secondary)',
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  padding: '2px',
-                                  opacity: 0.7
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'}
-                                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
-                                onClick={(e) => handleDeleteCustomPreset(preset.id, e)}
-                                title="Delete Preset"
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
-                        <input
-                          type="text"
-                          className="form-control"
-                          placeholder="Preset name..."
-                          value={newPresetName}
-                          onChange={(e) => setNewPresetName(e.target.value)}
-                          style={{ padding: '0.35rem 0.5rem', fontSize: '0.75rem' }}
-                          onKeyDown={(e) => e.key === 'Enter' && handleSaveCustomPreset()}
-                        />
-                        <button
-                          type="button"
-                          className="btn-upload"
-                          onClick={handleSaveCustomPreset}
-                          disabled={!newPresetName.trim()}
-                          style={{ padding: '0.4rem', fontSize: '0.75rem', width: '100%', justifyContent: 'center' }}
-                        >
-                          Save Current Settings
-                        </button>
-                      </div>
                     </div>
                   </div>
                 </div>
