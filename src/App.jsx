@@ -409,6 +409,12 @@ function App() {
   const [shareData, setShareData] = useState({ blob: null, name: '', type: '' });
   const [sigPos, setSigPos] = useState({ x: 50, y: 50, w: 120, h: 60 });
   const [renderedPageDimensions, setRenderedPageDimensions] = useState({ w: 0, h: 0 });
+
+  // Signature Zoom and Pan States
+  const [canvasZoom, setCanvasZoom] = useState(1);
+  const [panPos, setPanPos] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const panStartRef = useRef({ x: 0, y: 0 });
   const [previewModalImage, setPreviewModalImage] = useState(null);
   const [previewModalTitle, setPreviewModalTitle] = useState('');
   const [lightboxLoading, setLightboxLoading] = useState(false);
@@ -468,6 +474,12 @@ function App() {
   // Page level organize actions (for organize tool)
   const [organizePages, setOrganizePages] = useState([]); // Array of { id, originalIndex, rotation }
   const [draggedPageIndex, setDraggedPageIndex] = useState(null);
+
+  // Reset Zoom and Pan when active page to sign changes
+  useEffect(() => {
+    setCanvasZoom(1);
+    setPanPos({ x: 0, y: 0 });
+  }, [activePageToSign]);
 
   // Initializing Theme
   useEffect(() => {
@@ -1261,8 +1273,9 @@ function App() {
       const moveClientX = moveEvent.type === 'touchmove' ? moveEvent.touches[0].clientX : moveEvent.clientX;
       const moveClientY = moveEvent.type === 'touchmove' ? moveEvent.touches[0].clientY : moveEvent.clientY;
 
-      const deltaX = moveClientX - startX;
-      const deltaY = moveClientY - startY;
+      // Adjust delta by zoom level so stamp moves accurately with cursor
+      const deltaX = (moveClientX - startX) / canvasZoom;
+      const deltaY = (moveClientY - startY) / canvasZoom;
 
       // Bound checking within the rendered page container
       const newX = Math.max(0, Math.min(containerRect.width - sigPos.w, initLeft + deltaX));
@@ -1287,6 +1300,57 @@ function App() {
     } else {
       document.addEventListener('mousemove', handleMove);
       document.addEventListener('mouseup', handleEnd);
+    }
+  };
+
+  // Canvas background Pan drag handler
+  const handleBackgroundMouseDown = (e) => {
+    // Return if the click/touch is on the draggable stamp itself
+    if (e.target.closest('.draggable-stamp')) return;
+    
+    // Check if clicked element is a button (e.g. inside toolbar)
+    if (e.target.closest('button')) return;
+
+    e.preventDefault();
+    const isTouch = e.type === 'touchstart';
+    const startX = isTouch ? e.touches[0].clientX : e.clientX;
+    const startY = isTouch ? e.touches[0].clientY : e.clientY;
+    const startPanX = panPos.x;
+    const startPanY = panPos.y;
+
+    setIsPanning(true);
+
+    const handlePanMove = (moveEvent) => {
+      const moveClientX = moveEvent.type === 'touchmove' ? moveEvent.touches[0].clientX : moveEvent.clientX;
+      const moveClientY = moveEvent.type === 'touchmove' ? moveEvent.touches[0].clientY : moveEvent.clientY;
+
+      // Pan translation should also adapt to scale so panning speed matches cursor
+      const deltaX = (moveClientX - startX) / canvasZoom;
+      const deltaY = (moveClientY - startY) / canvasZoom;
+
+      setPanPos({
+        x: startPanX + deltaX,
+        y: startPanY + deltaY
+      });
+    };
+
+    const handlePanEnd = () => {
+      setIsPanning(false);
+      if (isTouch) {
+        document.removeEventListener('touchmove', handlePanMove);
+        document.removeEventListener('touchend', handlePanEnd);
+      } else {
+        document.removeEventListener('mousemove', handlePanMove);
+        document.removeEventListener('mouseup', handlePanEnd);
+      }
+    };
+
+    if (isTouch) {
+      document.addEventListener('touchmove', handlePanMove, { passive: false });
+      document.addEventListener('touchend', handlePanEnd);
+    } else {
+      document.addEventListener('mousemove', handlePanMove);
+      document.addEventListener('mouseup', handlePanEnd);
     }
   };
 
@@ -2869,43 +2933,112 @@ function App() {
                         </div>
 
                         {/* Interactive Page Canvas Wrapper */}
-                        <div style={{
-                          position: 'relative',
-                          border: '1px solid var(--border-color)',
-                          boxShadow: 'var(--shadow-md)',
-                          backgroundColor: 'var(--bg-primary)',
-                          maxWidth: '100%',
-                          maxHeight: '420px',
-                          display: 'flex',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          overflow: 'hidden'
-                        }}>
-                          <img
-                            ref={pageImageRef}
-                            src={pagePreviews.find(p => p.originalIndex === activePageToSign)?.dataUrl}
-                            onLoad={handlePageImageLoad}
-                            style={{ display: 'block', maxWidth: '100%', maxHeight: '420px', objectFit: 'contain', pointerEvents: 'none' }}
-                            alt="page to stamp"
-                          />
+                        <div 
+                          onMouseDown={handleBackgroundMouseDown}
+                          onTouchStart={handleBackgroundMouseDown}
+                          style={{
+                            position: 'relative',
+                            border: '1px solid var(--border-color)',
+                            boxShadow: 'var(--shadow-md)',
+                            backgroundColor: 'var(--bg-primary)',
+                            width: '100%',
+                            maxWidth: '100%',
+                            height: '420px',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            overflow: 'hidden',
+                            cursor: canvasZoom > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default',
+                            userSelect: 'none'
+                          }}
+                        >
+                          <div style={{
+                            position: 'relative',
+                            transform: `scale(${canvasZoom}) translate(${panPos.x}px, ${panPos.y}px)`,
+                            transformOrigin: 'center center',
+                            transition: isPanning ? 'none' : 'transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            width: '100%',
+                            height: '100%'
+                          }}>
+                            <img
+                              ref={pageImageRef}
+                              src={pagePreviews.find(p => p.originalIndex === activePageToSign)?.dataUrl}
+                              onLoad={handlePageImageLoad}
+                              style={{ display: 'block', maxWidth: '100%', maxHeight: '420px', objectFit: 'contain', pointerEvents: 'none' }}
+                              alt="page to stamp"
+                            />
 
-                          {/* Draggable signature element */}
-                          <div
-                            style={{
-                              position: 'absolute',
-                              left: `${sigPos.x}px`,
-                              top: `${sigPos.y}px`,
-                              width: `${sigPos.w}px`,
-                              height: `${sigPos.h}px`,
-                              border: '1.5px dashed var(--accent-color)',
-                              cursor: 'move',
-                              backgroundColor: 'rgba(254, 226, 226, 0.2)',
-                              touchAction: 'none'
-                            }}
-                            onMouseDown={handleSignatureMouseDown}
-                            onTouchStart={handleSignatureMouseDown}
-                          >
-                            <img src={signatureDataUrl} style={{ width: '100%', height: '100%', pointerEvents: 'none' }} alt="stamp seal" />
+                            {/* Draggable signature element */}
+                            <div
+                              className="draggable-stamp"
+                              style={{
+                                position: 'absolute',
+                                left: `${sigPos.x}px`,
+                                top: `${sigPos.y}px`,
+                                width: `${sigPos.w}px`,
+                                height: `${sigPos.h}px`,
+                                border: '1.5px dashed var(--accent-color)',
+                                cursor: 'move',
+                                backgroundColor: 'rgba(254, 226, 226, 0.2)',
+                                touchAction: 'none',
+                                zIndex: 10
+                              }}
+                              onMouseDown={handleSignatureMouseDown}
+                              onTouchStart={handleSignatureMouseDown}
+                            >
+                              <img src={signatureDataUrl} style={{ width: '100%', height: '100%', pointerEvents: 'none' }} alt="stamp seal" />
+                            </div>
+                          </div>
+
+                          {/* Floating Zoom Controls */}
+                          <div style={{
+                            position: 'absolute',
+                            bottom: '12px',
+                            right: '12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            backgroundColor: 'var(--bg-primary)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: 'var(--radius-md)',
+                            padding: '4px',
+                            boxShadow: 'var(--shadow-md)',
+                            zIndex: 20
+                          }}>
+                            <button 
+                              type="button"
+                              className="btn-icon" 
+                              style={{ padding: '2px 8px', fontSize: '0.8rem', fontWeight: 'bold', minWidth: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              onClick={() => setCanvasZoom(prev => Math.max(1, prev - 0.25))}
+                              disabled={canvasZoom <= 1}
+                            >
+                              -
+                            </button>
+                            <span style={{ fontSize: '0.75rem', fontWeight: '600', minWidth: '42px', textAlign: 'center', color: 'var(--text-primary)' }}>
+                              {Math.round(canvasZoom * 100)}%
+                            </span>
+                            <button 
+                              type="button"
+                              className="btn-icon" 
+                              style={{ padding: '2px 8px', fontSize: '0.8rem', fontWeight: 'bold', minWidth: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              onClick={() => setCanvasZoom(prev => Math.min(3, prev + 0.25))}
+                              disabled={canvasZoom >= 3}
+                            >
+                              +
+                            </button>
+                            <div style={{ width: '1px', height: '14px', backgroundColor: 'var(--border-color)', margin: '0 4px' }} />
+                            <button 
+                              type="button"
+                              className="btn-icon" 
+                              style={{ padding: '2px 6px', fontSize: '0.7rem', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              onClick={() => { setCanvasZoom(1); setPanPos({ x: 0, y: 0 }); }}
+                              disabled={canvasZoom === 1 && panPos.x === 0 && panPos.y === 0}
+                            >
+                              Reset
+                            </button>
                           </div>
                         </div>
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
