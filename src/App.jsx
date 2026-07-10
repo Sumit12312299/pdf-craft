@@ -3546,15 +3546,42 @@ function App() {
                                         title="Preview Page"
                                         onClick={async (e) => {
                                           e.stopPropagation();
-                                          const croppedUrl = pageCrop
+                                          const title = `Page ${originalIdx + 1}${pageCrop ? ' (Cropped)' : ''}`;
+
+                                          // Show low-res cropped thumbnail immediately as fallback
+                                          const fallbackCropped = pageCrop
                                             ? await getCroppedDataUrl(previewObj.dataUrl, pageCrop)
                                             : previewObj.dataUrl;
-                                          setPreviewModalTitle(`Page ${originalIdx + 1}${pageCrop ? ' (Cropped)' : ''}`);
+                                          setPreviewModalTitle(title);
                                           setPreviewModalRotation(0);
-                                          setPreviewModalImage(croppedUrl);
+                                          setPreviewModalImage(fallbackCropped);
                                           setPreviewModalPageIndex(originalIdx);
-                                          setIsHighResRendered(true);
-                                          setLightboxLoading(false);
+                                          setIsHighResRendered(false);
+                                          setLightboxLoading(true);
+
+                                          // Render hi-res from PDF buffer, then apply crop
+                                          try {
+                                            if (window.pdfjsLib && uploadedFiles[0]?.buffer) {
+                                              const loadingTask = window.pdfjsLib.getDocument({ data: uploadedFiles[0].buffer.slice(0) });
+                                              const pdf = await loadingTask.promise;
+                                              const pdfPage = await pdf.getPage(originalIdx + 1);
+                                              const viewport = pdfPage.getViewport({ scale: 2.0 });
+                                              const hiResCanvas = document.createElement('canvas');
+                                              hiResCanvas.width = viewport.width;
+                                              hiResCanvas.height = viewport.height;
+                                              await pdfPage.render({ canvasContext: hiResCanvas.getContext('2d'), viewport }).promise;
+                                              const hiResUrl = hiResCanvas.toDataURL('image/jpeg', 0.95);
+                                              const hiResCropped = pageCrop
+                                                ? await getCroppedDataUrl(hiResUrl, pageCrop)
+                                                : hiResUrl;
+                                              setPreviewModalImage(hiResCropped);
+                                              setIsHighResRendered(true);
+                                            }
+                                          } catch (err) {
+                                            console.error('High-res crop preview failed:', err);
+                                          } finally {
+                                            setLightboxLoading(false);
+                                          }
                                         }}
                                       >
                                         <Eye size={14} />
