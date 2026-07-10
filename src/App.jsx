@@ -2163,7 +2163,7 @@ function App() {
 
             {/* Sub-View: QR Generator (No file needed) */}
             {activeTool === 'qr-generator' ? (
-              <div className="workspace-layout" style={{ minHeight: 'auto', display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'start', justifyContent: 'center' }}>
+              <div className="workspace-layout qr-layout" style={{ minHeight: 'auto' }}>
                 {/* Column 1: QR Preview Box */}
                 <div className="workspace-main" style={{
                   padding: '1.25rem',
@@ -2173,9 +2173,7 @@ function App() {
                   gap: '1rem',
                   backgroundColor: 'var(--bg-secondary)',
                   alignSelf: 'start',
-                  boxShadow: 'var(--shadow-sm)',
-                  width: '280px',
-                  flexShrink: 0
+                  boxShadow: 'var(--shadow-sm)'
                 }}>
                   {qrGenError && (
                     <div style={{ color: 'var(--accent-color)', fontSize: '0.85rem', fontWeight: '600', textAlign: 'center' }}>
@@ -2231,7 +2229,7 @@ function App() {
                 </div>
 
                 {/* Column 2: Quick Presets Box (Middle) */}
-                <div className="workspace-sidebar" style={{ padding: '1rem', width: '200px', flexShrink: 0, alignSelf: 'start' }}>
+                <div className="workspace-sidebar qr-presets-column" style={{ padding: '1rem', alignSelf: 'start' }}>
                   <div className="sidebar-section">
                     <h3>Quick Presets</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
@@ -2272,7 +2270,7 @@ function App() {
                 </div>
 
                 {/* Column 3: Controls Sidebar (Right) */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '340px', flexShrink: 0 }}>
+                <div className="qr-controls-column">
                   {/* Card 1: Content Box */}
                   <div className="workspace-sidebar" style={{ padding: '1rem' }}>
                     <div className="sidebar-section">

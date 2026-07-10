@@ -750,6 +750,22 @@ html.dark .navbar {
   min-height: 500px;
 }
 
+.workspace-layout.qr-layout {
+  grid-template-columns: 1fr 200px 340px;
+}
+
+.qr-controls-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (max-width: 1024px) {
+  .workspace-layout.qr-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 968px) {
   .workspace-layout {
     grid-template-columns: 1fr;
