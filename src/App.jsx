@@ -214,6 +214,95 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
+// Draw QR Code with custom top and bottom spacing plus a custom text label
+const drawQrWithLabelAndSpacing = async (
+  qrDataUrl,
+  fgColor,
+  bgColor,
+  qrSize,
+  labelText,
+  labelFontSize,
+  topSpace,
+  bottomSpace,
+  textPosition = 'bottom'
+) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(qrDataUrl);
+        return;
+      }
+
+      const width = qrSize;
+      const height = qrSize + topSpace + bottomSpace;
+
+      canvas.width = width;
+      canvas.height = height;
+
+      // Fill background
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, width, height);
+
+      // Draw QR Code
+      ctx.drawImage(img, 0, topSpace, qrSize, qrSize);
+
+      // Draw text label if provided
+      if (labelText && labelText.trim() !== '') {
+        ctx.fillStyle = fgColor;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = `bold ${labelFontSize}px sans-serif`;
+
+        // Wrap text to fit inside the QR width (minus 20px padding)
+        const words = labelText.split(' ');
+        let lines = [];
+        let currentLine = words[0] || '';
+
+        for (let i = 1; i < words.length; i++) {
+          const word = words[i];
+          const widthTest = ctx.measureText(currentLine + ' ' + word).width;
+          if (widthTest < qrSize - 20) {
+            currentLine += ' ' + word;
+          } else {
+            lines.push(currentLine);
+            currentLine = word;
+          }
+        }
+        lines.push(currentLine);
+
+        const lineHeight = labelFontSize * 1.25;
+        const totalTextHeight = lines.length * lineHeight;
+
+        if (textPosition === 'bottom') {
+          // Center the text block inside the bottomSpace
+          let startY = topSpace + qrSize + (bottomSpace - totalTextHeight) / 2 + lineHeight / 2;
+          lines.forEach(line => {
+            ctx.fillText(line, qrSize / 2, startY);
+            startY += lineHeight;
+          });
+        } else if (textPosition === 'top') {
+          // Center the text block inside the topSpace
+          let startY = (topSpace - totalTextHeight) / 2 + lineHeight / 2;
+          lines.forEach(line => {
+            ctx.fillText(line, qrSize / 2, startY);
+            startY += lineHeight;
+          });
+        }
+      }
+
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = (err) => {
+      reject(err);
+    };
+    img.src = qrDataUrl;
+  });
+};
+
 function App() {
   // Theme state
   const [theme, setTheme] = useState('light');
@@ -301,6 +390,11 @@ function App() {
   const [qrGenSize, setQrGenSize] = useState(300);
   const [qrGenDataUrl, setQrGenDataUrl] = useState('');
   const [qrGenError, setQrGenError] = useState('');
+  const [qrGenLabelText, setQrGenLabelText] = useState('');
+  const [qrGenLabelFontSize, setQrGenLabelFontSize] = useState(18);
+  const [qrGenTopSpace, setQrGenTopSpace] = useState(20);
+  const [qrGenBottomSpace, setQrGenBottomSpace] = useState(20);
+  const [qrGenLabelPosition, setQrGenLabelPosition] = useState('bottom');
 
   // Signature States
   const [signatureDataUrl, setSignatureDataUrl] = useState(null); // Drawn signature PNG or QR Code PNG
@@ -457,13 +551,42 @@ function App() {
         width: qrGenSize,
         errorCorrectionLevel: 'H'
       })
-        .then(url => setQrGenDataUrl(url))
+        .then(async (rawUrl) => {
+          try {
+            const finalUrl = await drawQrWithLabelAndSpacing(
+              rawUrl,
+              qrGenFgColor,
+              qrGenBgColor,
+              qrGenSize,
+              qrGenLabelText,
+              qrGenLabelFontSize,
+              qrGenTopSpace,
+              qrGenBottomSpace,
+              qrGenLabelPosition
+            );
+            setQrGenDataUrl(finalUrl);
+          } catch (canvasErr) {
+            console.error(canvasErr);
+            setQrGenDataUrl(rawUrl);
+          }
+        })
         .catch(err => {
           setQrGenError('Failed to generate QR code: ' + err.message);
           setQrGenDataUrl('');
         });
     }
-  }, [qrGenText, qrGenFgColor, qrGenBgColor, qrGenSize, activeTool]);
+  }, [
+    qrGenText,
+    qrGenFgColor,
+    qrGenBgColor,
+    qrGenSize,
+    qrGenLabelText,
+    qrGenLabelFontSize,
+    qrGenTopSpace,
+    qrGenBottomSpace,
+    qrGenLabelPosition,
+    activeTool
+  ]);
 
   // Define tools catalog
   const tools = [
@@ -2042,39 +2165,39 @@ function App() {
             {activeTool === 'qr-generator' ? (
               <div className="workspace-layout">
                 {/* Left: QR Preview */}
-                <div className="workspace-main" style={{ justifyContent: 'center', alignItems: 'center', gap: '1.5rem' }}>
+                <div className="workspace-main" style={{ padding: '1.25rem', minHeight: 'auto', justifyContent: 'center', alignItems: 'center', gap: '1rem' }}>
                   {qrGenError && (
                     <div style={{ color: 'var(--accent-color)', fontSize: '0.85rem', fontWeight: '600', textAlign: 'center' }}>
                       {qrGenError}
                     </div>
                   )}
                   {qrGenDataUrl ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
                       <div style={{
-                        padding: '1.5rem',
+                        padding: '1rem',
                         backgroundColor: qrGenBgColor,
-                        borderRadius: 'var(--radius-lg)',
+                        borderRadius: 'var(--radius-md)',
                         border: '1px solid var(--border-color)',
-                        boxShadow: 'var(--shadow-md)',
+                        boxShadow: 'var(--shadow-sm)',
                       }}>
                         <img
                           src={qrGenDataUrl}
                           alt="Generated QR Code"
-                          style={{ width: `${Math.min(qrGenSize, 280)}px`, height: `${Math.min(qrGenSize, 280)}px`, display: 'block' }}
+                          style={{ maxWidth: '170px', width: '100%', height: 'auto', display: 'block' }}
                         />
                       </div>
                       <div style={{ textAlign: 'center' }}>
-                        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.2rem' }}>
                           Scan this QR Code to open:
                         </p>
-                        <p style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-primary)', wordBreak: 'break-all', maxWidth: '300px' }}>
+                        <p style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-primary)', wordBreak: 'break-all', maxWidth: '240px', margin: '0 auto' }}>
                           {qrGenText}
                         </p>
                       </div>
-                      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center', width: '100%', maxWidth: '280px' }}>
+                      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center', width: '100%', maxWidth: '200px' }}>
                         <button
                           className="btn-download-success"
-                          style={{ width: '100%', padding: '0.75rem' }}
+                          style={{ width: '100%', padding: '0.6rem', fontSize: '0.85rem' }}
                           onClick={() => {
                             const a = document.createElement('a');
                             a.href = qrGenDataUrl;
@@ -2084,77 +2207,124 @@ function App() {
                             document.body.removeChild(a);
                           }}
                         >
-                          <Download size={18} /> Download PNG
+                          <Download size={16} /> Download PNG
                         </button>
                       </div>
                     </div>
                   ) : (
                     <div style={{ textAlign: 'center', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-                      <QrCode size={72} style={{ opacity: 0.3 }} />
-                      <p style={{ fontSize: '0.9rem' }}>Enter a URL or text in the right panel to generate your QR code</p>
+                      <QrCode size={60} style={{ opacity: 0.3 }} />
+                      <p style={{ fontSize: '0.85rem' }}>Enter a URL or text in the right panel to generate your QR code</p>
                     </div>
                   )}
                 </div>
 
                 {/* Right: Controls Sidebar */}
-                <div className="workspace-sidebar">
+                <div className="workspace-sidebar" style={{ gap: '1rem', padding: '1.25rem' }}>
+                  {/* Section 1: Content */}
                   <div className="sidebar-section">
                     <h3>QR Content</h3>
                     <div className="form-group">
-                      <label>URL or Text</label>
                       <textarea
                         className="form-control"
-                        rows={4}
+                        rows={2}
                         placeholder="https://example.com or any text..."
                         value={qrGenText}
                         onChange={(e) => setQrGenText(e.target.value)}
-                        style={{ resize: 'vertical', fontFamily: 'monospace', fontSize: '0.85rem' }}
+                        style={{ resize: 'none', fontFamily: 'monospace', fontSize: '0.8rem', padding: '0.5rem' }}
                       />
                     </div>
                   </div>
 
+                  {/* Section 2: Quick Presets (Moved to top, styled as 2-column grid of small pill buttons) */}
+                  <div className="sidebar-section">
+                    <h3>Quick Presets</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem' }}>
+                      {[
+                        { label: '🖤 Classic', fg: '#000000', bg: '#ffffff' },
+                        { label: '🔴 Red Accent', fg: '#e11d48', bg: '#ffffff' },
+                        { label: '🌑 Dark Mode', fg: '#f1f5f9', bg: '#0f172a' },
+                        { label: '💙 Corp Blue', fg: '#1e40af', bg: '#eff6ff' },
+                        { label: '💚 Forest', fg: '#15803d', bg: '#f0fdf4' },
+                        { label: '🍊 Sunset', fg: '#ea580c', bg: '#fff7ed' },
+                        { label: '💜 Royal', fg: '#6d28d9', bg: '#faf5ff' },
+                        { label: '💖 Pink', fg: '#db2777', bg: '#fdf2f8' },
+                        { label: '🧪 Cyberpunk', fg: '#06b6d4', bg: '#0b0f19' },
+                        { label: '✨ Gold', fg: '#b45309', bg: '#fffbeb' },
+                        { label: '🍵 Mint', fg: '#0d9488', bg: '#f0fdfa' },
+                      ].map((preset) => (
+                        <button
+                          key={preset.label}
+                          type="button"
+                          className="option-select-btn"
+                          onClick={() => { setQrGenFgColor(preset.fg); setQrGenBgColor(preset.bg); }}
+                          style={{
+                            textAlign: 'left',
+                            padding: '0.35rem 0.5rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.35rem',
+                            fontSize: '0.75rem',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }}
+                        >
+                          <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '2px', background: preset.fg, border: '1px solid var(--border-color)', flexShrink: 0 }}></span>
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Section 3: Appearance (Side-by-side colors & compact size slider) */}
                   <div className="sidebar-section">
                     <h3>Appearance</h3>
-                    <div className="form-group">
-                      <label>QR Color (Foreground)</label>
-                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                        <input
-                          type="color"
-                          value={qrGenFgColor}
-                          onChange={(e) => setQrGenFgColor(e.target.value)}
-                          style={{ width: '44px', height: '36px', padding: '2px', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', backgroundColor: 'var(--bg-secondary)' }}
-                        />
-                        <input
-                          className="form-control"
-                          type="text"
-                          value={qrGenFgColor}
-                          onChange={(e) => setQrGenFgColor(e.target.value)}
-                          style={{ flex: 1, fontFamily: 'monospace' }}
-                        />
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                      <div className="form-group">
+                        <label style={{ fontSize: '0.75rem' }}>Foreground</label>
+                        <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                          <input
+                            type="color"
+                            value={qrGenFgColor}
+                            onChange={(e) => setQrGenFgColor(e.target.value)}
+                            style={{ width: '28px', height: '28px', padding: '1px', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer', backgroundColor: 'var(--bg-secondary)', flexShrink: 0 }}
+                          />
+                          <input
+                            className="form-control"
+                            type="text"
+                            value={qrGenFgColor}
+                            onChange={(e) => setQrGenFgColor(e.target.value)}
+                            style={{ flex: 1, padding: '0.35rem', fontSize: '0.75rem', fontFamily: 'monospace', minWidth: 0 }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="form-group">
+                        <label style={{ fontSize: '0.75rem' }}>Background</label>
+                        <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                          <input
+                            type="color"
+                            value={qrGenBgColor}
+                            onChange={(e) => setQrGenBgColor(e.target.value)}
+                            style={{ width: '28px', height: '28px', padding: '1px', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer', backgroundColor: 'var(--bg-secondary)', flexShrink: 0 }}
+                          />
+                          <input
+                            className="form-control"
+                            type="text"
+                            value={qrGenBgColor}
+                            onChange={(e) => setQrGenBgColor(e.target.value)}
+                            style={{ flex: 1, padding: '0.35rem', fontSize: '0.75rem', fontFamily: 'monospace', minWidth: 0 }}
+                          />
+                        </div>
                       </div>
                     </div>
 
                     <div className="form-group">
-                      <label>Background Color</label>
-                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                        <input
-                          type="color"
-                          value={qrGenBgColor}
-                          onChange={(e) => setQrGenBgColor(e.target.value)}
-                          style={{ width: '44px', height: '36px', padding: '2px', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', backgroundColor: 'var(--bg-secondary)' }}
-                        />
-                        <input
-                          className="form-control"
-                          type="text"
-                          value={qrGenBgColor}
-                          onChange={(e) => setQrGenBgColor(e.target.value)}
-                          style={{ flex: 1, fontFamily: 'monospace' }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="form-group">
-                      <label>Size: {qrGenSize}px</label>
+                      <label style={{ fontSize: '0.75rem', display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Size</span>
+                        <strong>{qrGenSize}px</strong>
+                      </label>
                       <input
                         type="range"
                         min={128}
@@ -2164,39 +2334,95 @@ function App() {
                         onChange={(e) => setQrGenSize(Number(e.target.value))}
                         style={{ width: '100%', accentColor: 'var(--accent-color)' }}
                       />
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                        <span>128px</span>
-                        <span>1024px</span>
-                      </div>
                     </div>
                   </div>
 
+                  {/* Section 4: Text Label (Compact layout) */}
                   <div className="sidebar-section">
-                    <h3>Quick Presets</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      {[
-                        { label: '🖤 Classic (B&W)', fg: '#000000', bg: '#ffffff' },
-                        { label: '🔴 Red Accent', fg: '#e11d48', bg: '#ffffff' },
-                        { label: '🌑 Dark Mode', fg: '#f1f5f9', bg: '#0f172a' },
-                        { label: '💙 Corporate Blue', fg: '#1e40af', bg: '#eff6ff' },
-                        { label: '💚 Forest Green', fg: '#15803d', bg: '#f0fdf4' },
-                        { label: '🍊 Sunset Orange', fg: '#ea580c', bg: '#fff7ed' },
-                        { label: '💜 Royal Purple', fg: '#6d28d9', bg: '#faf5ff' },
-                        { label: '💖 Vibrant Pink', fg: '#db2777', bg: '#fdf2f8' },
-                        { label: '🧪 Cyberpunk Neon', fg: '#06b6d4', bg: '#0b0f19' },
-                        { label: '✨ Luxury Gold', fg: '#b45309', bg: '#fffbeb' },
-                        { label: '🍵 Mint Fresh', fg: '#0d9488', bg: '#f0fdfa' },
-                      ].map((preset) => (
-                        <button
-                          key={preset.label}
-                          className="option-select-btn"
-                          onClick={() => { setQrGenFgColor(preset.fg); setQrGenBgColor(preset.bg); }}
-                          style={{ textAlign: 'left', padding: '0.5rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                        >
-                          <span style={{ display: 'inline-block', width: '14px', height: '14px', borderRadius: '2px', background: preset.fg, border: '1px solid var(--border-color)' }}></span>
-                          {preset.label}
-                        </button>
-                      ))}
+                    <h3>Text Label</h3>
+                    <div className="form-group">
+                      <input
+                        className="form-control"
+                        type="text"
+                        placeholder="e.g. Scan me..."
+                        value={qrGenLabelText}
+                        onChange={(e) => setQrGenLabelText(e.target.value)}
+                        style={{ width: '100%', padding: '0.4rem 0.5rem', fontSize: '0.8rem' }}
+                      />
+                    </div>
+                    {qrGenLabelText && (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.5rem', alignItems: 'center' }}>
+                        <div className="form-group">
+                          <label style={{ fontSize: '0.7rem' }}>Position</label>
+                          <div style={{ display: 'flex', gap: '0.25rem' }}>
+                            <button
+                              type="button"
+                              className={`option-select-btn ${qrGenLabelPosition === 'bottom' ? 'active' : ''}`}
+                              onClick={() => setQrGenLabelPosition('bottom')}
+                              style={{ flex: 1, padding: '0.25rem', fontSize: '0.7rem' }}
+                            >
+                              Bottom
+                            </button>
+                            <button
+                              type="button"
+                              className={`option-select-btn ${qrGenLabelPosition === 'top' ? 'active' : ''}`}
+                              onClick={() => setQrGenLabelPosition('top')}
+                              style={{ flex: 1, padding: '0.25rem', fontSize: '0.7rem' }}
+                            >
+                              Top
+                            </button>
+                          </div>
+                        </div>
+                        <div className="form-group">
+                          <label style={{ fontSize: '0.7rem' }}>Font: {qrGenLabelFontSize}px</label>
+                          <input
+                            type="range"
+                            min={10}
+                            max={40}
+                            step={2}
+                            value={qrGenLabelFontSize}
+                            onChange={(e) => setQrGenLabelFontSize(Number(e.target.value))}
+                            style={{ width: '100%', accentColor: 'var(--accent-color)' }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Section 5: Spacing (Margins - Compact layout side-by-side) */}
+                  <div className="sidebar-section">
+                    <h3>Spacing (Margins)</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                      <div className="form-group">
+                        <label style={{ fontSize: '0.7rem', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Top</span>
+                          <strong>{qrGenTopSpace}px</strong>
+                        </label>
+                        <input
+                          type="range"
+                          min={0}
+                          max={150}
+                          step={10}
+                          value={qrGenTopSpace}
+                          onChange={(e) => setQrGenTopSpace(Number(e.target.value))}
+                          style={{ width: '100%', accentColor: 'var(--accent-color)' }}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label style={{ fontSize: '0.7rem', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Bottom</span>
+                          <strong>{qrGenBottomSpace}px</strong>
+                        </label>
+                        <input
+                          type="range"
+                          min={0}
+                          max={150}
+                          step={10}
+                          value={qrGenBottomSpace}
+                          onChange={(e) => setQrGenBottomSpace(Number(e.target.value))}
+                          style={{ width: '100%', accentColor: 'var(--accent-color)' }}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
