@@ -410,6 +410,7 @@ function App() {
   const [signatureAspectRatio, setSignatureAspectRatio] = useState(2); // width / height
   const [placedSignatures, setPlacedSignatures] = useState([]); // Array of { pageIndex, dataUrl, x, y, width, height, pageW, pageH }
   const [activePageToSign, setActivePageToSign] = useState(null); // index of page being stamped
+  const [highResSignPageUrl, setHighResSignPageUrl] = useState(null); // hi-res render of current stamp page
   const [showSignatureModal, setShowSignatureModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareData, setShareData] = useState({ blob: null, name: '', type: '' });
@@ -508,6 +509,31 @@ function App() {
   useEffect(() => {
     setCanvasZoom(1);
     setPanPos({ x: 0, y: 0 });
+  }, [activePageToSign]);
+
+  // Render high-res page image whenever signature placement page changes
+  useEffect(() => {
+    setHighResSignPageUrl(null);
+    if (activePageToSign === null || !uploadedFiles[0]?.buffer) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        if (window.pdfjsLib) {
+          const loadingTask = window.pdfjsLib.getDocument({ data: uploadedFiles[0].buffer.slice(0) });
+          const pdf = await loadingTask.promise;
+          const page = await pdf.getPage(activePageToSign + 1);
+          const viewport = page.getViewport({ scale: 2.5 });
+          const canvas = document.createElement('canvas');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+          if (!cancelled) setHighResSignPageUrl(canvas.toDataURL('image/jpeg', 0.95));
+        }
+      } catch (err) {
+        console.error('Hi-res sign page render failed:', err);
+      }
+    })();
+    return () => { cancelled = true; };
   }, [activePageToSign]);
 
   // Initializing Theme
@@ -3099,7 +3125,7 @@ function App() {
                           }}>
                             <img
                               ref={pageImageRef}
-                              src={pagePreviews.find(p => p.originalIndex === activePageToSign)?.dataUrl}
+                              src={highResSignPageUrl || pagePreviews.find(p => p.originalIndex === activePageToSign)?.dataUrl}
                               onLoad={handlePageImageLoad}
                               style={{ display: 'block', width: '100%', height: '100%', maxWidth: '100%', maxHeight: '420px', objectFit: 'contain', pointerEvents: 'none' }}
                               alt="page to stamp"
