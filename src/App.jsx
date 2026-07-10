@@ -3180,35 +3180,37 @@ function App() {
                                 )}
                                 <div className="file-preview-thumbnail" style={{ position: 'relative', overflow: 'hidden' }}>
                                   {previewObj ? (
-                                    <div style={{ position: 'relative', display: 'inline-flex', maxHeight: '100%', maxWidth: '100%', overflow: 'hidden', clipPath: pageCropSig ? `inset(${pageCropSig.top}% ${pageCropSig.right}% ${pageCropSig.bottom}% ${pageCropSig.left}%)` : 'none', transform: pageCropSig ? `scale(${1 / Math.max(0.1, 1 - Math.max(pageCropSig.left + pageCropSig.right, pageCropSig.top + pageCropSig.bottom) / 100)})` : 'none', transition: 'all 0.2s ease' }}>
-                                      <img
-                                        src={previewObj.dataUrl}
-                                        className="file-preview-img"
-                                        alt={`Page ${originalIdx + 1}`}
-                                        style={{ display: 'block', maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-                                      />
-                                      {placedSignatures.filter(s => s.pageIndex === originalIdx).map((stamp, sIdx) => {
-                                        const leftPct = (stamp.x / stamp.pageW) * 100;
-                                        const topPct = (stamp.y / stamp.pageH) * 100;
-                                        const widthPct = (stamp.width / stamp.pageW) * 100;
-                                        const heightPct = (stamp.height / stamp.pageH) * 100;
+                                    <>
+                                      <div style={{ position: 'relative', display: 'inline-flex', maxHeight: '100%', maxWidth: '100%', overflow: 'hidden', clipPath: pageCropSig ? `inset(${pageCropSig.top}% ${pageCropSig.right}% ${pageCropSig.bottom}% ${pageCropSig.left}%)` : 'none', transform: pageCropSig ? `scale(${1 / Math.max(0.1, 1 - Math.max(pageCropSig.left + pageCropSig.right, pageCropSig.top + pageCropSig.bottom) / 100)})` : 'none', transition: 'all 0.2s ease' }}>
+                                        <img
+                                          src={previewObj.dataUrl}
+                                          className="file-preview-img"
+                                          alt={`Page ${originalIdx + 1}`}
+                                          style={{ display: 'block', maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                                        />
+                                        {placedSignatures.filter(s => s.pageIndex === originalIdx).map((stamp, sIdx) => {
+                                          const leftPct = (stamp.x / stamp.pageW) * 100;
+                                          const topPct = (stamp.y / stamp.pageH) * 100;
+                                          const widthPct = (stamp.width / stamp.pageW) * 100;
+                                          const heightPct = (stamp.height / stamp.pageH) * 100;
 
-                                        return (
-                                          <img
-                                            key={sIdx}
-                                            src={stamp.dataUrl}
-                                            style={{
-                                              position: 'absolute',
-                                              left: `${leftPct}%`,
-                                              top: `${topPct}%`,
-                                              width: `${widthPct}%`,
-                                              height: `${heightPct}%`,
-                                              pointerEvents: 'none'
-                                            }}
-                                            alt="signature overlay"
-                                          />
-                                        );
-                                      })}
+                                          return (
+                                            <img
+                                              key={sIdx}
+                                              src={stamp.dataUrl}
+                                              style={{
+                                                position: 'absolute',
+                                                left: `${leftPct}%`,
+                                                top: `${topPct}%`,
+                                                width: `${widthPct}%`,
+                                                height: `${heightPct}%`,
+                                                pointerEvents: 'none'
+                                              }}
+                                              alt="signature overlay"
+                                            />
+                                          );
+                                        })}
+                                      </div>
                                       <button
                                         className="btn-preview-eye"
                                         title="Preview Page"
@@ -3219,7 +3221,7 @@ function App() {
                                       >
                                         <Eye size={14} />
                                       </button>
-                                    </div>
+                                    </>
                                   ) : (
                                     <div className="skeleton-pulse" />
                                   )}
@@ -3498,22 +3500,24 @@ function App() {
                                 )}
                                 <div className="file-preview-thumbnail" style={{ position: 'relative', overflow: 'hidden' }}>
                                   {previewObj ? (
-                                    <div style={{ 
-                                      position: 'relative', 
-                                      display: 'inline-flex', 
-                                      maxHeight: '100%', 
-                                      maxWidth: '100%', 
-                                      overflow: 'hidden',
-                                      clipPath: pageCrop ? `inset(${pageCrop.top}% ${pageCrop.right}% ${pageCrop.bottom}% ${pageCrop.left}%)` : 'none',
-                                      transform: pageCrop ? `scale(${1 / Math.max(0.1, 1 - Math.max(pageCrop.left + pageCrop.right, pageCrop.top + pageCrop.bottom) / 100)})` : 'none',
-                                      transition: 'all 0.2s ease'
-                                    }}>
-                                      <img
-                                        src={previewObj.dataUrl}
-                                        className="file-preview-img"
-                                        alt={`Page ${originalIdx + 1}`}
-                                        style={{ display: 'block', maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-                                      />
+                                    <>
+                                      <div style={{ 
+                                        position: 'relative', 
+                                        display: 'inline-flex', 
+                                        maxHeight: '100%', 
+                                        maxWidth: '100%', 
+                                        overflow: 'hidden',
+                                        clipPath: pageCrop ? `inset(${pageCrop.top}% ${pageCrop.right}% ${pageCrop.bottom}% ${pageCrop.left}%)` : 'none',
+                                        transform: pageCrop ? `scale(${1 / Math.max(0.1, 1 - Math.max(pageCrop.left + pageCrop.right, pageCrop.top + pageCrop.bottom) / 100)})` : 'none',
+                                        transition: 'all 0.2s ease'
+                                      }}>
+                                        <img
+                                          src={previewObj.dataUrl}
+                                          className="file-preview-img"
+                                          alt={`Page ${originalIdx + 1}`}
+                                          style={{ display: 'block', maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                                        />
+                                      </div>
                                       <button
                                         className="btn-preview-eye"
                                         title="Preview Page"
@@ -3524,7 +3528,7 @@ function App() {
                                       >
                                         <Eye size={14} />
                                       </button>
-                                    </div>
+                                    </>
                                   ) : (
                                     <div className="skeleton-pulse" />
                                   )}
