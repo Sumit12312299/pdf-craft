@@ -2163,17 +2163,19 @@ function App() {
 
             {/* Sub-View: QR Generator (No file needed) */}
             {activeTool === 'qr-generator' ? (
-              <div className="workspace-layout" style={{ minHeight: 'auto' }}>
-                {/* Left: QR Preview Box */}
+              <div className="workspace-layout" style={{ minHeight: 'auto', display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'start', justifyContent: 'center' }}>
+                {/* Column 1: QR Preview Box */}
                 <div className="workspace-main" style={{
                   padding: '1.25rem',
                   minHeight: 'auto',
                   justifyContent: 'center',
                   alignItems: 'center',
                   gap: '1rem',
-                  backgroundColor: 'var(--bg-primary)',
+                  backgroundColor: 'var(--bg-secondary)',
                   alignSelf: 'start',
-                  boxShadow: 'var(--shadow-sm)'
+                  boxShadow: 'var(--shadow-sm)',
+                  width: '280px',
+                  flexShrink: 0
                 }}>
                   {qrGenError && (
                     <div style={{ color: 'var(--accent-color)', fontSize: '0.85rem', fontWeight: '600', textAlign: 'center' }}>
@@ -2228,8 +2230,49 @@ function App() {
                   )}
                 </div>
 
-                {/* Right: Controls Sidebar (transparent container holding exactly 2 cards) */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '340px' }}>
+                {/* Column 2: Quick Presets Box (Middle) */}
+                <div className="workspace-sidebar" style={{ padding: '1rem', width: '200px', flexShrink: 0, alignSelf: 'start' }}>
+                  <div className="sidebar-section">
+                    <h3>Quick Presets</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                      {[
+                        { label: '🖤 Classic', fg: '#000000', bg: '#ffffff' },
+                        { label: '🔴 Red Accent', fg: '#e11d48', bg: '#ffffff' },
+                        { label: '🌑 Dark Mode', fg: '#f1f5f9', bg: '#0f172a' },
+                        { label: '💙 Corp Blue', fg: '#1e40af', bg: '#eff6ff' },
+                        { label: '💚 Forest', fg: '#15803d', bg: '#f0fdf4' },
+                        { label: '🍊 Sunset', fg: '#ea580c', bg: '#fff7ed' },
+                        { label: '💜 Royal', fg: '#6d28d9', bg: '#faf5ff' },
+                        { label: '💖 Pink', fg: '#db2777', bg: '#fdf2f8' },
+                        { label: '🧪 Cyberpunk', fg: '#06b6d4', bg: '#0b0f19' },
+                        { label: '✨ Gold', fg: '#b45309', bg: '#fffbeb' },
+                        { label: '🍵 Mint', fg: '#0d9488', bg: '#f0fdfa' },
+                      ].map((preset) => (
+                        <button
+                          key={preset.label}
+                          type="button"
+                          className="option-select-btn"
+                          onClick={() => { setQrGenFgColor(preset.fg); setQrGenBgColor(preset.bg); }}
+                          style={{
+                            textAlign: 'left',
+                            padding: '0.35rem 0.5rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.35rem',
+                            fontSize: '0.75rem',
+                            width: '100%'
+                          }}
+                        >
+                          <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '2px', background: preset.fg, border: '1px solid var(--border-color)', flexShrink: 0 }}></span>
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Column 3: Controls Sidebar (Right) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '340px', flexShrink: 0 }}>
                   {/* Card 1: Content Box */}
                   <div className="workspace-sidebar" style={{ padding: '1rem' }}>
                     <div className="sidebar-section">
@@ -2395,49 +2438,6 @@ function App() {
                             style={{ width: '100%', accentColor: 'var(--accent-color)' }}
                           />
                         </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card 3: Quick Presets Box */}
-                  <div className="workspace-sidebar" style={{ padding: '1rem' }}>
-                    <div className="sidebar-section">
-                      <h3>Quick Presets</h3>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem' }}>
-                        {[
-                          { label: '🖤 Classic', fg: '#000000', bg: '#ffffff' },
-                          { label: '🔴 Red Accent', fg: '#e11d48', bg: '#ffffff' },
-                          { label: '🌑 Dark Mode', fg: '#f1f5f9', bg: '#0f172a' },
-                          { label: '💙 Corp Blue', fg: '#1e40af', bg: '#eff6ff' },
-                          { label: '💚 Forest', fg: '#15803d', bg: '#f0fdf4' },
-                          { label: '🍊 Sunset', fg: '#ea580c', bg: '#fff7ed' },
-                          { label: '💜 Royal', fg: '#6d28d9', bg: '#faf5ff' },
-                          { label: '💖 Pink', fg: '#db2777', bg: '#fdf2f8' },
-                          { label: '🧪 Cyberpunk', fg: '#06b6d4', bg: '#0b0f19' },
-                          { label: '✨ Gold', fg: '#b45309', bg: '#fffbeb' },
-                          { label: '🍵 Mint', fg: '#0d9488', bg: '#f0fdfa' },
-                        ].map((preset) => (
-                          <button
-                            key={preset.label}
-                            type="button"
-                            className="option-select-btn"
-                            onClick={() => { setQrGenFgColor(preset.fg); setQrGenBgColor(preset.bg); }}
-                            style={{
-                              textAlign: 'left',
-                              padding: '0.35rem 0.5rem',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.35rem',
-                              fontSize: '0.75rem',
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis'
-                            }}
-                          >
-                            <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '2px', background: preset.fg, border: '1px solid var(--border-color)', flexShrink: 0 }}></span>
-                            {preset.label}
-                          </button>
-                        ))}
                       </div>
                     </div>
                   </div>
