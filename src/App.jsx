@@ -470,6 +470,29 @@ function App() {
     }
   };
 
+  // Crop an image dataUrl using margin percentages and return a new cropped dataUrl
+  const getCroppedDataUrl = (dataUrl, cropObj) => {
+    return new Promise((resolve) => {
+      if (!cropObj) { resolve(dataUrl); return; }
+      const img = new Image();
+      img.onload = () => {
+        const { top, bottom, left, right } = cropObj;
+        const srcX = (left / 100) * img.width;
+        const srcY = (top / 100) * img.height;
+        const srcW = img.width - (left / 100) * img.width - (right / 100) * img.width;
+        const srcH = img.height - (top / 100) * img.height - (bottom / 100) * img.height;
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(srcW));
+        canvas.height = Math.max(1, Math.round(srcH));
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, Math.round(srcW), Math.round(srcH));
+        resolve(canvas.toDataURL('image/jpeg', 0.95));
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  };
+
   const signatureCanvasRef = useRef(null);
   const isDrawingRef = useRef(false);
   const pageImageRef = useRef(null);
@@ -3521,9 +3544,17 @@ function App() {
                                       <button
                                         className="btn-preview-eye"
                                         title="Preview Page"
-                                        onClick={(e) => {
+                                        onClick={async (e) => {
                                           e.stopPropagation();
-                                          openLightbox(uploadedFiles[0], originalIdx, previewObj.dataUrl, `Page ${originalIdx + 1}`);
+                                          const croppedUrl = pageCrop
+                                            ? await getCroppedDataUrl(previewObj.dataUrl, pageCrop)
+                                            : previewObj.dataUrl;
+                                          setPreviewModalTitle(`Page ${originalIdx + 1}${pageCrop ? ' (Cropped)' : ''}`);
+                                          setPreviewModalRotation(0);
+                                          setPreviewModalImage(croppedUrl);
+                                          setPreviewModalPageIndex(originalIdx);
+                                          setIsHighResRendered(true);
+                                          setLightboxLoading(false);
                                         }}
                                       >
                                         <Eye size={14} />
