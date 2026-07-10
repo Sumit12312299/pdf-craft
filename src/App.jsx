@@ -3166,6 +3166,7 @@ function App() {
                           {Array.from({ length: uploadedFiles[0].pageCount }).map((_, originalIdx) => {
                             const previewObj = pagePreviews.find(p => p.originalIndex === originalIdx);
                             const pageStampCount = placedSignatures.filter(s => s.pageIndex === originalIdx).length;
+                            const pageCropSig = placedCrops[originalIdx];
                             return (
                               <div
                                 key={originalIdx}
@@ -3177,9 +3178,9 @@ function App() {
                                     {pageStampCount}
                                   </div>
                                 )}
-                                <div className="file-preview-thumbnail" style={{ position: 'relative' }}>
+                                <div className="file-preview-thumbnail" style={{ position: 'relative', overflow: 'hidden' }}>
                                   {previewObj ? (
-                                    <div style={{ position: 'relative', display: 'inline-flex', maxHeight: '100%', maxWidth: '100%' }}>
+                                    <div style={{ position: 'relative', display: 'inline-flex', maxHeight: '100%', maxWidth: '100%', overflow: 'hidden', clipPath: pageCropSig ? `inset(${pageCropSig.top}% ${pageCropSig.right}% ${pageCropSig.bottom}% ${pageCropSig.left}%)` : 'none', transform: pageCropSig ? `scale(${1 / Math.max(0.1, 1 - Math.max(pageCropSig.left + pageCropSig.right, pageCropSig.top + pageCropSig.bottom) / 100)})` : 'none', transition: 'all 0.2s ease' }}>
                                       <img
                                         src={previewObj.dataUrl}
                                         className="file-preview-img"
@@ -3495,9 +3496,18 @@ function App() {
                                     </button>
                                   </div>
                                 )}
-                                <div className="file-preview-thumbnail" style={{ position: 'relative' }}>
+                                <div className="file-preview-thumbnail" style={{ position: 'relative', overflow: 'hidden' }}>
                                   {previewObj ? (
-                                    <div style={{ position: 'relative', display: 'inline-flex', maxHeight: '100%', maxWidth: '100%' }}>
+                                    <div style={{ 
+                                      position: 'relative', 
+                                      display: 'inline-flex', 
+                                      maxHeight: '100%', 
+                                      maxWidth: '100%', 
+                                      overflow: 'hidden',
+                                      clipPath: pageCrop ? `inset(${pageCrop.top}% ${pageCrop.right}% ${pageCrop.bottom}% ${pageCrop.left}%)` : 'none',
+                                      transform: pageCrop ? `scale(${1 / Math.max(0.1, 1 - Math.max(pageCrop.left + pageCrop.right, pageCrop.top + pageCrop.bottom) / 100)})` : 'none',
+                                      transition: 'all 0.2s ease'
+                                    }}>
                                       <img
                                         src={previewObj.dataUrl}
                                         className="file-preview-img"
