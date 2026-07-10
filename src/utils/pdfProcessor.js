@@ -1086,10 +1086,21 @@ export async function cropPdf(pdfBuffer, cropMargins, onProgress) {
     const { x, y, width, height } = page.getMediaBox();
 
     // cropMargins has left, right, top, bottom in percentages (0 to 100)
-    const leftPx = (cropMargins.left / 100) * width;
-    const rightPx = (cropMargins.right / 100) * width;
-    const topPx = (cropMargins.top / 100) * height;
-    const bottomPx = (cropMargins.bottom / 100) * height;
+    let margins = { top: 0, bottom: 0, left: 0, right: 0 };
+    if (cropMargins) {
+      if (typeof cropMargins.top === 'number') {
+        margins = cropMargins;
+      } else if (Array.isArray(cropMargins) && cropMargins[i]) {
+        margins = cropMargins[i];
+      } else if (cropMargins[i]) {
+        margins = cropMargins[i];
+      }
+    }
+
+    const leftPx = (margins.left / 100) * width;
+    const rightPx = (margins.right / 100) * width;
+    const topPx = (margins.top / 100) * height;
+    const bottomPx = (margins.bottom / 100) * height;
 
     const newX = x + leftPx;
     const newY = y + bottomPx;

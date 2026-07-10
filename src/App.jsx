@@ -416,6 +416,7 @@ function App() {
   // Crop States
   const [cropMargins, setCropMargins] = useState({ top: 10, bottom: 10, left: 10, right: 10 });
   const [activePageToCrop, setActivePageToCrop] = useState(null);
+  const [placedCrops, setPlacedCrops] = useState({}); // mapping of pageIndex -> { top, bottom, left, right }
 
   // Signature States
   const [signatureDataUrl, setSignatureDataUrl] = useState(null); // Drawn signature PNG or QR Code PNG
@@ -1005,6 +1006,7 @@ function App() {
       setPlacedSignatures([]);
       setActivePageToSign(null);
       setActivePageToCrop(null);
+      setPlacedCrops({});
     }
   };
 
@@ -1018,6 +1020,7 @@ function App() {
     setActivePageToSign(null);
     setActivePageToCrop(null);
     setCropMargins({ top: 10, bottom: 10, left: 10, right: 10 });
+    setPlacedCrops({});
     setResultBlob(null);
     setResultName('');
     setProcessing(false);
@@ -1545,6 +1548,24 @@ function App() {
     setActivePageToSign(null); // return to signature/qr page grid
   };
 
+  // Save crop box margins
+  const saveCropMargins = (applyToAll = false) => {
+    if (applyToAll) {
+      const totalPages = uploadedFiles[0]?.pageCount || 0;
+      const newCrops = {};
+      for (let i = 0; i < totalPages; i++) {
+        newCrops[i] = { ...cropMargins };
+      }
+      setPlacedCrops(newCrops);
+    } else {
+      setPlacedCrops(prev => ({
+        ...prev,
+        [activePageToCrop]: { ...cropMargins }
+      }));
+    }
+    setActivePageToCrop(null); // return to page list
+  };
+
   const removePlacedSignature = (index) => {
     const list = [...placedSignatures];
     list.splice(index, 1);
@@ -1615,7 +1636,7 @@ function App() {
       else if (activeTool === 'crop') {
         setProcessingStatus('Cropping PDF page margins...');
         const file = uploadedFiles[0];
-        outputBytes = await cropPdf(file.buffer, cropMargins, (prog) => {
+        outputBytes = await cropPdf(file.buffer, placedCrops, (prog) => {
           setProgress(20 + Math.round(prog * 0.7));
         });
         filename = `${file.name.replace('.pdf', '')}_cropped.pdf`;
@@ -3364,9 +3385,14 @@ function App() {
                             ◀ Back to Pages
                           </button>
                           <span style={{ fontSize: '0.85rem', fontWeight: '700' }}>Adjusting Crop Bounding Box on Page {activePageToCrop + 1}</span>
-                          <button className="btn-upload" style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', backgroundColor: 'var(--success-color)' }} onClick={runProcess}>
-                            Crop PDF Document
-                          </button>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button className="btn-upload" style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', backgroundColor: 'var(--border-color)', color: 'var(--text-primary)' }} onClick={() => saveCropMargins(false)}>
+                              Apply to This Page
+                            </button>
+                            <button className="btn-upload" style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', backgroundColor: 'var(--success-color)' }} onClick={() => saveCropMargins(true)}>
+                              Apply to All Pages
+                            </button>
+                          </div>
                         </div>
 
                         {/* Interactive Page Crop Canvas Wrapper */}
@@ -3573,12 +3599,31 @@ function App() {
                         <div className="files-grid">
                           {Array.from({ length: uploadedFiles[0].pageCount }).map((_, originalIdx) => {
                             const previewObj = pagePreviews.find(p => p.originalIndex === originalIdx);
+                            const pageCrop = placedCrops[originalIdx];
                             return (
                               <div
                                 key={originalIdx}
                                 className="file-preview-card"
-                                style={{ border: '1px solid var(--border-color)' }}
+                                style={{ border: pageCrop ? '1.5px solid var(--success-color)' : '1px solid var(--border-color)' }}
                               >
+                                {pageCrop && (
+                                  <div style={{ position: 'absolute', top: '6px', left: '6px', backgroundColor: 'var(--success-color)', color: 'white', borderRadius: 'var(--radius-md)', padding: '2px 6px', fontSize: '9px', fontWeight: '800', zIndex: 10, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span>Cropped ({pageCrop.left}%)</span>
+                                    <button 
+                                      style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', fontWeight: '900', fontSize: '10px' }} 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setPlacedCrops(prev => {
+                                          const next = { ...prev };
+                                          delete next[originalIdx];
+                                          return next;
+                                        });
+                                      }}
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                )}
                                 <div className="file-preview-thumbnail" style={{ position: 'relative' }}>
                                   {previewObj ? (
                                     <div style={{ position: 'relative', display: 'inline-flex', maxHeight: '100%', maxWidth: '100%' }}>
@@ -4572,7 +4617,7 @@ function App() {
                       (activeTool === 'split' && !splitRanges.trim()) ||
                       ((activeTool === 'sign' || activeTool === 'qr') && placedSignatures.length === 0) ||
                       ((activeTool === 'sign' || activeTool === 'qr') && activePageToSign !== null) ||
-                      (activeTool === 'crop' && activePageToCrop === null) ||
+                      (activeTool === 'crop' && (activePageToCrop !== null || Object.keys(placedCrops).length === 0)) ||
                       (activeTool === 'protect' && !protectPassword.trim()) ||
                       (activeTool === 'unlock' && !unlockPassword.trim())
                     }
