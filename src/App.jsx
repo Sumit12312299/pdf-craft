@@ -2228,10 +2228,10 @@ function App() {
                   )}
                 </div>
 
-                {/* Right: Controls Sidebar (transparent container holding individual cards) */}
+                {/* Right: Controls Sidebar (transparent container holding exactly 2 cards) */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '340px' }}>
-                  {/* Card 1: Content Box */}
-                  <div className="workspace-sidebar" style={{ padding: '1rem' }}>
+                  {/* Card 1: Content & Presets Box */}
+                  <div className="workspace-sidebar" style={{ padding: '1rem', gap: '1rem' }}>
                     <div className="sidebar-section">
                       <h3>QR Content</h3>
                       <div className="form-group">
@@ -2245,11 +2245,8 @@ function App() {
                         />
                       </div>
                     </div>
-                  </div>
 
-                  {/* Card 2: Quick Presets Box */}
-                  <div className="workspace-sidebar" style={{ padding: '1rem' }}>
-                    <div className="sidebar-section">
+                    <div className="sidebar-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
                       <h3>Quick Presets</h3>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem' }}>
                         {[
@@ -2290,8 +2287,9 @@ function App() {
                     </div>
                   </div>
 
-                  {/* Card 3: Appearance Box */}
-                  <div className="workspace-sidebar" style={{ padding: '1rem' }}>
+                  {/* Card 2: Customize Box (Appearance, Text Label, Spacing) */}
+                  <div className="workspace-sidebar" style={{ padding: '1rem', gap: '1rem' }}>
+                    {/* Appearance Section */}
                     <div className="sidebar-section">
                       <h3>Appearance</h3>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -2350,11 +2348,9 @@ function App() {
                         />
                       </div>
                     </div>
-                  </div>
 
-                  {/* Card 4: Text Label Box */}
-                  <div className="workspace-sidebar" style={{ padding: '1rem' }}>
-                    <div className="sidebar-section">
+                    {/* Text Label Section */}
+                    <div className="sidebar-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
                       <h3>Text Label</h3>
                       <div className="form-group">
                         <input
@@ -2404,11 +2400,9 @@ function App() {
                         </div>
                       )}
                     </div>
-                  </div>
 
-                  {/* Card 5: Spacing Box */}
-                  <div className="workspace-sidebar" style={{ padding: '1rem' }}>
-                    <div className="sidebar-section">
+                    {/* Spacing Section */}
+                    <div className="sidebar-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
                       <h3>Spacing (Margins)</h3>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                         <div className="form-group">
