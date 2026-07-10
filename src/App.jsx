@@ -2172,7 +2172,6 @@ function App() {
                   alignItems: 'center',
                   gap: '1rem',
                   backgroundColor: 'var(--bg-secondary)',
-                  alignSelf: 'start',
                   boxShadow: 'var(--shadow-sm)'
                 }}>
                   {qrGenError && (
@@ -2229,7 +2228,7 @@ function App() {
                 </div>
 
                 {/* Column 2: Quick Presets Box (Middle) */}
-                <div className="workspace-sidebar qr-presets-column" style={{ padding: '1rem', alignSelf: 'start' }}>
+                <div className="workspace-sidebar qr-presets-column" style={{ padding: '1rem' }}>
                   <div className="sidebar-section">
                     <h3>Quick Presets</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
