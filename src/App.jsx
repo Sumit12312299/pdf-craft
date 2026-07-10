@@ -1297,7 +1297,8 @@ function App() {
     const initTop = sigPos.y;
 
     const container = pageImageRef.current.parentElement;
-    const containerRect = container.getBoundingClientRect();
+    const maxW = container.clientWidth || renderedPageDimensions.w;
+    const maxH = container.clientHeight || renderedPageDimensions.h;
 
     const handleMove = (moveEvent) => {
       const moveClientX = moveEvent.type === 'touchmove' ? moveEvent.touches[0].clientX : moveEvent.clientX;
@@ -1308,8 +1309,8 @@ function App() {
       const deltaY = (moveClientY - startY) / canvasZoom;
 
       // Bound checking within the rendered page container
-      const newX = Math.max(0, Math.min(containerRect.width - sigPos.w, initLeft + deltaX));
-      const newY = Math.max(0, Math.min(containerRect.height - sigPos.h, initTop + deltaY));
+      const newX = Math.max(0, Math.min(maxW - sigPos.w, initLeft + deltaX));
+      const newY = Math.max(0, Math.min(maxH - sigPos.h, initTop + deltaY));
 
       setSigPos(prev => ({ ...prev, x: newX, y: newY }));
     };
@@ -1424,13 +1425,14 @@ function App() {
     let y = sigPos.y;
     if (pageImageRef.current) {
       const container = pageImageRef.current.parentElement;
-      const containerRect = container.getBoundingClientRect();
+      const maxW = container.clientWidth || renderedPageDimensions.w;
+      const maxH = container.clientHeight || renderedPageDimensions.h;
 
-      if (x + w > containerRect.width) {
-        x = Math.max(0, containerRect.width - w);
+      if (x + w > maxW) {
+        x = Math.max(0, maxW - w);
       }
-      if (y + h > containerRect.height) {
-        y = Math.max(0, containerRect.height - h);
+      if (y + h > maxH) {
+        y = Math.max(0, maxH - h);
       }
     }
 
@@ -1440,8 +1442,9 @@ function App() {
   // Visual layout loaded sizes callback
   const handlePageImageLoad = () => {
     if (pageImageRef.current) {
-      const rect = pageImageRef.current.getBoundingClientRect();
-      setRenderedPageDimensions({ w: rect.width, h: rect.height });
+      const w = pageImageRef.current.clientWidth;
+      const h = pageImageRef.current.clientHeight;
+      setRenderedPageDimensions({ w, h });
     }
   };
 
@@ -3173,17 +3176,17 @@ function App() {
                             transform: `scale(${canvasZoom}) translate(${panPos.x}px, ${panPos.y}px)`,
                             transformOrigin: 'center center',
                             transition: isPanning ? 'none' : 'transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1)',
-                            display: 'flex',
+                            width: renderedPageDimensions.w ? `${renderedPageDimensions.w}px` : 'auto',
+                            height: renderedPageDimensions.h ? `${renderedPageDimensions.h}px` : 'auto',
+                            display: 'inline-flex',
                             justifyContent: 'center',
-                            alignItems: 'center',
-                            width: '100%',
-                            height: '100%'
+                            alignItems: 'center'
                           }}>
                             <img
                               ref={pageImageRef}
                               src={pagePreviews.find(p => p.originalIndex === activePageToSign)?.dataUrl}
                               onLoad={handlePageImageLoad}
-                              style={{ display: 'block', maxWidth: '100%', maxHeight: '420px', objectFit: 'contain', pointerEvents: 'none' }}
+                              style={{ display: 'block', width: '100%', height: '100%', maxWidth: '100%', maxHeight: '420px', objectFit: 'contain', pointerEvents: 'none' }}
                               alt="page to stamp"
                             />
 
@@ -3335,6 +3338,7 @@ function App() {
                                     style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', width: '100%', marginTop: '4px' }}
                                     disabled={!signatureDataUrl}
                                     onClick={() => {
+                                      setRenderedPageDimensions({ w: 0, h: 0 });
                                       setActivePageToSign(originalIdx);
                                       // Center the stamp box by default
                                       const w = activeTool === 'qr' ? 100 : 120;
@@ -3383,9 +3387,11 @@ function App() {
                           {/* Inner container that bounds the actual page image */}
                           <div style={{
                             position: 'relative',
+                            width: renderedPageDimensions.w ? `${renderedPageDimensions.w}px` : 'auto',
+                            height: renderedPageDimensions.h ? `${renderedPageDimensions.h}px` : 'auto',
                             display: 'inline-flex',
-                            maxHeight: '100%',
-                            maxWidth: '100%',
+                            justifyContent: 'center',
+                            alignItems: 'center',
                             backgroundColor: 'white',
                             boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
                           }}>
@@ -3393,7 +3399,7 @@ function App() {
                               ref={pageImageRef}
                               src={pagePreviews.find(p => p.originalIndex === activePageToCrop)?.dataUrl}
                               onLoad={handlePageImageLoad}
-                              style={{ display: 'block', maxWidth: '100%', maxHeight: '420px', objectFit: 'contain', pointerEvents: 'none' }}
+                              style={{ display: 'block', width: '100%', height: '100%', maxWidth: '100%', maxHeight: '420px', objectFit: 'contain', pointerEvents: 'none' }}
                               alt="page to crop"
                             />
 
@@ -3603,6 +3609,7 @@ function App() {
                                     className="btn-upload"
                                     style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', width: '100%', marginTop: '4px' }}
                                     onClick={() => {
+                                      setRenderedPageDimensions({ w: 0, h: 0 });
                                       setActivePageToCrop(originalIdx);
                                     }}
                                   >
