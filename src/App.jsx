@@ -3129,7 +3129,7 @@ function App() {
                             backgroundColor: 'var(--bg-primary)',
                             width: '100%',
                             maxWidth: '100%',
-                            height: '580px',
+                            height: 'min(75vh, 680px)',
                             display: 'flex',
                             justifyContent: 'center',
                             alignItems: 'center',
@@ -3155,10 +3155,10 @@ function App() {
                               onLoad={handlePageImageLoad}
                               style={{ 
                                 display: 'block', 
-                                width: renderedPageDimensions.w ? '100%' : 'auto', 
-                                height: renderedPageDimensions.h ? '100%' : 'auto', 
+                                width: 'auto', 
+                                height: '100%', 
                                 maxWidth: '100%', 
-                                maxHeight: '580px', 
+                                maxHeight: '100%', 
                                 objectFit: 'contain', 
                                 pointerEvents: 'none' 
                               }}
@@ -3360,7 +3360,7 @@ function App() {
                           backgroundColor: 'var(--bg-secondary)',
                           width: '100%',
                           maxWidth: '100%',
-                          height: '580px',
+                          height: 'min(75vh, 680px)',
                           display: 'flex',
                           justifyContent: 'center',
                           alignItems: 'center',
@@ -3384,10 +3384,10 @@ function App() {
                               onLoad={handlePageImageLoad}
                               style={{ 
                                 display: 'block', 
-                                width: renderedPageDimensions.w ? '100%' : 'auto', 
-                                height: renderedPageDimensions.h ? '100%' : 'auto', 
+                                width: 'auto', 
+                                height: '100%', 
                                 maxWidth: '100%', 
-                                maxHeight: '580px', 
+                                maxHeight: '100%', 
                                 objectFit: 'contain', 
                                 pointerEvents: 'none' 
                               }}
