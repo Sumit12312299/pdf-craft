@@ -3741,6 +3741,7 @@ function App() {
                             );
                           })}
                         </div>
+                      </div>
                     )
                   ) : activeTool === 'watermark' ? (
                     /* Visual Page Watermark Grid */
