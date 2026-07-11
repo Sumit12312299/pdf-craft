@@ -3126,7 +3126,7 @@ function App() {
                             position: 'relative',
                             border: '1px solid var(--border-color)',
                             boxShadow: 'var(--shadow-md)',
-                            backgroundColor: 'var(--bg-primary)',
+                            backgroundColor: 'var(--bg-secondary)',
                             width: '100%',
                             maxWidth: '100%',
                             height: 'min(75vh, 680px)',
@@ -3147,7 +3147,10 @@ function App() {
                             height: renderedPageDimensions.h ? `${renderedPageDimensions.h}px` : 'auto',
                             display: 'inline-flex',
                             justifyContent: 'center',
-                            alignItems: 'center'
+                            alignItems: 'center',
+                            backgroundColor: '#ffffff',
+                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                            border: '1px solid rgba(0, 0, 0, 0.08)'
                           }}>
                             <img
                               ref={pageImageRef}
