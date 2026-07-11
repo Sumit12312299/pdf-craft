@@ -5195,7 +5195,7 @@ function App() {
                 </div>
               )}
               
-              <div style={{ position: 'relative', display: 'inline-flex', maxWidth: '100%', containerType: 'inline-size' }}>
+              <div style={{ position: 'relative', display: 'inline-flex', maxWidth: '100%' }}>
                 <img 
                   src={previewModalImage} 
                   alt="Page Preview" 
@@ -5249,7 +5249,8 @@ function App() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     pointerEvents: 'none',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    containerType: 'inline-size'
                   }}>
                     <div style={{
                       color: watermarkOptions.color || '#ef4444',
