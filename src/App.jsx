@@ -2571,7 +2571,7 @@ function App() {
                     <div className="sidebar-section">
                       <h3>Appearance</h3>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                        <div className="form-group">
+                        <div className="form-group" style={{ minWidth: 0 }}>
                           <label style={{ fontSize: '0.75rem' }}>Foreground</label>
                           <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
                             <input
@@ -2585,12 +2585,12 @@ function App() {
                               type="text"
                               value={qrGenFgColor}
                               onChange={(e) => setQrGenFgColor(e.target.value)}
-                              style={{ flex: 1, padding: '0.35rem', fontSize: '0.75rem', fontFamily: 'monospace', minWidth: 0 }}
+                              style={{ flex: 1, width: '100%', minWidth: 0, padding: '0.35rem', fontSize: '0.75rem', fontFamily: 'monospace' }}
                             />
                           </div>
                         </div>
 
-                        <div className="form-group">
+                        <div className="form-group" style={{ minWidth: 0 }}>
                           <label style={{ fontSize: '0.75rem' }}>Background</label>
                           <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
                             <input
@@ -2604,7 +2604,7 @@ function App() {
                               type="text"
                               value={qrGenBgColor}
                               onChange={(e) => setQrGenBgColor(e.target.value)}
-                              style={{ flex: 1, padding: '0.35rem', fontSize: '0.75rem', fontFamily: 'monospace', minWidth: 0 }}
+                              style={{ flex: 1, width: '100%', minWidth: 0, padding: '0.35rem', fontSize: '0.75rem', fontFamily: 'monospace' }}
                             />
                           </div>
                         </div>
