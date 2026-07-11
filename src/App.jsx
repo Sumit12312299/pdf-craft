@@ -512,6 +512,12 @@ function App() {
     setPanPos({ x: 0, y: 0 });
   }, [activePageToSign]);
 
+  // Reset Zoom and Pan when active page to crop changes
+  useEffect(() => {
+    setCanvasZoom(2);
+    setPanPos({ x: 0, y: 0 });
+  }, [activePageToCrop]);
+
   // Render high-res page image whenever signature placement page changes
   useEffect(() => {
     setHighResSignPageUrl(null);
@@ -3356,23 +3362,31 @@ function App() {
                         </div>
 
                         {/* Interactive Page Crop Canvas Wrapper */}
-                        <div style={{
-                          position: 'relative',
-                          border: '1px solid var(--border-color)',
-                          boxShadow: 'var(--shadow-md)',
-                          backgroundColor: 'var(--bg-secondary)',
-                          width: '100%',
-                          maxWidth: '100%',
-                          height: 'min(75vh, 680px)',
-                          display: 'flex',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          overflow: 'hidden',
-                          userSelect: 'none'
-                        }}>
+                        <div 
+                          onMouseDown={handleBackgroundMouseDown}
+                          onTouchStart={handleBackgroundMouseDown}
+                          style={{
+                            position: 'relative',
+                            border: '1px solid var(--border-color)',
+                            boxShadow: 'var(--shadow-md)',
+                            backgroundColor: 'var(--bg-secondary)',
+                            width: '100%',
+                            maxWidth: '100%',
+                            height: 'min(75vh, 680px)',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            overflow: 'hidden',
+                            cursor: canvasZoom > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default',
+                            userSelect: 'none'
+                          }}
+                        >
                           {/* Inner container that bounds the actual page image */}
                           <div style={{
                             position: 'relative',
+                            transform: `scale(${canvasZoom}) translate(${panPos.x}px, ${panPos.y}px)`,
+                            transformOrigin: 'center center',
+                            transition: isPanning ? 'none' : 'transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1)',
                             width: renderedPageDimensions.w ? `${renderedPageDimensions.w}px` : 'auto',
                             height: renderedPageDimensions.h ? `${renderedPageDimensions.h}px` : 'auto',
                             display: 'inline-flex',
@@ -3552,6 +3566,54 @@ function App() {
                                 }}
                               />
                             </div>
+                          </div>
+
+                          {/* Floating Zoom Controls */}
+                          <div style={{
+                            position: 'absolute',
+                            bottom: '12px',
+                            right: '12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            backgroundColor: 'var(--bg-primary)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: 'var(--radius-md)',
+                            padding: '4px',
+                            boxShadow: 'var(--shadow-md)',
+                            zIndex: 20
+                          }}>
+                            <button 
+                              type="button"
+                              className="btn-icon" 
+                              style={{ padding: '2px 8px', fontSize: '0.8rem', fontWeight: 'bold', minWidth: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              onClick={() => setCanvasZoom(prev => Math.max(1, prev - 0.25))}
+                              disabled={canvasZoom <= 1}
+                            >
+                              -
+                            </button>
+                            <span style={{ fontSize: '0.75rem', fontWeight: '600', minWidth: '42px', textAlign: 'center', color: 'var(--text-primary)' }}>
+                              {Math.round(canvasZoom * 100)}%
+                            </span>
+                            <button 
+                              type="button"
+                              className="btn-icon" 
+                              style={{ padding: '2px 8px', fontSize: '0.8rem', fontWeight: 'bold', minWidth: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              onClick={() => setCanvasZoom(prev => Math.min(3, prev + 0.25))}
+                              disabled={canvasZoom >= 3}
+                            >
+                              +
+                            </button>
+                            <div style={{ width: '1px', height: '14px', backgroundColor: 'var(--border-color)', margin: '0 4px' }} />
+                            <button 
+                              type="button"
+                              className="btn-icon" 
+                              style={{ padding: '2px 6px', fontSize: '0.7rem', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              onClick={() => { setCanvasZoom(2); setPanPos({ x: 0, y: 0 }); }}
+                              disabled={canvasZoom === 2 && panPos.x === 0 && panPos.y === 0}
+                            >
+                              Reset
+                            </button>
                           </div>
                         </div>
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
