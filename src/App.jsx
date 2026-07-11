@@ -419,7 +419,7 @@ function App() {
   const [renderedPageDimensions, setRenderedPageDimensions] = useState({ w: 0, h: 0 });
 
   // Signature Zoom and Pan States
-  const [canvasZoom, setCanvasZoom] = useState(1);
+  const [canvasZoom, setCanvasZoom] = useState(2);
   const [panPos, setPanPos] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const panStartRef = useRef({ x: 0, y: 0 });
@@ -508,7 +508,7 @@ function App() {
 
   // Reset Zoom and Pan when active page to sign changes
   useEffect(() => {
-    setCanvasZoom(1);
+    setCanvasZoom(2);
     setPanPos({ x: 0, y: 0 });
   }, [activePageToSign]);
 
@@ -3231,8 +3231,8 @@ function App() {
                               type="button"
                               className="btn-icon" 
                               style={{ padding: '2px 6px', fontSize: '0.7rem', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                              onClick={() => { setCanvasZoom(1); setPanPos({ x: 0, y: 0 }); }}
-                              disabled={canvasZoom === 1 && panPos.x === 0 && panPos.y === 0}
+                              onClick={() => { setCanvasZoom(2); setPanPos({ x: 0, y: 0 }); }}
+                              disabled={canvasZoom === 2 && panPos.x === 0 && panPos.y === 0}
                             >
                               Reset
                             </button>
