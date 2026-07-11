@@ -3741,8 +3741,92 @@ function App() {
                             );
                           })}
                         </div>
-                      </div>
                     )
+                  ) : activeTool === 'watermark' ? (
+                    /* Visual Page Watermark Grid */
+                    <div className="files-preview-container">
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                        Previewing watermark on your pages below. Update text and styling in the right panel.
+                      </div>
+                      <div className="files-grid">
+                        {Array.from({ length: uploadedFiles[0].pageCount }).map((_, originalIdx) => {
+                          const previewObj = pagePreviews.find(p => p.originalIndex === originalIdx);
+                          const pageCropW = placedCrops[originalIdx];
+                          return (
+                            <div
+                              key={originalIdx}
+                              className="file-preview-card"
+                            >
+                              <div 
+                                className="file-preview-thumbnail" 
+                                style={{ 
+                                  position: 'relative', 
+                                  overflow: 'hidden',
+                                  containerType: 'inline-size'
+                                }}
+                              >
+                                {previewObj ? (
+                                  <>
+                                    <div style={{ position: 'relative', display: 'inline-flex', maxHeight: '100%', maxWidth: '100%', overflow: 'hidden', clipPath: pageCropW ? `inset(${pageCropW.top}% ${pageCropW.right}% ${pageCropW.bottom}% ${pageCropW.left}%)` : 'none', transform: pageCropW ? `scale(${1 / Math.max(0.1, 1 - Math.max(pageCropW.left + pageCropW.right, pageCropW.top + pageCropW.bottom) / 100)})` : 'none', transition: 'all 0.2s ease' }}>
+                                      <img
+                                        src={previewObj.dataUrl}
+                                        className="file-preview-img"
+                                        alt={`Page ${originalIdx + 1}`}
+                                        style={{ display: 'block', maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                                      />
+                                    </div>
+                                    
+                                    {/* Watermark Overlay */}
+                                    <div style={{
+                                      position: 'absolute',
+                                      top: 0,
+                                      left: 0,
+                                      width: '100%',
+                                      height: '100%',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      pointerEvents: 'none',
+                                      overflow: 'hidden'
+                                    }}>
+                                      <div style={{
+                                        color: watermarkOptions.color || '#ef4444',
+                                        opacity: watermarkOptions.opacity !== undefined ? watermarkOptions.opacity : 0.3,
+                                        fontSize: `${(watermarkOptions.size || 48) / 595 * 100}cqw`,
+                                        fontWeight: 'bold',
+                                        transform: `rotate(${-watermarkOptions.rotation || -45}deg)`,
+                                        whiteSpace: 'nowrap',
+                                        userSelect: 'none',
+                                        textAlign: 'center',
+                                        fontFamily: 'Helvetica, Arial, sans-serif'
+                                      }}>
+                                        {watermarkOptions.text || 'CONFIDENTIAL'}
+                                      </div>
+                                    </div>
+                                    
+                                    <button
+                                      className="btn-preview-eye"
+                                      title="Preview Page"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openLightbox(uploadedFiles[0], originalIdx, previewObj.dataUrl, `Page ${originalIdx + 1}`);
+                                      }}
+                                    >
+                                      <Eye size={14} />
+                                    </button>
+                                  </>
+                                ) : (
+                                  <div className="skeleton-pulse" />
+                                )}
+                              </div>
+                              <div className="file-preview-info">
+                                <div className="file-preview-name">Page {originalIdx + 1}</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   ) : activeTool === 'img-to-pdf' ? (
                     /* Image list */
                     <div className="files-preview-container">
@@ -5110,7 +5194,7 @@ function App() {
                 </div>
               )}
               
-              <div style={{ position: 'relative', display: 'inline-flex', maxWidth: '100%' }}>
+              <div style={{ position: 'relative', display: 'inline-flex', maxWidth: '100%', containerType: 'inline-size' }}>
                 <img 
                   src={previewModalImage} 
                   alt="Page Preview" 
@@ -5150,6 +5234,36 @@ function App() {
                       />
                     );
                   })
+                )}
+
+                {/* Visual Watermark overlay in the lightbox preview */}
+                {activeTool === 'watermark' && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    pointerEvents: 'none',
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      color: watermarkOptions.color || '#ef4444',
+                      opacity: watermarkOptions.opacity !== undefined ? watermarkOptions.opacity : 0.3,
+                      fontSize: `${(watermarkOptions.size || 48) / 595 * 100}cqw`,
+                      fontWeight: 'bold',
+                      transform: `rotate(${-watermarkOptions.rotation || -45}deg)`,
+                      whiteSpace: 'nowrap',
+                      userSelect: 'none',
+                      textAlign: 'center',
+                      fontFamily: 'Helvetica, Arial, sans-serif'
+                    }}>
+                      {watermarkOptions.text || 'CONFIDENTIAL'}
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
