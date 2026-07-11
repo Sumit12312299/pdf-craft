@@ -403,6 +403,7 @@ function App() {
   // Crop States
   const [cropMargins, setCropMargins] = useState({ top: 10, bottom: 10, left: 10, right: 10 });
   const [activePageToCrop, setActivePageToCrop] = useState(null);
+  const [highResCropPageUrl, setHighResCropPageUrl] = useState(null); // hi-res render of current crop page
   const [placedCrops, setPlacedCrops] = useState({}); // mapping of pageIndex -> { top, bottom, left, right }
 
   // Signature States
@@ -535,6 +536,31 @@ function App() {
     })();
     return () => { cancelled = true; };
   }, [activePageToSign]);
+
+  // Render high-res page image whenever crop page changes
+  useEffect(() => {
+    setHighResCropPageUrl(null);
+    if (activePageToCrop === null || !uploadedFiles[0]?.buffer) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        if (window.pdfjsLib) {
+          const loadingTask = window.pdfjsLib.getDocument({ data: uploadedFiles[0].buffer.slice(0) });
+          const pdf = await loadingTask.promise;
+          const page = await pdf.getPage(activePageToCrop + 1);
+          const viewport = page.getViewport({ scale: 2.5 });
+          const canvas = document.createElement('canvas');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+          if (!cancelled) setHighResCropPageUrl(canvas.toDataURL('image/jpeg', 0.95));
+        }
+      } catch (err) {
+        console.error('Hi-res crop page render failed:', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [activePageToCrop]);
 
   // Initializing Theme
   useEffect(() => {
@@ -3103,7 +3129,7 @@ function App() {
                             backgroundColor: 'var(--bg-primary)',
                             width: '100%',
                             maxWidth: '100%',
-                            height: '420px',
+                            height: '580px',
                             display: 'flex',
                             justifyContent: 'center',
                             alignItems: 'center',
@@ -3127,7 +3153,15 @@ function App() {
                               ref={pageImageRef}
                               src={highResSignPageUrl || pagePreviews.find(p => p.originalIndex === activePageToSign)?.dataUrl}
                               onLoad={handlePageImageLoad}
-                              style={{ display: 'block', width: '100%', height: '100%', maxWidth: '100%', maxHeight: '420px', objectFit: 'contain', pointerEvents: 'none' }}
+                              style={{ 
+                                display: 'block', 
+                                width: renderedPageDimensions.w ? '100%' : 'auto', 
+                                height: renderedPageDimensions.h ? '100%' : 'auto', 
+                                maxWidth: '100%', 
+                                maxHeight: '580px', 
+                                objectFit: 'contain', 
+                                pointerEvents: 'none' 
+                              }}
                               alt="page to stamp"
                             />
 
@@ -3326,7 +3360,7 @@ function App() {
                           backgroundColor: 'var(--bg-secondary)',
                           width: '100%',
                           maxWidth: '100%',
-                          height: '420px',
+                          height: '580px',
                           display: 'flex',
                           justifyContent: 'center',
                           alignItems: 'center',
@@ -3346,9 +3380,17 @@ function App() {
                           }}>
                             <img
                               ref={pageImageRef}
-                              src={pagePreviews.find(p => p.originalIndex === activePageToCrop)?.dataUrl}
+                              src={highResCropPageUrl || pagePreviews.find(p => p.originalIndex === activePageToCrop)?.dataUrl}
                               onLoad={handlePageImageLoad}
-                              style={{ display: 'block', width: '100%', height: '100%', maxWidth: '100%', maxHeight: '420px', objectFit: 'contain', pointerEvents: 'none' }}
+                              style={{ 
+                                display: 'block', 
+                                width: renderedPageDimensions.w ? '100%' : 'auto', 
+                                height: renderedPageDimensions.h ? '100%' : 'auto', 
+                                maxWidth: '100%', 
+                                maxHeight: '580px', 
+                                objectFit: 'contain', 
+                                pointerEvents: 'none' 
+                              }}
                               alt="page to crop"
                             />
 
