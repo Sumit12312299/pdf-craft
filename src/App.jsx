@@ -3888,40 +3888,82 @@ function App() {
                     /* Image list */
                     <div className="files-preview-container">
                       <div className="files-grid">
-                        {uploadedFiles.map((file, idx) => (
-                          <div key={idx} className="file-preview-card" style={{ animationDelay: `${idx * 25}ms` }}>
-                            <div className="file-preview-thumbnail" style={{ position: 'relative' }}>
-                              <img src={file.firstPagePreview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="uploaded" />
-                              <div className="card-actions">
-                                <button className="btn-card-action" title="Delete Image" onClick={() => removeFile(idx)}>
-                                  <Trash2 size={12} />
-                                </button>
-                              </div>
-                              <button
-                                className="btn-preview-eye"
-                                title="Preview Page"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openLightbox(file, 0, file.firstPagePreview, file.name);
+                        {uploadedFiles.map((file, idx) => {
+                          const isLandscape = imgToPdfOptions.orientation === 'landscape';
+                          const dynamicAspectRatio = isLandscape 
+                            ? (imgToPdfOptions.layout === 'letter' ? '792 / 612' : '842 / 595') 
+                            : (imgToPdfOptions.layout === 'letter' ? '612 / 792' : '595 / 842');
+
+                          return (
+                            <div 
+                              key={idx} 
+                              className={`file-preview-card ${draggedPageIndex === idx ? 'dragging' : ''}`}
+                              draggable={true}
+                              onDragStart={(e) => {
+                                setDraggedPageIndex(idx);
+                                e.dataTransfer.effectAllowed = 'move';
+                                e.dataTransfer.setData('text/plain', idx);
+                              }}
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                if (draggedPageIndex === null || draggedPageIndex === idx) return;
+
+                                const list = [...uploadedFiles];
+                                const draggedItem = list[draggedPageIndex];
+                                list.splice(draggedPageIndex, 1);
+                                list.splice(idx, 0, draggedItem);
+
+                                setDraggedPageIndex(idx);
+                                setUploadedFiles(list);
+                              }}
+                              onDragEnd={() => setDraggedPageIndex(null)}
+                              style={{ 
+                                animationDelay: `${idx * 25}ms`,
+                                cursor: 'grab',
+                                opacity: draggedPageIndex === idx ? 0.4 : 1,
+                                transition: 'transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease',
+                                border: draggedPageIndex === idx ? '2px dashed var(--accent-color)' : '1px solid var(--border-color)'
+                              }}
+                            >
+                              <div 
+                                className="file-preview-thumbnail" 
+                                style={{ 
+                                  position: 'relative', 
+                                  aspectRatio: dynamicAspectRatio 
                                 }}
                               >
-                                <Eye size={14} />
-                              </button>
+                                <img src={file.firstPagePreview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="uploaded" />
+                                <div className="card-actions">
+                                  <button className="btn-card-action" title="Delete Image" onClick={() => removeFile(idx)}>
+                                    <Trash2 size={12} />
+                                  </button>
+                                </div>
+                                <button
+                                  className="btn-preview-eye"
+                                  title="Preview Page"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openLightbox(file, 0, file.firstPagePreview, file.name);
+                                  }}
+                                >
+                                  <Eye size={14} />
+                                </button>
+                              </div>
+                              <div className="file-preview-info">
+                                <div className="file-preview-name">{file.name}</div>
+                                <div className="file-preview-pages">{(file.size / 1024).toFixed(1)} KB</div>
+                              </div>
+                              <div className="card-nav-buttons">
+                                <button className="btn-icon btn-nav" disabled={idx === 0} onClick={() => moveFileOrder(idx, -1)}>
+                                  ◀
+                                </button>
+                                <button className="btn-icon btn-nav" disabled={idx === uploadedFiles.length - 1} onClick={() => moveFileOrder(idx, 1)}>
+                                  ▶
+                                </button>
+                              </div>
                             </div>
-                            <div className="file-preview-info">
-                              <div className="file-preview-name">{file.name}</div>
-                              <div className="file-preview-pages">{(file.size / 1024).toFixed(1)} KB</div>
-                            </div>
-                            <div className="card-nav-buttons">
-                              <button className="btn-icon btn-nav" disabled={idx === 0} onClick={() => moveFileOrder(idx, -1)}>
-                                ◀
-                              </button>
-                              <button className="btn-icon btn-nav" disabled={idx === uploadedFiles.length - 1} onClick={() => moveFileOrder(idx, 1)}>
-                                ▶
-                              </button>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   ) : (

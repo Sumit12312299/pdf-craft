@@ -1001,7 +1001,7 @@ html.dark .file-preview-card.selected {
   overflow: hidden;
   position: relative;
   border: 1px solid var(--border-color);
-  transition: transform var(--transition-fast) ease-in-out;
+  transition: aspect-ratio 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform var(--transition-fast) ease-in-out;
 }
 
 .file-preview-img {
