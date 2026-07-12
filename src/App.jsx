@@ -2252,7 +2252,7 @@ function App() {
         </div>
 
         <div className="navbar-right">
-          <button onClick={toggleTheme} className="btn-icon" title="Toggle theme">
+          <button onClick={toggleTheme} className="btn-icon btn-theme-toggle" title="Toggle theme">
             {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
           </button>
 
