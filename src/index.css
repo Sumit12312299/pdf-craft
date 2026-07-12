@@ -216,7 +216,7 @@ html.dark .navbar {
   letter-spacing: 0.05em;
   padding: 0.5rem 0.75rem;
   border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -224,16 +224,35 @@ html.dark .navbar {
   user-select: none;
   background: none;
   border: none;
+  position: relative;
+}
+
+.nav-item::after, .nav-item-dropdown::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background-color: var(--accent-color);
+  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), left 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateX(-50%);
 }
 
 .nav-item:hover, .nav-item-dropdown:hover {
   color: var(--accent-color);
-  background-color: var(--bg-secondary);
+}
+
+.nav-item:hover::after, .nav-item-dropdown:hover::after {
+  width: 60%;
 }
 
 .nav-item.active {
   color: var(--accent-color);
-  background-color: var(--accent-light);
+}
+
+.nav-item.active::after {
+  width: 60%;
 }
 
 /* Dropdown Container */
@@ -658,14 +677,15 @@ html.dark .navbar {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: var(--shadow-sm);
+  animation: cardFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .tool-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-5px);
   border-color: var(--accent-color);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 12px 24px -10px rgba(220, 38, 38, 0.15), var(--shadow-md);
 }
 
 .tool-card-icon {
@@ -811,7 +831,7 @@ html.dark .navbar {
   background-color: var(--bg-primary);
   cursor: pointer;
   text-align: center;
-  transition: all var(--transition-fast);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* When the WHOLE workspace-main is the dropzone, reset its constraints */
@@ -826,20 +846,29 @@ html.dark .navbar {
 .dropzone:hover, .dropzone.active {
   border-color: var(--accent-color);
   background-color: var(--bg-secondary);
+  transform: translateY(-4px);
+  box-shadow: 0 16px 32px -10px rgba(220, 38, 38, 0.1), var(--shadow-md);
 }
 
 .workspace-main.dropzone:hover, .workspace-main.dropzone.active {
   border-color: var(--accent-color);
   background-color: var(--accent-light);
+  transform: translateY(-2px);
 }
 
 .dropzone-icon {
   color: var(--text-muted);
-  transition: color var(--transition-fast);
+  transition: color var(--transition-fast), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .dropzone:hover .dropzone-icon {
   color: var(--accent-color);
+  animation: bounce-subtle 1.2s infinite ease-in-out alternate;
+}
+
+@keyframes bounce-subtle {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-8px); }
 }
 
 .dropzone h3 {
@@ -1304,6 +1333,11 @@ html.dark .btn-card-action {
   0% { opacity: 0.6; }
   50% { opacity: 1; }
   100% { opacity: 0.6; }
+}
+
+@keyframes cardFadeIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Position Grid selector for Watermarks & Page numbers */

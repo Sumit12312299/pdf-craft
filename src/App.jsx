@@ -2410,24 +2410,31 @@ function App() {
             </div>
 
             <div id="tools" className="tool-sections-container">
-              {getFilteredCategories().map((category) => (
-                <div key={category} className="tool-category-section">
-                  <h2 className="tool-section-title">{category}</h2>
-                  <div className="tool-grid">
-                    {categorizedTools[category].map((tool) => (
-                      <div
-                        key={tool.id}
-                        className="tool-card"
-                        onClick={() => setActiveTool(tool.id)}
-                      >
-                        <div className="tool-card-icon">{tool.icon}</div>
-                        <h3>{tool.title}</h3>
-                        <p>{tool.description}</p>
-                      </div>
-                    ))}
+              {(() => {
+                let cardIndex = 0;
+                return getFilteredCategories().map((category) => (
+                  <div key={category} className="tool-category-section">
+                    <h2 className="tool-section-title">{category}</h2>
+                    <div className="tool-grid">
+                      {categorizedTools[category].map((tool) => {
+                        const currentDelayIndex = cardIndex++;
+                        return (
+                          <div
+                            key={tool.id}
+                            className="tool-card"
+                            style={{ animationDelay: `${currentDelayIndex * 35}ms` }}
+                            onClick={() => setActiveTool(tool.id)}
+                          >
+                            <div className="tool-card-icon">{tool.icon}</div>
+                            <h3>{tool.title}</h3>
+                            <p>{tool.description}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ));
+              })()}
             </div>
           </>
         ) : (
@@ -3019,7 +3026,8 @@ function App() {
                                 cursor: 'grab',
                                 opacity: draggedPageIndex === idx ? 0.4 : 1,
                                 transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-                                border: draggedPageIndex === idx ? '2px dashed var(--accent-color)' : '1px solid var(--border-color)'
+                                border: draggedPageIndex === idx ? '2px dashed var(--accent-color)' : '1px solid var(--border-color)',
+                                animationDelay: `${idx * 25}ms`
                               }}
                             >
                               <div className="file-preview-thumbnail">
@@ -3088,7 +3096,7 @@ function App() {
                               key={originalIdx}
                               className={`file-preview-card ${isSelected ? 'selected' : ''}`}
                               onClick={() => toggleSplitPageSelection(originalIdx)}
-                              style={{ cursor: 'pointer' }}
+                              style={{ cursor: 'pointer', animationDelay: `${originalIdx * 25}ms` }}
                             >
                               <div className="select-badge">✓</div>
                               <div className="file-preview-thumbnail" style={{ position: 'relative' }}>
@@ -3281,7 +3289,10 @@ function App() {
                               <div
                                 key={originalIdx}
                                 className="file-preview-card"
-                                style={{ border: pageStampCount > 0 ? '1.5px solid var(--success-color)' : '1px solid var(--border-color)' }}
+                                style={{ 
+                                  border: pageStampCount > 0 ? '1.5px solid var(--success-color)' : '1px solid var(--border-color)',
+                                  animationDelay: `${originalIdx * 25}ms`
+                                }}
                               >
                                 {pageStampCount > 0 && (
                                   <div style={{ position: 'absolute', top: '6px', left: '6px', backgroundColor: 'var(--success-color)', color: 'white', borderRadius: 'var(--radius-full)', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: '800', zIndex: 10 }}>
@@ -3777,6 +3788,7 @@ function App() {
                             <div
                               key={originalIdx}
                               className="file-preview-card"
+                              style={{ animationDelay: `${originalIdx * 25}ms` }}
                             >
                               <div 
                                 className="file-preview-thumbnail" 
@@ -3877,7 +3889,7 @@ function App() {
                     <div className="files-preview-container">
                       <div className="files-grid">
                         {uploadedFiles.map((file, idx) => (
-                          <div key={idx} className="file-preview-card">
+                          <div key={idx} className="file-preview-card" style={{ animationDelay: `${idx * 25}ms` }}>
                             <div className="file-preview-thumbnail" style={{ position: 'relative' }}>
                               <img src={file.firstPagePreview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="uploaded" />
                               <div className="card-actions">
