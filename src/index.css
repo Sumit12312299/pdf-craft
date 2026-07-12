@@ -1090,6 +1090,7 @@ html.dark .btn-card-action {
   font-size: 0.9rem;
   outline: none;
   transition: all var(--transition-fast);
+  width: 100%;
 }
 
 .form-control:focus {

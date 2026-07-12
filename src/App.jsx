@@ -219,6 +219,24 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
+const getPositionStyle = (pos) => {
+  switch (pos) {
+    case 'topLeft':
+      return { top: '8px', left: '8px' };
+    case 'topCenter':
+      return { top: '8px', left: '50%', transform: 'translateX(-50%)' };
+    case 'topRight':
+      return { top: '8px', right: '8px' };
+    case 'bottomLeft':
+      return { bottom: '8px', left: '8px' };
+    case 'bottomCenter':
+      return { bottom: '8px', left: '50%', transform: 'translateX(-50%)' };
+    case 'bottomRight':
+    default:
+      return { bottom: '8px', right: '8px' };
+  }
+};
+
 // Draw QR Code with custom top and bottom spacing plus a custom text label
 const drawQrWithLabelAndSpacing = async (
   qrDataUrl,
@@ -3743,11 +3761,13 @@ function App() {
                         </div>
                       </div>
                     )
-                  ) : activeTool === 'watermark' ? (
-                    /* Visual Page Watermark Grid */
+                  ) : (activeTool === 'watermark' || activeTool === 'page-numbers') ? (
+                    /* Visual Page Watermark & Page Numbers Grid */
                     <div className="files-preview-container">
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-                        Previewing watermark on your pages below. Update text and styling in the right panel.
+                        {activeTool === 'watermark'
+                          ? 'Previewing watermark on your pages below. Update text and styling in the right panel.'
+                          : 'Previewing page numbers on your pages below. Update position and styling in the right panel.'}
                       </div>
                       <div className="files-grid">
                         {Array.from({ length: uploadedFiles[0].pageCount }).map((_, originalIdx) => {
@@ -3778,32 +3798,56 @@ function App() {
                                     </div>
                                     
                                     {/* Watermark Overlay */}
-                                    <div style={{
-                                      position: 'absolute',
-                                      top: 0,
-                                      left: 0,
-                                      width: '100%',
-                                      height: '100%',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      pointerEvents: 'none',
-                                      overflow: 'hidden'
-                                    }}>
+                                    {activeTool === 'watermark' && (
                                       <div style={{
-                                        color: watermarkOptions.color || '#ef4444',
-                                        opacity: watermarkOptions.opacity !== undefined ? watermarkOptions.opacity : 0.3,
-                                        fontSize: `${(watermarkOptions.size || 48) / 595 * 100}cqw`,
-                                        fontWeight: 'bold',
-                                        transform: `rotate(${-watermarkOptions.rotation || -45}deg)`,
-                                        whiteSpace: 'nowrap',
-                                        userSelect: 'none',
-                                        textAlign: 'center',
-                                        fontFamily: 'Helvetica, Arial, sans-serif'
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: 0,
+                                        width: '100%',
+                                        height: '100%',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        pointerEvents: 'none',
+                                        overflow: 'hidden'
                                       }}>
-                                        {watermarkOptions.text || 'CONFIDENTIAL'}
+                                        <div style={{
+                                          color: watermarkOptions.color || '#ef4444',
+                                          opacity: watermarkOptions.opacity !== undefined ? watermarkOptions.opacity : 0.3,
+                                          fontSize: `${(watermarkOptions.size || 48) / 595 * 100}cqw`,
+                                          fontWeight: 'bold',
+                                          transform: `rotate(${-watermarkOptions.rotation || -45}deg)`,
+                                          whiteSpace: 'nowrap',
+                                          userSelect: 'none',
+                                          textAlign: 'center',
+                                          fontFamily: 'Helvetica, Arial, sans-serif'
+                                        }}>
+                                          {watermarkOptions.text || 'CONFIDENTIAL'}
+                                        </div>
                                       </div>
-                                    </div>
+                                    )}
+
+                                    {/* Page Number Overlay */}
+                                    {activeTool === 'page-numbers' && (
+                                      <div style={{
+                                        position: 'absolute',
+                                        pointerEvents: 'none',
+                                        color: pageNumberOptions.color || '#475569',
+                                        fontSize: '9px',
+                                        fontWeight: '600',
+                                        backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                                        padding: '2px 4px',
+                                        borderRadius: '3px',
+                                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                                        zIndex: 10,
+                                        whiteSpace: 'nowrap',
+                                        ...getPositionStyle(pageNumberOptions.position)
+                                      }}>
+                                        {pageNumberOptions.style === 'detailed' 
+                                          ? `Page ${pageNumberOptions.startNumber + originalIdx} of ${uploadedFiles[0].pageCount}` 
+                                          : `${pageNumberOptions.startNumber + originalIdx}`}
+                                      </div>
+                                    )}
                                     
                                     <button
                                       className="btn-preview-eye"
@@ -5195,7 +5239,7 @@ function App() {
                 </div>
               )}
               
-              <div style={{ position: 'relative', display: 'inline-flex', maxWidth: '100%' }}>
+              <div style={{ position: 'relative', display: 'inline-flex', maxWidth: '100%', containerType: 'inline-size' }}>
                 <img 
                   src={previewModalImage} 
                   alt="Page Preview" 
@@ -5249,8 +5293,7 @@ function App() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     pointerEvents: 'none',
-                    overflow: 'hidden',
-                    containerType: 'inline-size'
+                    overflow: 'hidden'
                   }}>
                     <div style={{
                       color: watermarkOptions.color || '#ef4444',
@@ -5265,6 +5308,28 @@ function App() {
                     }}>
                       {watermarkOptions.text || 'CONFIDENTIAL'}
                     </div>
+                  </div>
+                )}
+
+                {/* Visual Page Number overlay in the lightbox preview */}
+                {activeTool === 'page-numbers' && previewModalPageIndex !== null && (
+                  <div style={{
+                    position: 'absolute',
+                    pointerEvents: 'none',
+                    color: pageNumberOptions.color || '#475569',
+                    fontSize: `${(pageNumberOptions.fontSize || 10) * 1.5}px`,
+                    fontWeight: 'bold',
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    boxShadow: 'var(--shadow-md)',
+                    zIndex: 10,
+                    whiteSpace: 'nowrap',
+                    ...getPositionStyle(pageNumberOptions.position)
+                  }}>
+                    {pageNumberOptions.style === 'detailed' 
+                      ? `Page ${pageNumberOptions.startNumber + previewModalPageIndex} of ${uploadedFiles[0].pageCount}` 
+                      : `${pageNumberOptions.startNumber + previewModalPageIndex}`}
                   </div>
                 )}
               </div>
