@@ -39,6 +39,7 @@
   
   --transition-fast: 0.15s ease;
   --transition-normal: 0.25s ease;
+  --dropzone-pulse-bg: var(--accent-light);
 }
 
 /* Dark Mode Theme Variables */
@@ -62,6 +63,7 @@ html.dark {
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+  --dropzone-pulse-bg: rgba(239, 68, 68, 0.08);
 }
 
 * {
@@ -955,16 +957,58 @@ html.dark .tool-card:hover .tool-card-icon {
 }
 
 .dropzone:hover, .dropzone.active {
-  border-color: var(--accent-color);
-  background-color: var(--bg-secondary);
   transform: translateY(-4px);
-  box-shadow: 0 16px 32px -10px rgba(220, 38, 38, 0.1), var(--shadow-md);
+  box-shadow: 0 16px 32px -10px rgba(220, 38, 38, 0.15), 
+              0 0 20px 2px rgba(220, 38, 38, 0.08), 
+              var(--shadow-md);
+  background-image: 
+    linear-gradient(90deg, var(--accent-color) 50%, transparent 50%),
+    linear-gradient(90deg, var(--accent-color) 50%, transparent 50%),
+    linear-gradient(0deg, var(--accent-color) 50%, transparent 50%),
+    linear-gradient(0deg, var(--accent-color) 50%, transparent 50%);
+  background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
+  background-size: 16px 2px, 16px 2px, 2px 16px, 2px 16px;
+  background-position: 0px 0px, 0px 100%, 0px 0px, 100% 0px;
+  border-color: transparent !important;
+  animation: marching-ants 0.8s infinite linear, pulse-glow 2s infinite ease-in-out alternate;
+}
+
+html.dark .dropzone:hover, html.dark .dropzone.active {
+  box-shadow: 0 16px 32px -10px rgba(239, 68, 68, 0.3), 
+              0 0 25px 4px rgba(239, 68, 68, 0.12), 
+              var(--shadow-md);
 }
 
 .workspace-main.dropzone:hover, .workspace-main.dropzone.active {
-  border-color: var(--accent-color);
-  background-color: var(--accent-light);
   transform: translateY(-2px);
+  background-color: var(--dropzone-pulse-bg);
+  box-shadow: 0 12px 24px -8px rgba(220, 38, 38, 0.12), 
+              0 0 20px 2px rgba(220, 38, 38, 0.06), 
+              var(--shadow-md);
+}
+
+html.dark .workspace-main.dropzone:hover, html.dark .workspace-main.dropzone.active {
+  box-shadow: 0 12px 24px -8px rgba(239, 68, 68, 0.25), 
+              0 0 25px 4px rgba(239, 68, 68, 0.1), 
+              var(--shadow-md);
+}
+
+@keyframes marching-ants {
+  0% {
+    background-position: 0px 0px, 0px 100%, 0px 0px, 100% 0px;
+  }
+  100% {
+    background-position: 16px 0px, -16px 100%, 0px -16px, 100% 16px;
+  }
+}
+
+@keyframes pulse-glow {
+  0% {
+    background-color: var(--bg-secondary);
+  }
+  100% {
+    background-color: var(--dropzone-pulse-bg);
+  }
 }
 
 .dropzone-icon {
