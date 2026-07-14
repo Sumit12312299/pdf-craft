@@ -276,7 +276,7 @@ html.dark .navbar {
 .nav-dropdown-trigger:hover .nav-dropdown-menu {
   opacity: 1;
   visibility: visible;
-  transform: translateX(-50%) translateY(4px) scale(1);
+  transform: translateX(-50%) translateY(4px) scale(1) translateZ(0);
 }
 
 .dropdown-arrow {
@@ -292,7 +292,8 @@ html.dark .navbar {
   position: absolute;
   top: 100%;
   left: 50%;
-  transform: translateX(-50%) translateY(12px) scale(0.94);
+  transform: translateX(-50%) translateY(12px) scale(0.94) translateZ(0);
+  will-change: transform, opacity;
   background-color: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
@@ -419,6 +420,7 @@ html.dark .nav-dropdown-menu {
   transform-origin: top right;
   backdrop-filter: blur(12px);
   background-color: rgba(255, 255, 255, 0.95);
+  will-change: transform, opacity;
 }
 
 html.dark .grid-menu-dropdown {
@@ -428,11 +430,11 @@ html.dark .grid-menu-dropdown {
 @keyframes gridDropdownSpring {
   0% {
     opacity: 0;
-    transform: translateY(12px) scale(0.92);
+    transform: translateY(12px) scale(0.92) translateZ(0);
   }
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0) scale(1) translateZ(0);
   }
 }
 
@@ -725,6 +727,8 @@ html.dark .grid-menu-dropdown {
   box-shadow: var(--shadow-sm);
   animation: cardFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
   overflow: hidden;
+  will-change: transform, box-shadow, border-color;
+  transform: translateZ(0);
 }
 
 /* Glass shine reflection sweep animation on hover */
@@ -761,7 +765,7 @@ html.dark .tool-card::before {
 }
 
 .tool-card:hover {
-  transform: translateY(-6px) scale(1.02);
+  transform: translateY(-6px) scale(1.02) translateZ(0);
   border-color: rgba(220, 38, 38, 0.5);
   box-shadow: 0 10px 30px -10px rgba(220, 38, 38, 0.25), 
               0 1px 3px rgba(0, 0, 0, 0.05),
@@ -770,6 +774,7 @@ html.dark .tool-card::before {
 }
 
 html.dark .tool-card:hover {
+  transform: translateY(-6px) scale(1.02) translateZ(0);
   border-color: rgba(239, 68, 68, 0.6);
   box-shadow: 0 10px 30px -10px rgba(239, 68, 68, 0.35), 
               0 1px 3px rgba(0, 0, 0, 0.3),
@@ -1587,6 +1592,8 @@ html.dark .btn-card-action {
   box-shadow: 0 0 8px var(--accent-color), 0 0 12px var(--accent-color);
   animation: scan-action 2s infinite ease-in-out;
   z-index: 10;
+  will-change: top;
+  transform: translateZ(0);
 }
 
 @keyframes scan-action {
@@ -1924,6 +1931,8 @@ input:checked + .slider:before {
   display: flex;
   flex-direction: column;
   animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+  transform: translateZ(0);
 }
 
 .preview-lightbox-header {
