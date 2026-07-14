@@ -682,6 +682,7 @@ html.dark .navbar {
 }
 
 .tool-card {
+  position: relative;
   background-color: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
@@ -691,15 +692,62 @@ html.dark .navbar {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), 
+              border-color 0.3s ease, 
+              box-shadow 0.3s ease,
+              background-color 0.3s ease;
   box-shadow: var(--shadow-sm);
   animation: cardFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  overflow: hidden;
+}
+
+/* Glass shine reflection sweep animation on hover */
+.tool-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  transform: skewX(-25deg);
+  transition: 0.75s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+html.dark .tool-card::before {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.04),
+    transparent
+  );
+}
+
+.tool-card:hover::before {
+  left: 150%;
 }
 
 .tool-card:hover {
-  transform: translateY(-5px);
-  border-color: var(--accent-color);
-  box-shadow: 0 12px 24px -10px rgba(220, 38, 38, 0.15), var(--shadow-md);
+  transform: translateY(-6px) scale(1.02);
+  border-color: rgba(220, 38, 38, 0.5);
+  box-shadow: 0 10px 30px -10px rgba(220, 38, 38, 0.25), 
+              0 1px 3px rgba(0, 0, 0, 0.05),
+              0 0 15px 2px rgba(220, 38, 38, 0.12);
+  background-color: var(--bg-primary);
+}
+
+html.dark .tool-card:hover {
+  border-color: rgba(239, 68, 68, 0.6);
+  box-shadow: 0 10px 30px -10px rgba(239, 68, 68, 0.35), 
+              0 1px 3px rgba(0, 0, 0, 0.3),
+              0 0 20px 2px rgba(239, 68, 68, 0.18);
 }
 
 .tool-card-icon {
@@ -711,23 +759,48 @@ html.dark .navbar {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color var(--transition-fast);
+  transition: background-color var(--transition-fast), 
+              transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.4s ease;
+  z-index: 2;
+  position: relative;
 }
 
 .tool-card:hover .tool-card-icon {
   background-color: var(--accent-light);
+  transform: translateY(-4px) scale(1.1);
+  box-shadow: 0 6px 12px -4px rgba(220, 38, 38, 0.3);
+  animation: float-icon 2s infinite ease-in-out alternate;
+  animation-delay: 0.4s;
+}
+
+html.dark .tool-card:hover .tool-card-icon {
+  box-shadow: 0 6px 12px -4px rgba(239, 68, 68, 0.45);
+}
+
+@keyframes float-icon {
+  0% {
+    transform: translateY(-4px) scale(1.1);
+  }
+  100% {
+    transform: translateY(-8px) scale(1.1);
+  }
 }
 
 .tool-card h3 {
   font-size: 1.05rem;
   font-weight: 700;
   color: var(--text-primary);
+  position: relative;
+  z-index: 2;
 }
 
 .tool-card p {
   font-size: 0.85rem;
   color: var(--text-secondary);
   line-height: 1.4;
+  position: relative;
+  z-index: 2;
 }
 
 /* Workspace Layout */
@@ -1754,11 +1827,19 @@ input:checked + .slider:before {
     justify-content: center;
     box-shadow: var(--shadow-sm) !important;
     border: 1px solid var(--border-color) !important;
+    position: relative !important;
+    overflow: hidden !important;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), 
+                box-shadow 0.25s ease, 
+                border-color 0.25s ease, 
+                background-color 0.25s ease !important;
   }
 
   .tool-card:active {
-    transform: scale(0.96);
+    transform: scale(0.95) !important;
     background-color: var(--bg-secondary) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+    border-color: var(--border-hover) !important;
   }
 
   .tool-card-icon {
