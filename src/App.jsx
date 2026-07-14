@@ -2764,10 +2764,11 @@ function App() {
                 </div>
               </div>
             ) : (activeTool !== 'qr-generator' && resultBlob) ? (
-              /* Sub-View: 2. Success screen */
-              <div className="workspace-main" style={{ minHeight: '380px' }}>
+                    <div className="workspace-main workspace-success-card" style={{ minHeight: '380px' }}>
                 <div className="success-screen">
                   <div className="success-checkmark-wrapper">
+                    <div className="halo-wave w1"></div>
+                    <div className="halo-wave w2"></div>
                     <svg className="checkmark-svg" viewBox="0 0 52 52">
                       <circle className="checkmark-circle" cx="26" cy="26" r="25" fill="none" />
                       <path className="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
@@ -2783,11 +2784,11 @@ function App() {
                       <div className="confetti-particle p8"></div>
                     </div>
                   </div>
-                  <div>
+                  <div className="success-text-container">
                     <h3>Your file is ready!</h3>
                     <p>The processing completed entirely in your browser. Click download to retrieve your file.</p>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', justifyContent: 'center', width: '100%', maxWidth: '400px' }}>
+                  <div className="success-actions-container" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', justifyContent: 'center', width: '100%', maxWidth: '400px', alignItems: 'center' }}>
                     <button className="btn-download-success" onClick={triggerDownload} style={{ width: '100%', padding: '0.75rem' }}>
                       <Download size={18} /> Download {
                         currentTool.id === 'pdf-to-img' ? 'ZIP' :
@@ -2801,15 +2802,15 @@ function App() {
                       <button
                         className="btn-share-file-action"
                         onClick={() => handleShareClick(resultBlob, resultName, resultBlob.type || 'application/pdf')}
+                        style={{ width: '100%' }}
                       >
                         <Share2 size={18} /> Share File
                       </button>
                     )}
+                    <button className="btn-reset" onClick={resetToolState} style={{ marginTop: '0.5rem', width: '100%' }}>
+                      Perform Another Operation
+                    </button>
                   </div>
-                  <button className="btn-reset" onClick={resetToolState} style={{ marginTop: '0.5rem' }}>
-                    Perform Another Operation
-                  </button>
-
                 </div>
               </div>
             ) : extractedText ? (
