@@ -2749,7 +2749,13 @@ function App() {
             {activeTool !== 'qr-generator' && (processing ? (
               <div className="workspace-main" style={{ minHeight: '380px' }}>
                 <div className="progress-container">
-                  <div className="spinner"></div>
+                  <div className="scanner-container">
+                    <div className="scanner-line"></div>
+                    <FileText size={64} className="scanner-icon" />
+                  </div>
+                  <svg className="svg-morph-spinner" viewBox="0 0 50 50">
+                    <circle className="path" cx="25" cy="25" r="20" fill="none" strokeWidth="4"></circle>
+                  </svg>
                   <div style={{ fontWeight: '600', marginTop: '1rem' }}>{processingStatus}</div>
                   <div className="progress-bar-bg">
                     <div className="progress-bar-fill" style={{ width: `${progress}%` }}></div>
@@ -2761,8 +2767,21 @@ function App() {
               /* Sub-View: 2. Success screen */
               <div className="workspace-main" style={{ minHeight: '380px' }}>
                 <div className="success-screen">
-                  <div className="success-icon-wrapper">
-                    <CheckCircle2 size={40} />
+                  <div className="success-checkmark-wrapper">
+                    <svg className="checkmark-svg" viewBox="0 0 52 52">
+                      <circle className="checkmark-circle" cx="26" cy="26" r="25" fill="none" />
+                      <path className="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
+                    </svg>
+                    <div className="confetti-container">
+                      <div className="confetti-particle p1"></div>
+                      <div className="confetti-particle p2"></div>
+                      <div className="confetti-particle p3"></div>
+                      <div className="confetti-particle p4"></div>
+                      <div className="confetti-particle p5"></div>
+                      <div className="confetti-particle p6"></div>
+                      <div className="confetti-particle p7"></div>
+                      <div className="confetti-particle p8"></div>
+                    </div>
                   </div>
                   <div>
                     <h3>Your file is ready!</h3>
@@ -2934,7 +2953,9 @@ function App() {
                       border: '1px solid var(--border-color)',
                       borderRadius: 'var(--radius-md)'
                     }}>
-                      <div className="spinner" style={{ width: '18px', height: '18px', borderWidth: '2px' }}></div>
+                      <svg className="svg-morph-spinner" viewBox="0 0 50 50" style={{ width: '18px', height: '18px' }}>
+                        <circle className="path" cx="25" cy="25" r="20" fill="none" strokeWidth="5"></circle>
+                      </svg>
                       <span style={{ fontSize: '0.8rem', fontWeight: '600' }}>Rendering page previews ({previewProgress}%)...</span>
                     </div>
                   )}
