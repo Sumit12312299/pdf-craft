@@ -66,6 +66,10 @@ html.dark {
   --dropzone-pulse-bg: rgba(239, 68, 68, 0.08);
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
