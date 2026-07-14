@@ -1499,6 +1499,7 @@ html.dark .btn-card-action {
 }
 
 .btn-download-success {
+  position: relative;
   background-color: var(--success-color);
   color: white;
   border: none;
@@ -1511,13 +1512,52 @@ html.dark .btn-card-action {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  box-shadow: var(--shadow-md);
-  transition: all var(--transition-fast);
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.2), var(--shadow-md);
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), 
+              box-shadow 0.3s ease, 
+              background-color 0.3s ease;
+  overflow: hidden;
+  will-change: transform, box-shadow;
+  transform: translateZ(0);
+}
+
+.btn-download-success::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.25),
+    transparent
+  );
+  transform: skewX(-20deg);
+  pointer-events: none;
+  animation: btn-shimmer-loop 3s infinite ease-in-out;
 }
 
 .btn-download-success:hover {
   background-color: #15803d;
-  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px) scale(1.03) translateZ(0);
+  box-shadow: 0 10px 25px -5px rgba(22, 163, 74, 0.4), 
+              0 0 15px 2px rgba(22, 163, 74, 0.2), 
+              var(--shadow-lg);
+}
+
+.btn-download-success:active {
+  transform: translateY(1px) scale(0.98) translateZ(0);
+}
+
+@keyframes btn-shimmer-loop {
+  0% {
+    left: -150%;
+  }
+  50%, 100% {
+    left: 150%;
+  }
 }
 
 .btn-reset {
