@@ -3006,6 +3006,61 @@ function App() {
                   ))}
                 </div>
               </div>
+            ) : loadingPreviews ? (
+              /* Sub-View: 4b. Smooth transition rendering page animation */
+              <div 
+                className="workspace-main" 
+                style={{ 
+                  minHeight: '480px', 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  gap: '2.5rem',
+                  padding: '3rem',
+                  backgroundColor: 'var(--bg-primary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-lg)',
+                  boxShadow: 'var(--shadow-sm)',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+              >
+                {/* Scanner effect overlay */}
+                <div className="scanner-line"></div>
+                
+                {/* 3D-like document loading illustration */}
+                <div className="rendering-document-wrapper">
+                  <div className="rendering-doc-page page-back"></div>
+                  <div className="rendering-doc-page page-mid"></div>
+                  <div className="rendering-doc-page page-front">
+                    <div className="rendering-doc-logo">PDF</div>
+                    <div className="rendering-progress-ring-container">
+                      <svg className="progress-ring-svg" viewBox="0 0 36 36">
+                        <path
+                          className="progress-ring-bg"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                        <path
+                          className="progress-ring-bar"
+                          strokeDasharray={`${previewProgress}, 100`}
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                      </svg>
+                      <span className="rendering-progress-text">{previewProgress}%</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', alignItems: 'center', zIndex: 5 }}>
+                  <h3 style={{ fontSize: '1.3rem', fontWeight: '800', color: 'var(--text-primary)' }}>
+                    Preparing document pages...
+                  </h3>
+                  <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', textAlign: 'center', maxWidth: '340px' }}>
+                    Generating high-fidelity page previews directly in your browser.
+                  </p>
+                </div>
+              </div>
             ) : (
               /* Sub-View: 5. File workspace with sidebars */
               <div className="workspace-layout">
@@ -3029,25 +3084,6 @@ function App() {
                       onChange={handleFileInput}
                     />
                   </div>
-
-                  {/* Cache rendering status indicator */}
-                  {loadingPreviews && (
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.75rem',
-                      padding: '0.75rem',
-                      marginBottom: '1rem',
-                      backgroundColor: 'var(--bg-primary)',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: 'var(--radius-md)'
-                    }}>
-                      <svg className="svg-morph-spinner" viewBox="0 0 50 50" style={{ width: '18px', height: '18px' }}>
-                        <circle className="path" cx="25" cy="25" r="20" fill="none" strokeWidth="5"></circle>
-                      </svg>
-                      <span style={{ fontSize: '0.8rem', fontWeight: '600' }}>Rendering page previews ({previewProgress}%)...</span>
-                    </div>
-                  )}
 
                   {/* Merge View or General File List */}
                   {activeTool === 'merge' ? (
