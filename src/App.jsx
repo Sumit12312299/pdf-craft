@@ -718,7 +718,8 @@ function App() {
       icon: <Combine size={24} />,
       category: 'Organize',
       multiple: true,
-      accept: '.pdf'
+      accept: '.pdf',
+      bentoClass: 'bento-wide'
     },
     {
       id: 'split',
@@ -736,7 +737,8 @@ function App() {
       icon: <Layers size={24} />,
       category: 'Organize',
       multiple: false,
-      accept: '.pdf'
+      accept: '.pdf',
+      bentoClass: 'bento-tall'
     },
     {
       id: 'sign',
@@ -745,7 +747,8 @@ function App() {
       icon: <PenTool size={24} />,
       category: 'Edits',
       multiple: false,
-      accept: '.pdf'
+      accept: '.pdf',
+      bentoClass: 'bento-large'
     },
     {
       id: 'qr',
@@ -781,7 +784,8 @@ function App() {
       icon: <Sliders size={24} />,
       category: 'Optimize',
       multiple: false,
-      accept: '.pdf'
+      accept: '.pdf',
+      bentoClass: 'bento-wide'
     },
     {
       id: 'rotate',
@@ -808,7 +812,8 @@ function App() {
       icon: <IconWordToPdf size={28} />,
       category: 'Convert to PDF',
       multiple: false,
-      accept: '.docx'
+      accept: '.docx',
+      bentoClass: 'bento-wide'
     },
     {
       id: 'pptx-to-pdf',
@@ -862,7 +867,8 @@ function App() {
       icon: <IconPdfToWord size={28} />,
       category: 'Convert from PDF',
       multiple: false,
-      accept: '.pdf'
+      accept: '.pdf',
+      bentoClass: 'bento-wide'
     },
     {
       id: 'pdf-to-pptx',
@@ -2454,11 +2460,16 @@ function App() {
                         return (
                           <div
                             key={tool.id}
-                            className="tool-card"
+                            className={`tool-card ${tool.bentoClass || ''}`}
                             style={{ animationDelay: `${currentDelayIndex * 35}ms` }}
                             onClick={() => setActiveTool(tool.id)}
                           >
                             <div className="tool-card-icon">{tool.icon}</div>
+                            {tool.bentoClass && (
+                              <span className="bento-badge">
+                                {tool.id === 'sign' ? 'E-Sign' : tool.id === 'compress' ? 'Popular' : 'High Performance'}
+                              </span>
+                            )}
                             <h3>{tool.title}</h3>
                             <p>{tool.description}</p>
                           </div>
