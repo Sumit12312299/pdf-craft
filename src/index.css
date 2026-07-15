@@ -1447,8 +1447,8 @@ html.dark .workspace-main.dropzone.active {
 
 .files-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 1.25rem;
   overflow-y: auto;
   max-height: 480px;
   padding: 0.5rem;
@@ -1457,68 +1457,116 @@ html.dark .workspace-main.dropzone.active {
 
 /* Pre-rendered Page Card style */
 .file-preview-card {
-  background-color: var(--bg-primary);
+  background-image: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 0.75rem;
+  border-radius: var(--radius-lg);
+  padding: 0.85rem;
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.75rem;
   align-items: center;
   box-shadow: var(--shadow-sm);
-  transition: all var(--transition-fast);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s ease,
+              box-shadow 0.25s ease,
+              opacity 0.25s ease;
   user-select: none;
 }
 
 .file-preview-card.selected {
   border-color: var(--accent-color);
-  background-color: var(--accent-light);
-  box-shadow: 0 0 0 1px var(--accent-color);
+  background-image: linear-gradient(135deg, var(--accent-light) 0%, rgba(220, 38, 38, 0.03) 100%);
+  box-shadow: 0 8px 20px -8px rgba(220, 38, 38, 0.2), 
+              0 0 0 1.5px var(--accent-color);
 }
 
 html.dark .file-preview-card.selected {
-  background-color: rgba(225, 29, 72, 0.15);
+  background-image: linear-gradient(135deg, rgba(225, 29, 72, 0.15) 0%, rgba(225, 29, 72, 0.02) 100%);
+  box-shadow: 0 8px 25px -8px rgba(239, 68, 68, 0.35), 
+              0 0 0 1.5px var(--accent-color);
 }
 
 .file-preview-card:hover {
-  border-color: var(--border-hover);
+  transform: translateY(-4px) scale(1.01) translateZ(0);
+  border-color: var(--accent-hover);
+  box-shadow: 0 12px 25px -10px rgba(0, 0, 0, 0.08), 
+              0 0 12px 1px rgba(220, 38, 38, 0.06), 
+              var(--shadow-md);
+}
+
+html.dark .file-preview-card:hover {
+  box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.4), 
+              0 0 15px 2px rgba(239, 68, 68, 0.08), 
+              var(--shadow-md);
 }
 
 .file-preview-thumbnail {
   width: 100%;
   aspect-ratio: 1 / 1.41;
   background-color: var(--bg-tertiary);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   position: relative;
   border: 1px solid var(--border-color);
-  transition: aspect-ratio 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform var(--transition-fast) ease-in-out;
+  padding: 3px;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+}
+
+.file-preview-card:hover .file-preview-thumbnail {
+  box-shadow: var(--shadow-sm);
 }
 
 .file-preview-img {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 4px;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .file-preview-info {
   width: 100%;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .file-preview-name {
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+  text-align: center;
+  width: auto;
+  max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  width: 100%;
+  box-shadow: inset var(--shadow-sm);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+html.dark .file-preview-name {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.file-preview-card:hover .file-preview-name {
+  border-color: rgba(220, 38, 38, 0.2);
+  background-color: var(--accent-light);
+  color: var(--accent-color);
+}
+
+html.dark .file-preview-card:hover .file-preview-name {
+  border-color: rgba(239, 68, 68, 0.25);
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #f87171;
 }
 
 .file-preview-pages {
@@ -1528,35 +1576,47 @@ html.dark .file-preview-card.selected {
 
 .card-actions {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: 6px;
+  right: 6px;
   display: flex;
-  gap: 2px;
+  gap: 4px;
   z-index: 10;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.file-preview-card:hover .card-actions {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .btn-card-action {
-  background-color: rgba(255, 255, 255, 0.95);
-  border: 1px solid #cbd5e1;
+  background-color: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   color: #ef4444;
   cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all var(--transition-fast);
+  box-shadow: var(--shadow-sm);
 }
 
 html.dark .btn-card-action {
-  background-color: rgba(17, 24, 39, 0.95);
-  border-color: #374151;
+  background-color: rgba(15, 23, 42, 0.8);
+  border-color: rgba(255, 255, 255, 0.05);
 }
 
 .btn-card-action:hover {
   background-color: #ef4444;
   color: white;
   border-color: #ef4444;
+  transform: scale(1.1);
 }
 
 .btn-card-action.rotate-btn {
@@ -1572,21 +1632,26 @@ html.dark .btn-card-action {
 /* Page Selection badge for splitting */
 .select-badge {
   position: absolute;
-  top: 6px;
-  left: 6px;
-  width: 18px;
-  height: 18px;
+  top: 8px;
+  left: 8px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  background-color: var(--bg-primary);
+  background-color: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
   border: 2px solid var(--text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
   color: transparent;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
   transition: all var(--transition-fast);
   z-index: 10;
+}
+
+html.dark .select-badge {
+  background-color: rgba(15, 23, 42, 0.85);
 }
 
 .file-preview-card.selected .select-badge {
@@ -1595,24 +1660,53 @@ html.dark .btn-card-action {
   color: white;
 }
 
-/* Reorder utilities */
+.file-preview-card:hover .select-badge {
+  border-color: var(--accent-color);
+}
+
+/* Unified navigation controls at card bottom */
 .card-nav-buttons {
   display: flex;
-  justify-content: space-between;
   width: 100%;
   margin-top: auto;
-  border-top: 1px solid var(--border-color);
-  padding-top: 0.5rem;
-  gap: 0.25rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  gap: 1px;
+  background-color: var(--border-color);
+}
+
+html.dark .card-nav-buttons {
+  background-color: var(--border-color);
 }
 
 .btn-nav {
   flex: 1;
-  font-size: 0.7rem;
-  padding: 0.25rem;
+  font-size: 0.65rem;
+  padding: 0.35rem 0.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
+  background-color: var(--bg-primary);
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.btn-nav:hover:not(:disabled) {
+  background-color: var(--accent-light);
+  color: var(--accent-color);
+}
+
+html.dark .btn-nav:hover:not(:disabled) {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+.btn-nav:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 /* Sidebar Sections & Inputs */
@@ -2501,9 +2595,16 @@ input:checked+.slider:before {
   justify-content: center;
   cursor: pointer;
   z-index: 15;
-  transition: all var(--transition-fast) ease-in-out;
   backdrop-filter: blur(4px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 0.25s ease, transform 0.25s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.file-preview-card:hover .btn-preview-eye {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .btn-preview-eye:hover {
