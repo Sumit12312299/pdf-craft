@@ -330,6 +330,30 @@ function App() {
   // Theme state
   const [theme, setTheme] = useState('light');
 
+  // 3D Hero Card Ref and Handlers
+  const heroCardRef = useRef(null);
+
+  const handleHeroMouseMove = (e) => {
+    if (!heroCardRef.current) return;
+    const card = heroCardRef.current;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left - rect.width / 2;
+    const y = e.clientY - rect.top - rect.height / 2;
+    
+    const normX = x / (rect.width / 2);
+    const normY = y / (rect.height / 2);
+    
+    const tiltX = -normY * 15;
+    const tiltY = normX * 15;
+    
+    card.style.transform = `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
+  };
+
+  const handleHeroMouseLeave = () => {
+    if (!heroCardRef.current) return;
+    heroCardRef.current.style.transform = `rotateX(0deg) rotateY(0deg)`;
+  };
+
   // Navigation
   const [activeTool, setActiveTool] = useState(null);
   const [gridMenuOpen, setGridMenuOpen] = useState(false);
@@ -2438,8 +2462,39 @@ function App() {
           /* Tool Grid View (Home) */
           <>
             <div className="hero">
-              <h1>Organize, compress, and edit PDFs.</h1>
-              <p>Simple, lightning-fast tools that run completely client-side in your browser. Your files never leave your computer, ensuring absolute privacy.</p>
+              <div className="hero-left">
+                <h1>Organize, compress, and edit PDFs.</h1>
+                <p>Simple, lightning-fast tools that run completely client-side in your browser. Your files never leave your computer, ensuring absolute privacy.</p>
+              </div>
+              <div className="hero-right">
+                <div 
+                  className="interactive-3d-card-container"
+                  onMouseMove={handleHeroMouseMove}
+                  onMouseLeave={handleHeroMouseLeave}
+                >
+                  <div className="interactive-3d-card" ref={heroCardRef}>
+                    <div className="card-layer background-layer"></div>
+                    <div className="card-layer document-layer">
+                      <div className="doc-header">
+                        <div className="doc-logo">PDF</div>
+                        <div className="doc-lines">
+                          <div className="doc-line short"></div>
+                          <div className="doc-line"></div>
+                        </div>
+                      </div>
+                      <div className="doc-pages-illustration">
+                        <div className="doc-illust-page page-1"></div>
+                        <div className="doc-illust-page page-2"></div>
+                        <div className="doc-illust-page page-3"></div>
+                      </div>
+                    </div>
+                    <div className="card-layer overlay-layer">
+                      <div className="floating-badge badge-secure">Secure</div>
+                      <div className="floating-badge badge-fast">Local</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div id="tools" className="tool-sections-container">
