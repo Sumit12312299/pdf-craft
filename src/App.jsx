@@ -3023,9 +3023,9 @@ function App() {
             ) : loadingPreviews ? (
               /* Sub-View: 4b. Smooth transition rendering page animation */
               <div 
-                className="workspace-main" 
+                className="workspace-main rendering-loader-container" 
                 style={{ 
-                  minHeight: '480px', 
+                  height: '480px', 
                   display: 'flex', 
                   flexDirection: 'column', 
                   alignItems: 'center', 

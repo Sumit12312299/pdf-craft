@@ -3003,6 +3003,21 @@ input:checked+.slider:before {
 }
 
 /* Document Rendering Transition Animation Styles */
+.rendering-loader-container {
+  animation: loaderFadeScaleIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes loaderFadeScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .rendering-document-wrapper {
   position: relative;
   width: 120px;
@@ -3025,6 +3040,7 @@ input:checked+.slider:before {
   align-items: center;
   justify-content: center;
   transform-style: preserve-3d;
+  will-change: transform;
 }
 
 html.dark .rendering-doc-page {
@@ -3034,20 +3050,20 @@ html.dark .rendering-doc-page {
 .rendering-doc-page.page-back {
   transform: translateZ(-20px) rotate(-6deg) translateY(5px);
   opacity: 0.5;
-  animation: page-float-back 3s infinite ease-in-out alternate;
+  animation: page-float-back 4s infinite cubic-bezier(0.445, 0.05, 0.55, 0.95) alternate;
 }
 
 .rendering-doc-page.page-mid {
   transform: translateZ(-10px) rotate(4deg) translateY(-2px);
   opacity: 0.8;
-  animation: page-float-mid 3s infinite ease-in-out alternate;
+  animation: page-float-mid 4s infinite cubic-bezier(0.445, 0.05, 0.55, 0.95) alternate;
 }
 
 .rendering-doc-page.page-front {
   transform: translateZ(0px);
   border-color: var(--accent-color);
   box-shadow: 0 10px 25px -10px rgba(220, 38, 38, 0.15);
-  animation: page-float-front 3s infinite ease-in-out alternate;
+  animation: page-float-front 4s infinite cubic-bezier(0.445, 0.05, 0.55, 0.95) alternate;
   padding: 1rem;
 }
 
@@ -3096,7 +3112,7 @@ html.dark .progress-ring-bg {
   stroke: var(--accent-color);
   stroke-width: 3.5;
   stroke-linecap: round;
-  transition: stroke-dasharray 0.3s ease;
+  transition: stroke-dasharray 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .rendering-progress-text {
@@ -3112,7 +3128,7 @@ html.dark .progress-ring-bg {
     transform: translateZ(-20px) rotate(-6deg) translateY(5px);
   }
   100% {
-    transform: translateZ(-25px) rotate(-8deg) translateY(8px);
+    transform: translateZ(-24px) rotate(-8deg) translateY(7px);
   }
 }
 
@@ -3121,7 +3137,7 @@ html.dark .progress-ring-bg {
     transform: translateZ(-10px) rotate(4deg) translateY(-2px);
   }
   100% {
-    transform: translateZ(-12px) rotate(6deg) translateY(2px);
+    transform: translateZ(-12px) rotate(5deg) translateY(1px);
   }
 }
 
@@ -3130,11 +3146,11 @@ html.dark .progress-ring-bg {
     transform: translateZ(0px) translateY(0px);
   }
   100% {
-    transform: translateZ(5px) translateY(-5px);
+    transform: translateZ(4px) translateY(-4px);
   }
 }
 
-/* Scanner glow effect */
+/* Scanner glow effect - Hardware Accelerated */
 .scanner-line {
   position: absolute;
   top: 0;
@@ -3145,17 +3161,19 @@ html.dark .progress-ring-bg {
   box-shadow: 0 0 15px 3px var(--accent-color);
   opacity: 0.7;
   z-index: 4;
-  animation: scanning-bar 4s infinite ease-in-out;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  animation: scanning-bar 3.5s infinite cubic-bezier(0.445, 0.05, 0.55, 0.95);
 }
 
 @keyframes scanning-bar {
   0% {
-    top: 0%;
+    transform: translate3d(0, 0, 0);
   }
   50% {
-    top: 100%;
+    transform: translate3d(0, 476px, 0);
   }
   100% {
-    top: 0%;
+    transform: translate3d(0, 0, 0);
   }
 }
