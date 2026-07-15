@@ -1389,22 +1389,33 @@ function App() {
     const maxW = container.clientWidth || renderedPageDimensions.w;
     const maxH = container.clientHeight || renderedPageDimensions.h;
 
+    let animationFrameId = null;
+
     const handleMove = (moveEvent) => {
       const moveClientX = moveEvent.type === 'touchmove' ? moveEvent.touches[0].clientX : moveEvent.clientX;
       const moveClientY = moveEvent.type === 'touchmove' ? moveEvent.touches[0].clientY : moveEvent.clientY;
 
-      // Adjust delta by zoom level so stamp moves accurately with cursor
-      const deltaX = (moveClientX - startX) / canvasZoom;
-      const deltaY = (moveClientY - startY) / canvasZoom;
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
 
-      // Bound checking within the rendered page container
-      const newX = Math.max(0, Math.min(maxW - sigPos.w, initLeft + deltaX));
-      const newY = Math.max(0, Math.min(maxH - sigPos.h, initTop + deltaY));
+      animationFrameId = requestAnimationFrame(() => {
+        // Adjust delta by zoom level so stamp moves accurately with cursor
+        const deltaX = (moveClientX - startX) / canvasZoom;
+        const deltaY = (moveClientY - startY) / canvasZoom;
 
-      setSigPos(prev => ({ ...prev, x: newX, y: newY }));
+        // Bound checking within the rendered page container
+        const newX = Math.max(0, Math.min(maxW - sigPos.w, initLeft + deltaX));
+        const newY = Math.max(0, Math.min(maxH - sigPos.h, initTop + deltaY));
+
+        setSigPos(prev => ({ ...prev, x: newX, y: newY }));
+      });
     };
 
     const handleEnd = () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
       if (isTouch) {
         document.removeEventListener('touchmove', handleMove);
         document.removeEventListener('touchend', handleEnd);
@@ -1440,22 +1451,33 @@ function App() {
 
     setIsPanning(true);
 
+    let animationFrameId = null;
+
     const handlePanMove = (moveEvent) => {
       const moveClientX = moveEvent.type === 'touchmove' ? moveEvent.touches[0].clientX : moveEvent.clientX;
       const moveClientY = moveEvent.type === 'touchmove' ? moveEvent.touches[0].clientY : moveEvent.clientY;
 
-      // Pan translation should also adapt to scale so panning speed matches cursor
-      const deltaX = (moveClientX - startX) / canvasZoom;
-      const deltaY = (moveClientY - startY) / canvasZoom;
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
 
-      setPanPos({
-        x: startPanX + deltaX,
-        y: startPanY + deltaY
+      animationFrameId = requestAnimationFrame(() => {
+        // Pan translation should also adapt to scale so panning speed matches cursor
+        const deltaX = (moveClientX - startX) / canvasZoom;
+        const deltaY = (moveClientY - startY) / canvasZoom;
+
+        setPanPos({
+          x: startPanX + deltaX,
+          y: startPanY + deltaY
+        });
       });
     };
 
     const handlePanEnd = () => {
       setIsPanning(false);
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
       if (isTouch) {
         document.removeEventListener('touchmove', handlePanMove);
         document.removeEventListener('touchend', handlePanEnd);
@@ -1515,41 +1537,52 @@ function App() {
     const isTouch = e.type === 'touchstart';
     const rect = pageImageRef.current.getBoundingClientRect();
     
+    let animationFrameId = null;
+
     const handleMove = (moveEvent) => {
       const clientX = moveEvent.type === 'touchmove' ? moveEvent.touches[0].clientX : moveEvent.clientX;
       const clientY = moveEvent.type === 'touchmove' ? moveEvent.touches[0].clientY : moveEvent.clientY;
       
-      const pctX = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
-      const pctY = Math.max(0, Math.min(100, ((clientY - rect.top) / rect.height) * 100));
-      
-      setCropMargins(prev => {
-        const next = { ...prev };
-        if (handle === 'tl') {
-          next.left = Math.min(100 - prev.right - 5, pctX);
-          next.top = Math.min(100 - prev.bottom - 5, pctY);
-        } else if (handle === 'tr') {
-          next.right = Math.min(100 - prev.left - 5, 100 - pctX);
-          next.top = Math.min(100 - prev.bottom - 5, pctY);
-        } else if (handle === 'bl') {
-          next.left = Math.min(100 - prev.right - 5, pctX);
-          next.bottom = Math.min(100 - prev.top - 5, 100 - pctY);
-        } else if (handle === 'br') {
-          next.right = Math.min(100 - prev.left - 5, 100 - pctX);
-          next.bottom = Math.min(100 - prev.top - 5, 100 - pctY);
-        } else if (handle === 'top') {
-          next.top = Math.min(100 - prev.bottom - 5, pctY);
-        } else if (handle === 'bottom') {
-          next.bottom = Math.min(100 - prev.top - 5, 100 - pctY);
-        } else if (handle === 'left') {
-          next.left = Math.min(100 - prev.right - 5, pctX);
-        } else if (handle === 'right') {
-          next.right = Math.min(100 - prev.left - 5, 100 - pctX);
-        }
-        return next;
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+
+      animationFrameId = requestAnimationFrame(() => {
+        const pctX = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+        const pctY = Math.max(0, Math.min(100, ((clientY - rect.top) / rect.height) * 100));
+        
+        setCropMargins(prev => {
+          const next = { ...prev };
+          if (handle === 'tl') {
+            next.left = Math.min(100 - prev.right - 5, pctX);
+            next.top = Math.min(100 - prev.bottom - 5, pctY);
+          } else if (handle === 'tr') {
+            next.right = Math.min(100 - prev.left - 5, 100 - pctX);
+            next.top = Math.min(100 - prev.bottom - 5, pctY);
+          } else if (handle === 'bl') {
+            next.left = Math.min(100 - prev.right - 5, pctX);
+            next.bottom = Math.min(100 - prev.top - 5, 100 - pctY);
+          } else if (handle === 'br') {
+            next.right = Math.min(100 - prev.left - 5, 100 - pctX);
+            next.bottom = Math.min(100 - prev.top - 5, 100 - pctY);
+          } else if (handle === 'top') {
+            next.top = Math.min(100 - prev.bottom - 5, pctY);
+          } else if (handle === 'bottom') {
+            next.bottom = Math.min(100 - prev.top - 5, 100 - pctY);
+          } else if (handle === 'left') {
+            next.left = Math.min(100 - prev.right - 5, pctX);
+          } else if (handle === 'right') {
+            next.right = Math.min(100 - prev.left - 5, 100 - pctX);
+          }
+          return next;
+        });
       });
     };
     
     const handleEnd = () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
       if (isTouch) {
         document.removeEventListener('touchmove', handleMove);
         document.removeEventListener('touchend', handleEnd);
