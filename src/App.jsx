@@ -2483,9 +2483,23 @@ function App() {
                         </div>
                       </div>
                       <div className="doc-pages-illustration">
-                        <div className="doc-illust-page page-1"></div>
-                        <div className="doc-illust-page page-2"></div>
-                        <div className="doc-illust-page page-3"></div>
+                        <div className="doc-illust-page page-1">
+                          <div className="page-line heading"></div>
+                          <div className="page-line body-line"></div>
+                          <div className="page-line body-line long"></div>
+                        </div>
+                        <div className="doc-illust-page page-2">
+                          <div className="page-line heading accent"></div>
+                          <div className="page-line body-line short"></div>
+                          <div className="page-illust-content">
+                            <div className="mini-signature"></div>
+                          </div>
+                        </div>
+                        <div className="doc-illust-page page-3">
+                          <div className="page-line heading"></div>
+                          <div className="page-line body-line"></div>
+                          <div className="page-line body-line short"></div>
+                        </div>
                       </div>
                     </div>
                     <div className="card-layer overlay-layer">

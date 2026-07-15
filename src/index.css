@@ -797,7 +797,10 @@ html.dark .grid-menu-dropdown {
 }
 
 .card-layer.background-layer {
-  background: linear-gradient(135deg, rgba(220, 38, 38, 0.08) 0%, rgba(239, 68, 68, 0.02) 100%);
+  background: 
+    radial-gradient(var(--border-hover) 1px, transparent 1px),
+    linear-gradient(135deg, rgba(220, 38, 38, 0.08) 0%, rgba(239, 68, 68, 0.02) 100%);
+  background-size: 12px 12px, 100% 100%;
   border: 1px solid var(--border-color);
   backdrop-filter: blur(8px);
   transform: translateZ(0px);
@@ -805,7 +808,10 @@ html.dark .grid-menu-dropdown {
 }
 
 html.dark .card-layer.background-layer {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(17, 24, 39, 0.6) 100%);
+  background: 
+    radial-gradient(rgba(239, 68, 68, 0.15) 1px, transparent 1px),
+    linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(17, 24, 39, 0.6) 100%);
+  background-size: 12px 12px, 100% 100%;
   border-color: rgba(239, 68, 68, 0.15);
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
@@ -871,10 +877,74 @@ html.dark .doc-line {
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-sm);
   transition: transform 0.3s ease;
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow: hidden;
 }
 
 html.dark .doc-illust-page {
   background-color: var(--bg-secondary);
+}
+
+.page-line {
+  height: 2px;
+  background-color: var(--border-hover);
+  border-radius: var(--radius-full);
+  width: 100%;
+}
+
+html.dark .page-line {
+  background-color: var(--bg-tertiary);
+}
+
+.page-line.heading {
+  height: 3px;
+  width: 60%;
+  background-color: var(--text-secondary);
+}
+
+.page-line.heading.accent {
+  background-color: var(--accent-color);
+}
+
+.page-line.body-line {
+  width: 90%;
+}
+
+.page-line.body-line.long {
+  width: 100%;
+}
+
+.page-line.body-line.short {
+  width: 50%;
+}
+
+.page-illust-content {
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+.mini-signature {
+  width: 24px;
+  height: 6px;
+  border-bottom: 1px solid var(--accent-color);
+  position: relative;
+}
+
+.mini-signature::after {
+  content: "";
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background-color: var(--accent-color);
+  top: 1px;
+  right: 4px;
 }
 
 .doc-illust-page.page-1 {
@@ -958,7 +1028,10 @@ html.dark .doc-illust-page {
 
 .tool-card {
   position: relative;
-  background-color: var(--bg-primary);
+  background-image: 
+    radial-gradient(var(--border-color) 1px, transparent 1px),
+    linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  background-size: 10px 10px, 100% 100%;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 1.5rem;
@@ -976,6 +1049,12 @@ html.dark .doc-illust-page {
   overflow: hidden;
   will-change: transform, box-shadow, border-color;
   transform: translateZ(0);
+}
+
+html.dark .tool-card {
+  background-image: 
+    radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
 }
 
 /* Glass shine reflection sweep animation on hover */
@@ -1013,7 +1092,9 @@ html.dark .tool-card::before {
   box-shadow: 0 10px 30px -10px rgba(220, 38, 38, 0.25),
     0 1px 3px rgba(0, 0, 0, 0.05),
     0 0 15px 2px rgba(220, 38, 38, 0.12);
-  background-color: var(--bg-primary);
+  background-image: 
+    radial-gradient(rgba(220, 38, 38, 0.15) 1px, transparent 1px),
+    linear-gradient(135deg, var(--bg-primary) 0%, rgba(220, 38, 38, 0.02) 100%);
 }
 
 html.dark .tool-card:hover {
@@ -1022,6 +1103,9 @@ html.dark .tool-card:hover {
   box-shadow: 0 10px 30px -10px rgba(239, 68, 68, 0.35),
     0 1px 3px rgba(0, 0, 0, 0.3),
     0 0 20px 2px rgba(239, 68, 68, 0.18);
+  background-image: 
+    radial-gradient(rgba(239, 68, 68, 0.25) 1px, transparent 1px),
+    linear-gradient(135deg, var(--bg-primary) 0%, rgba(239, 68, 68, 0.03) 100%);
 }
 
 .tool-card-icon {
