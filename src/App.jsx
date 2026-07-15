@@ -718,8 +718,7 @@ function App() {
       icon: <Combine size={24} />,
       category: 'Organize',
       multiple: true,
-      accept: '.pdf',
-      bentoClass: 'bento-wide'
+      accept: '.pdf'
     },
     {
       id: 'split',
@@ -737,8 +736,7 @@ function App() {
       icon: <Layers size={24} />,
       category: 'Organize',
       multiple: false,
-      accept: '.pdf',
-      bentoClass: 'bento-tall'
+      accept: '.pdf'
     },
     {
       id: 'sign',
@@ -747,8 +745,7 @@ function App() {
       icon: <PenTool size={24} />,
       category: 'Edits',
       multiple: false,
-      accept: '.pdf',
-      bentoClass: 'bento-large'
+      accept: '.pdf'
     },
     {
       id: 'qr',
@@ -784,8 +781,7 @@ function App() {
       icon: <Sliders size={24} />,
       category: 'Optimize',
       multiple: false,
-      accept: '.pdf',
-      bentoClass: 'bento-wide'
+      accept: '.pdf'
     },
     {
       id: 'rotate',
@@ -812,8 +808,7 @@ function App() {
       icon: <IconWordToPdf size={28} />,
       category: 'Convert to PDF',
       multiple: false,
-      accept: '.docx',
-      bentoClass: 'bento-wide'
+      accept: '.docx'
     },
     {
       id: 'pptx-to-pdf',
@@ -867,8 +862,7 @@ function App() {
       icon: <IconPdfToWord size={28} />,
       category: 'Convert from PDF',
       multiple: false,
-      accept: '.pdf',
-      bentoClass: 'bento-wide'
+      accept: '.pdf'
     },
     {
       id: 'pdf-to-pptx',
@@ -1444,7 +1438,7 @@ function App() {
   const handleBackgroundMouseDown = (e) => {
     // Return if the click/touch is on the draggable stamp itself
     if (e.target.closest('.draggable-stamp')) return;
-    
+
     // Check if clicked element is a button (e.g. inside toolbar)
     if (e.target.closest('button')) return;
 
@@ -1539,16 +1533,16 @@ function App() {
   const handleCropHandleMouseDown = (handle, e) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     const isTouch = e.type === 'touchstart';
     const rect = pageImageRef.current.getBoundingClientRect();
-    
+
     let animationFrameId = null;
 
     const handleMove = (moveEvent) => {
       const clientX = moveEvent.type === 'touchmove' ? moveEvent.touches[0].clientX : moveEvent.clientX;
       const clientY = moveEvent.type === 'touchmove' ? moveEvent.touches[0].clientY : moveEvent.clientY;
-      
+
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
       }
@@ -1556,7 +1550,7 @@ function App() {
       animationFrameId = requestAnimationFrame(() => {
         const pctX = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
         const pctY = Math.max(0, Math.min(100, ((clientY - rect.top) / rect.height) * 100));
-        
+
         setCropMargins(prev => {
           const next = { ...prev };
           if (handle === 'tl') {
@@ -1584,7 +1578,7 @@ function App() {
         });
       });
     };
-    
+
     const handleEnd = () => {
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
@@ -1597,7 +1591,7 @@ function App() {
         document.removeEventListener('mouseup', handleEnd);
       }
     };
-    
+
     if (isTouch) {
       document.addEventListener('touchmove', handleMove, { passive: false });
       document.addEventListener('touchend', handleEnd);
@@ -2460,16 +2454,11 @@ function App() {
                         return (
                           <div
                             key={tool.id}
-                            className={`tool-card ${tool.bentoClass || ''}`}
+                            className="tool-card"
                             style={{ animationDelay: `${currentDelayIndex * 35}ms` }}
                             onClick={() => setActiveTool(tool.id)}
                           >
                             <div className="tool-card-icon">{tool.icon}</div>
-                            {tool.bentoClass && (
-                              <span className="bento-badge">
-                                {tool.id === 'sign' ? 'E-Sign' : tool.id === 'compress' ? 'Popular' : 'High Performance'}
-                              </span>
-                            )}
                             <h3>{tool.title}</h3>
                             <p>{tool.description}</p>
                           </div>
@@ -2808,7 +2797,7 @@ function App() {
                 </div>
               </div>
             ) : (activeTool !== 'qr-generator' && resultBlob) ? (
-                    <div className="workspace-main workspace-success-card" style={{ minHeight: '380px' }}>
+              <div className="workspace-main workspace-success-card" style={{ minHeight: '380px' }}>
                 <div className="success-screen">
                   <div className="success-checkmark-wrapper">
                     <div className="halo-wave w1"></div>
@@ -3088,7 +3077,7 @@ function App() {
                                 setOrganizePages(list);
                               }}
                               onDragEnd={() => setDraggedPageIndex(null)}
-                              style={{ 
+                              style={{
                                 cursor: 'grab',
                                 opacity: draggedPageIndex === idx ? 0.4 : 1,
                                 transition: 'transform 0.15s ease, box-shadow 0.15s ease',
@@ -3217,7 +3206,7 @@ function App() {
                         </div>
 
                         {/* Interactive Page Canvas Wrapper */}
-                        <div 
+                        <div
                           onMouseDown={handleBackgroundMouseDown}
                           onTouchStart={handleBackgroundMouseDown}
                           style={{
@@ -3254,14 +3243,14 @@ function App() {
                               ref={pageImageRef}
                               src={highResSignPageUrl || pagePreviews.find(p => p.originalIndex === activePageToSign)?.dataUrl}
                               onLoad={handlePageImageLoad}
-                              style={{ 
-                                display: 'block', 
-                                width: 'auto', 
-                                height: '100%', 
-                                maxWidth: '100%', 
-                                maxHeight: '100%', 
-                                objectFit: 'contain', 
-                                pointerEvents: 'none' 
+                              style={{
+                                display: 'block',
+                                width: 'auto',
+                                height: '100%',
+                                maxWidth: '100%',
+                                maxHeight: '100%',
+                                objectFit: 'contain',
+                                pointerEvents: 'none'
                               }}
                               alt="page to stamp"
                             />
@@ -3303,9 +3292,9 @@ function App() {
                             boxShadow: 'var(--shadow-md)',
                             zIndex: 20
                           }}>
-                            <button 
+                            <button
                               type="button"
-                              className="btn-icon" 
+                              className="btn-icon"
                               style={{ padding: '2px 8px', fontSize: '0.8rem', fontWeight: 'bold', minWidth: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                               onClick={() => setCanvasZoom(prev => Math.max(1, prev - 0.25))}
                               disabled={canvasZoom <= 1}
@@ -3315,9 +3304,9 @@ function App() {
                             <span style={{ fontSize: '0.75rem', fontWeight: '600', minWidth: '42px', textAlign: 'center', color: 'var(--text-primary)' }}>
                               {Math.round(canvasZoom * 100)}%
                             </span>
-                            <button 
+                            <button
                               type="button"
-                              className="btn-icon" 
+                              className="btn-icon"
                               style={{ padding: '2px 8px', fontSize: '0.8rem', fontWeight: 'bold', minWidth: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                               onClick={() => setCanvasZoom(prev => Math.min(3, prev + 0.25))}
                               disabled={canvasZoom >= 3}
@@ -3325,9 +3314,9 @@ function App() {
                               +
                             </button>
                             <div style={{ width: '1px', height: '14px', backgroundColor: 'var(--border-color)', margin: '0 4px' }} />
-                            <button 
+                            <button
                               type="button"
-                              className="btn-icon" 
+                              className="btn-icon"
                               style={{ padding: '2px 6px', fontSize: '0.7rem', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                               onClick={() => { setCanvasZoom(2); setPanPos({ x: 0, y: 0 }); }}
                               disabled={canvasZoom === 2 && panPos.x === 0 && panPos.y === 0}
@@ -3355,7 +3344,7 @@ function App() {
                               <div
                                 key={originalIdx}
                                 className="file-preview-card"
-                                style={{ 
+                                style={{
                                   border: pageStampCount > 0 ? '1.5px solid var(--success-color)' : '1px solid var(--border-color)',
                                   animationDelay: `${originalIdx * 25}ms`
                                 }}
@@ -3457,7 +3446,7 @@ function App() {
                         </div>
 
                         {/* Interactive Page Crop Canvas Wrapper */}
-                        <div 
+                        <div
                           onMouseDown={handleBackgroundMouseDown}
                           onTouchStart={handleBackgroundMouseDown}
                           style={{
@@ -3494,14 +3483,14 @@ function App() {
                               ref={pageImageRef}
                               src={highResCropPageUrl || pagePreviews.find(p => p.originalIndex === activePageToCrop)?.dataUrl}
                               onLoad={handlePageImageLoad}
-                              style={{ 
-                                display: 'block', 
-                                width: 'auto', 
-                                height: '100%', 
-                                maxWidth: '100%', 
-                                maxHeight: '100%', 
-                                objectFit: 'contain', 
-                                pointerEvents: 'none' 
+                              style={{
+                                display: 'block',
+                                width: 'auto',
+                                height: '100%',
+                                maxWidth: '100%',
+                                maxHeight: '100%',
+                                objectFit: 'contain',
+                                pointerEvents: 'none'
                               }}
                               alt="page to crop"
                             />
@@ -3678,9 +3667,9 @@ function App() {
                             boxShadow: 'var(--shadow-md)',
                             zIndex: 20
                           }}>
-                            <button 
+                            <button
                               type="button"
-                              className="btn-icon" 
+                              className="btn-icon"
                               style={{ padding: '2px 8px', fontSize: '0.8rem', fontWeight: 'bold', minWidth: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                               onClick={() => setCanvasZoom(prev => Math.max(1, prev - 0.25))}
                               disabled={canvasZoom <= 1}
@@ -3690,9 +3679,9 @@ function App() {
                             <span style={{ fontSize: '0.75rem', fontWeight: '600', minWidth: '42px', textAlign: 'center', color: 'var(--text-primary)' }}>
                               {Math.round(canvasZoom * 100)}%
                             </span>
-                            <button 
+                            <button
                               type="button"
-                              className="btn-icon" 
+                              className="btn-icon"
                               style={{ padding: '2px 8px', fontSize: '0.8rem', fontWeight: 'bold', minWidth: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                               onClick={() => setCanvasZoom(prev => Math.min(3, prev + 0.25))}
                               disabled={canvasZoom >= 3}
@@ -3700,9 +3689,9 @@ function App() {
                               +
                             </button>
                             <div style={{ width: '1px', height: '14px', backgroundColor: 'var(--border-color)', margin: '0 4px' }} />
-                            <button 
+                            <button
                               type="button"
-                              className="btn-icon" 
+                              className="btn-icon"
                               style={{ padding: '2px 6px', fontSize: '0.7rem', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                               onClick={() => { setCanvasZoom(2); setPanPos({ x: 0, y: 0 }); }}
                               disabled={canvasZoom === 2 && panPos.x === 0 && panPos.y === 0}
@@ -3734,8 +3723,8 @@ function App() {
                                 {pageCrop && (
                                   <div style={{ position: 'absolute', top: '6px', left: '6px', backgroundColor: 'var(--success-color)', color: 'white', borderRadius: 'var(--radius-md)', padding: '2px 6px', fontSize: '9px', fontWeight: '800', zIndex: 10, display: 'flex', alignItems: 'center', gap: '6px' }}>
                                     <span>Cropped ({pageCrop.left}%)</span>
-                                    <button 
-                                      style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', fontWeight: '900', fontSize: '10px' }} 
+                                    <button
+                                      style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', fontWeight: '900', fontSize: '10px' }}
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setPlacedCrops(prev => {
@@ -3752,11 +3741,11 @@ function App() {
                                 <div className="file-preview-thumbnail" style={{ position: 'relative', overflow: 'hidden' }}>
                                   {previewObj ? (
                                     <>
-                                      <div style={{ 
-                                        position: 'relative', 
-                                        display: 'inline-flex', 
-                                        maxHeight: '100%', 
-                                        maxWidth: '100%', 
+                                      <div style={{
+                                        position: 'relative',
+                                        display: 'inline-flex',
+                                        maxHeight: '100%',
+                                        maxWidth: '100%',
                                         overflow: 'hidden',
                                         clipPath: pageCrop ? `inset(${pageCrop.top}% ${pageCrop.right}% ${pageCrop.bottom}% ${pageCrop.left}%)` : 'none',
                                         transform: pageCrop ? `scale(${1 / Math.max(0.1, 1 - Math.max(pageCrop.left + pageCrop.right, pageCrop.top + pageCrop.bottom) / 100)})` : 'none',
@@ -3856,10 +3845,10 @@ function App() {
                               className="file-preview-card"
                               style={{ animationDelay: `${originalIdx * 25}ms` }}
                             >
-                              <div 
-                                className="file-preview-thumbnail" 
-                                style={{ 
-                                  position: 'relative', 
+                              <div
+                                className="file-preview-thumbnail"
+                                style={{
+                                  position: 'relative',
                                   overflow: 'hidden',
                                   containerType: 'inline-size'
                                 }}
@@ -3874,7 +3863,7 @@ function App() {
                                         style={{ display: 'block', maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
                                       />
                                     </div>
-                                    
+
                                     {/* Watermark Overlay */}
                                     {activeTool === 'watermark' && (
                                       <div style={{
@@ -3921,12 +3910,12 @@ function App() {
                                         whiteSpace: 'nowrap',
                                         ...getPositionStyle(pageNumberOptions.position)
                                       }}>
-                                        {pageNumberOptions.style === 'detailed' 
-                                          ? `Page ${pageNumberOptions.startNumber + originalIdx} of ${uploadedFiles[0].pageCount}` 
+                                        {pageNumberOptions.style === 'detailed'
+                                          ? `Page ${pageNumberOptions.startNumber + originalIdx} of ${uploadedFiles[0].pageCount}`
                                           : `${pageNumberOptions.startNumber + originalIdx}`}
                                       </div>
                                     )}
-                                    
+
                                     <button
                                       className="btn-preview-eye"
                                       title="Preview Page"
@@ -3956,13 +3945,13 @@ function App() {
                       <div className="files-grid">
                         {uploadedFiles.map((file, idx) => {
                           const isLandscape = imgToPdfOptions.orientation === 'landscape';
-                          const dynamicAspectRatio = isLandscape 
-                            ? (imgToPdfOptions.layout === 'letter' ? '792 / 612' : '842 / 595') 
+                          const dynamicAspectRatio = isLandscape
+                            ? (imgToPdfOptions.layout === 'letter' ? '792 / 612' : '842 / 595')
                             : (imgToPdfOptions.layout === 'letter' ? '612 / 792' : '595 / 842');
 
                           return (
-                            <div 
-                              key={idx} 
+                            <div
+                              key={idx}
                               className={`file-preview-card ${draggedPageIndex === idx ? 'dragging' : ''}`}
                               draggable={true}
                               onDragStart={(e) => {
@@ -3983,7 +3972,7 @@ function App() {
                                 setUploadedFiles(list);
                               }}
                               onDragEnd={() => setDraggedPageIndex(null)}
-                              style={{ 
+                              style={{
                                 animationDelay: `${idx * 25}ms`,
                                 cursor: 'grab',
                                 opacity: draggedPageIndex === idx ? 0.4 : 1,
@@ -3991,11 +3980,11 @@ function App() {
                                 border: draggedPageIndex === idx ? '2px dashed var(--accent-color)' : '1px solid var(--border-color)'
                               }}
                             >
-                              <div 
-                                className="file-preview-thumbnail" 
-                                style={{ 
-                                  position: 'relative', 
-                                  aspectRatio: dynamicAspectRatio 
+                              <div
+                                className="file-preview-thumbnail"
+                                style={{
+                                  position: 'relative',
+                                  aspectRatio: dynamicAspectRatio
                                 }}
                               >
                                 <img src={file.firstPagePreview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="uploaded" />
@@ -4050,25 +4039,25 @@ function App() {
                       }}>
                         {uploadedFiles[0].firstPagePreview ? (
                           <>
-                            <img 
-                               src={uploadedFiles[0].firstPagePreview} 
-                               style={{ 
-                                 width: '100%', 
-                                 height: '100%', 
-                                 objectFit: 'contain',
-                                 transform: activeTool === 'rotate' ? `rotate(${globalRotation}deg)` : 'none',
-                                 transition: 'transform 0.2s ease-in-out'
-                               }} 
-                               alt="File Preview" 
-                             />
-                             <button
-                               className="btn-preview-eye"
-                               title="Preview Page"
-                               onClick={(e) => {
-                                 e.stopPropagation();
-                                 openLightbox(uploadedFiles[0], 0, uploadedFiles[0].firstPagePreview, uploadedFiles[0].name, activeTool === 'rotate' ? globalRotation : 0);
-                               }}
-                             >
+                            <img
+                              src={uploadedFiles[0].firstPagePreview}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'contain',
+                                transform: activeTool === 'rotate' ? `rotate(${globalRotation}deg)` : 'none',
+                                transition: 'transform 0.2s ease-in-out'
+                              }}
+                              alt="File Preview"
+                            />
+                            <button
+                              className="btn-preview-eye"
+                              title="Preview Page"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openLightbox(uploadedFiles[0], 0, uploadedFiles[0].firstPagePreview, uploadedFiles[0].name, activeTool === 'rotate' ? globalRotation : 0);
+                              }}
+                            >
                               <Eye size={14} />
                             </button>
                           </>
@@ -4838,12 +4827,12 @@ function App() {
                       <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                         Convert all colored elements (images, texts, shapes) of the PDF to grayscale. Perfect for saving colored printer ink.
                       </p>
-                      <div className="option-info-box" style={{ 
-                        backgroundColor: 'var(--bg-secondary)', 
-                        border: '1px solid var(--border-color)', 
-                        borderRadius: 'var(--radius-md)', 
-                        padding: '0.75rem', 
-                        fontSize: '0.75rem', 
+                      <div className="option-info-box" style={{
+                        backgroundColor: 'var(--bg-secondary)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '0.75rem',
+                        fontSize: '0.75rem',
                         marginTop: '0.5rem',
                         color: 'var(--text-secondary)',
                         display: 'flex',
@@ -5358,13 +5347,13 @@ function App() {
                   <div className="lightbox-loader"></div>
                 </div>
               )}
-              
+
               <div style={{ position: 'relative', display: 'inline-flex', maxWidth: '100%' }}>
-                <img 
-                  src={previewModalImage} 
-                  alt="Page Preview" 
-                  className="preview-lightbox-img" 
-                  style={{ 
+                <img
+                  src={previewModalImage}
+                  alt="Page Preview"
+                  className="preview-lightbox-img"
+                  style={{
                     display: 'block',
                     transform: (!isHighResRendered && previewModalRotation) ? `rotate(${previewModalRotation}deg)` : 'none',
                     maxHeight: (!isHighResRendered && (previewModalRotation === 90 || previewModalRotation === 270)) ? '70vw' : '75vh',
@@ -5372,9 +5361,9 @@ function App() {
                     width: 'auto',
                     height: 'auto',
                     transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
-                  }} 
+                  }}
                 />
-                
+
                 {/* Visual signature / QR stamp overlays in the lightbox preview */}
                 {(activeTool === 'sign' || activeTool === 'qr') && previewModalPageIndex !== null && (
                   placedSignatures.filter(s => s.pageIndex === previewModalPageIndex).map((stamp, sIdx) => {
@@ -5448,8 +5437,8 @@ function App() {
                     whiteSpace: 'nowrap',
                     ...getPositionStyle(pageNumberOptions.position)
                   }}>
-                    {pageNumberOptions.style === 'detailed' 
-                      ? `Page ${pageNumberOptions.startNumber + previewModalPageIndex} of ${uploadedFiles[0].pageCount}` 
+                    {pageNumberOptions.style === 'detailed'
+                      ? `Page ${pageNumberOptions.startNumber + previewModalPageIndex} of ${uploadedFiles[0].pageCount}`
                       : `${pageNumberOptions.startNumber + previewModalPageIndex}`}
                   </div>
                 )}
