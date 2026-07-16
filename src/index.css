@@ -102,8 +102,6 @@ body::before {
     radial-gradient(circle at 15% 15%, rgba(220, 38, 38, 0.06) 0%, transparent 40%),
     radial-gradient(circle at 85% 85%, rgba(239, 68, 68, 0.04) 0%, transparent 45%),
     radial-gradient(circle at 50% 50%, rgba(220, 38, 38, 0.02) 0%, transparent 60%);
-  background-size: 200% 200%;
-  animation: aurora-flow 25s infinite ease-in-out alternate;
   pointer-events: none;
   transition: background-color var(--transition-normal);
 }
@@ -113,35 +111,6 @@ html.dark body::before {
     radial-gradient(circle at 15% 15%, rgba(239, 68, 68, 0.04) 0%, transparent 45%),
     radial-gradient(circle at 85% 85%, rgba(220, 38, 38, 0.03) 0%, transparent 50%),
     radial-gradient(circle at 50% 50%, rgba(239, 68, 68, 0.015) 0%, transparent 60%);
-}
-
-body::after {
-  content: "";
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: -1;
-  opacity: 0.018; /* Extremely subtle grain */
-  pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 250 250' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-}
-
-html.dark body::after {
-  opacity: 0.028; /* Slightly more contrast for dark mode */
-}
-
-@keyframes aurora-flow {
-  0% {
-    background-position: 0% 0%, 100% 100%, 50% 50%;
-  }
-  50% {
-    background-position: 100% 50%, 0% 50%, 50% 100%;
-  }
-  100% {
-    background-position: 50% 100%, 50% 0%, 0% 0%;
-  }
 }
 
 /* Scrollbar styles */
@@ -193,6 +162,8 @@ html.dark body::after {
   z-index: 1000;
   backdrop-filter: blur(10px);
   background-color: rgba(255, 255, 255, 0.9);
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
 }
 
 html.dark .navbar {
@@ -680,7 +651,7 @@ html.dark .grid-menu-dropdown {
   font-weight: 500;
   padding: 0.4rem 0.75rem;
   border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
+  transition: background-color var(--transition-fast), color var(--transition-fast), padding-left var(--transition-fast);
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -1062,15 +1033,15 @@ html.dark .tool-card {
   content: '';
   position: absolute;
   top: 0;
-  left: -150%;
+  left: 0;
   width: 100%;
   height: 100%;
   background: linear-gradient(90deg,
       transparent,
       rgba(255, 255, 255, 0.1),
       transparent);
-  transform: skewX(-25deg);
-  transition: 0.75s ease;
+  transform: translateX(-100%) skewX(-25deg);
+  transition: transform 0.75s ease;
   pointer-events: none;
   z-index: 1;
 }
@@ -1083,7 +1054,7 @@ html.dark .tool-card::before {
 }
 
 .tool-card:hover::before {
-  left: 150%;
+  transform: translateX(100%) skewX(-25deg);
 }
 
 .tool-card:hover {
@@ -1168,6 +1139,7 @@ html.dark .tool-card:hover .tool-card-icon {
   flex-direction: column;
   flex: 1;
   animation: fadeIn 0.25s ease;
+  will-change: opacity;
 }
 
 .workspace-header {
@@ -1258,6 +1230,7 @@ html.dark .tool-card:hover .tool-card-icon {
   position: relative;
   overflow: hidden;
   animation: slideInFromLeft 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
 }
 
 .workspace-sidebar {
@@ -1270,6 +1243,7 @@ html.dark .tool-card:hover .tool-card-icon {
   gap: 1.5rem;
   box-shadow: var(--shadow-sm);
   animation: slideInFromRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
 }
 
 @keyframes slideInFromLeft {
@@ -2140,14 +2114,14 @@ html.dark .workspace-success-card::before {
   content: '';
   position: absolute;
   top: 0;
-  left: -150%;
+  left: 0;
   width: 100%;
   height: 100%;
   background: linear-gradient(90deg,
       transparent,
       rgba(255, 255, 255, 0.25),
       transparent);
-  transform: skewX(-20deg);
+  transform: translateX(-100%) skewX(-20deg);
   pointer-events: none;
   animation: btn-shimmer-loop 3s infinite ease-in-out;
 }
@@ -2166,12 +2140,12 @@ html.dark .workspace-success-card::before {
 
 @keyframes btn-shimmer-loop {
   0% {
-    left: -150%;
+    transform: translateX(-100%) skewX(-20deg);
   }
 
   50%,
   100% {
-    left: 150%;
+    transform: translateX(100%) skewX(-20deg);
   }
 }
 
