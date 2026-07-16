@@ -3348,8 +3348,22 @@ function App() {
                   {activeTool === 'scanner' ? (
                     scannerImageSrc ? (
                       <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', alignItems: 'center' }}>
-                        <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.75rem', color: 'var(--text-primary)' }}>
-                          Drag corners to crop, or use sidebar filters to enhance the document
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'center', alignItems: 'center', marginBottom: '0.75rem' }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-primary)' }}>
+                            Drag corners to crop, or use sidebar filters to enhance the document
+                          </span>
+                          {scannerImageDimensions.w > 0 && (
+                            <span style={{
+                              fontSize: '0.75rem',
+                              fontWeight: '700',
+                              backgroundColor: 'rgba(234, 88, 12, 0.1)',
+                              color: 'var(--accent-color)',
+                              padding: '0.2rem 0.6rem',
+                              borderRadius: 'var(--radius-full)'
+                            }}>
+                              Output Resolution: {Math.round((scannerCrop.w / 100) * scannerImageDimensions.w * (scannerResolution === '1x' ? 1 : scannerResolution === '2x' ? 2 : 3))} x {Math.round((scannerCrop.h / 100) * scannerImageDimensions.h * (scannerResolution === '1x' ? 1 : scannerResolution === '2x' ? 2 : 3))} px
+                            </span>
+                          )}
                         </div>
                         
                         <div
@@ -3374,7 +3388,11 @@ function App() {
                               maxWidth: '100%',
                               maxHeight: 'min(65vh, 520px)',
                               display: 'block',
-                              pointerEvents: 'none'
+                              pointerEvents: 'none',
+                              filter: scannerFilter === 'magic' ? 'contrast(1.35) brightness(1.08) saturate(1.2)' :
+                                      scannerFilter === 'bw' ? 'grayscale(1) contrast(3.5) brightness(1.05)' :
+                                      scannerFilter === 'grayscale' ? 'grayscale(1) contrast(1.2) brightness(1.05)' : 'none',
+                              transition: 'filter 0.2s ease-in-out'
                             }}
                             alt="Scanner Source"
                           />
@@ -5456,27 +5474,29 @@ function App() {
                   )}
 
                   {/* Primary Trigger Button */}
-                  <button
-                    className="btn-action-primary"
-                    onClick={runProcess}
-                    disabled={
-                      (activeTool === 'split' && !splitRanges.trim()) ||
-                      ((activeTool === 'sign' || activeTool === 'qr') && placedSignatures.length === 0) ||
-                      ((activeTool === 'sign' || activeTool === 'qr') && activePageToSign !== null) ||
-                      (activeTool === 'crop' && (activePageToCrop !== null || Object.keys(placedCrops).length === 0)) ||
-                      (activeTool === 'protect' && !protectPassword.trim()) ||
-                      (activeTool === 'unlock' && !unlockPassword.trim())
-                    }
-                  >
-                    {
-                      activeTool === 'extract-text' ? 'Extract Text' :
-                        activeTool === 'pdf-to-docx' ? 'Convert to Word' :
-                          activeTool === 'pdf-to-pptx' ? 'Convert to PowerPoint' :
-                            activeTool === 'grayscale' ? 'Convert to Grayscale' :
-                              activeTool === 'crop' ? 'Crop PDF Document' :
-                                `Convert to ${currentTool?.id === 'pdf-to-img' ? 'Images' : 'PDF'}`
-                    }
-                  </button>
+                  {activeTool !== 'scanner' && (
+                    <button
+                      className="btn-action-primary"
+                      onClick={runProcess}
+                      disabled={
+                        (activeTool === 'split' && !splitRanges.trim()) ||
+                        ((activeTool === 'sign' || activeTool === 'qr') && placedSignatures.length === 0) ||
+                        ((activeTool === 'sign' || activeTool === 'qr') && activePageToSign !== null) ||
+                        (activeTool === 'crop' && (activePageToCrop !== null || Object.keys(placedCrops).length === 0)) ||
+                        (activeTool === 'protect' && !protectPassword.trim()) ||
+                        (activeTool === 'unlock' && !unlockPassword.trim())
+                      }
+                    >
+                      {
+                        activeTool === 'extract-text' ? 'Extract Text' :
+                          activeTool === 'pdf-to-docx' ? 'Convert to Word' :
+                            activeTool === 'pdf-to-pptx' ? 'Convert to PowerPoint' :
+                              activeTool === 'grayscale' ? 'Convert to Grayscale' :
+                                activeTool === 'crop' ? 'Crop PDF Document' :
+                                  `Convert to ${currentTool?.id === 'pdf-to-img' ? 'Images' : 'PDF'}`
+                      }
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
