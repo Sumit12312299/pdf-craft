@@ -2542,7 +2542,7 @@ function App() {
                         return (
                           <div
                             key={tool.id}
-                            className="tool-card"
+                            className={`tool-card tool-cat-${tool.category.toLowerCase().replace(/\s+/g, '-')}`}
                             style={{ animationDelay: `${currentDelayIndex * 35}ms` }}
                             onClick={() => setActiveTool(tool.id)}
                           >
