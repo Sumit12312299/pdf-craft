@@ -330,6 +330,21 @@ function App() {
   // Theme state
   const [theme, setTheme] = useState('light');
 
+  // Scroll state for shrinking/blurring navbar
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 20) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   // 3D Hero Card Ref and Handlers
   const heroCardRef = useRef(null);
 
@@ -2144,7 +2159,7 @@ function App() {
   return (
     <div className="app-container">
       {/* Header */}
-      <header className="navbar">
+      <header className={`navbar ${isScrolled ? 'scrolled' : ''}`}>
         <div className="navbar-left">
           {/* Mobile Menu Toggle Button */}
           <button className="btn-icon btn-burger-menu" title="Menu" onClick={() => setMobileMenuOpen(true)}>
