@@ -162,8 +162,6 @@ html.dark body::before {
   z-index: 1000;
   backdrop-filter: blur(10px);
   background-color: rgba(255, 255, 255, 0.9);
-  transform: translate3d(0, 0, 0);
-  backface-visibility: hidden;
 }
 
 html.dark .navbar {
@@ -1139,7 +1137,6 @@ html.dark .tool-card:hover .tool-card-icon {
   flex-direction: column;
   flex: 1;
   animation: fadeIn 0.25s ease;
-  will-change: opacity;
 }
 
 .workspace-header {
@@ -1230,7 +1227,6 @@ html.dark .tool-card:hover .tool-card-icon {
   position: relative;
   overflow: hidden;
   animation: slideInFromLeft 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
-  will-change: transform, opacity;
 }
 
 .workspace-sidebar {
@@ -1243,7 +1239,6 @@ html.dark .tool-card:hover .tool-card-icon {
   gap: 1.5rem;
   box-shadow: var(--shadow-sm);
   animation: slideInFromRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
-  will-change: transform, opacity;
 }
 
 @keyframes slideInFromLeft {
