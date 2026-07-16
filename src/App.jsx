@@ -34,7 +34,8 @@ import {
   Eye,
   Printer,
   GripVertical,
-  Crop
+  Crop,
+  Scan
 } from 'lucide-react';
 
 import {
@@ -482,6 +483,17 @@ function App() {
   const panStartRef = useRef({ x: 0, y: 0 });
   const [previewModalImage, setPreviewModalImage] = useState(null);
   const [previewModalTitle, setPreviewModalTitle] = useState('');
+
+  // Scanner Tool States
+  const [scannerImage, setScannerImage] = useState(null);
+  const [scannerImageSrc, setScannerImageSrc] = useState(null);
+  const [scannerImageDimensions, setScannerImageDimensions] = useState({ w: 0, h: 0 });
+  const [scannerCrop, setScannerCrop] = useState({ x: 10, y: 10, w: 80, h: 80 });
+  const [scannerFilter, setScannerFilter] = useState('magic');
+  const [scannerResolution, setScannerResolution] = useState('2x');
+  const [scannerRotation, setScannerRotation] = useState(0);
+  const [activeDragHandle, setActiveDragHandle] = useState(null);
+  const [dragStartOffset, setDragStartOffset] = useState({ x: 0, y: 0 });
   const [lightboxLoading, setLightboxLoading] = useState(false);
   const [unlockPassword, setUnlockPassword] = useState('');
   const [previewModalRotation, setPreviewModalRotation] = useState(0);
@@ -748,6 +760,196 @@ function App() {
     activeTool
   ]);
 
+  // Scanner tool image loading
+  useEffect(() => {
+    if (activeTool === 'scanner' && uploadedFiles.length > 0) {
+      const file = uploadedFiles[0];
+      const src = file.previewUrl;
+      setScannerImageSrc(src);
+      
+      const img = new Image();
+      img.onload = () => {
+        setScannerImage(img);
+        setScannerImageDimensions({ w: img.width, h: img.height });
+        setScannerCrop({ x: 10, y: 10, w: 80, h: 80 });
+      };
+      img.src = src;
+    } else {
+      setScannerImage(null);
+      setScannerImageSrc(null);
+    }
+  }, [uploadedFiles, activeTool]);
+
+  const handlePointerDown = (e, handle) => {
+    e.preventDefault();
+    setActiveDragHandle(handle);
+    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+    setDragStartOffset({ x: clientX, y: clientY });
+  };
+
+  const handlePointerMove = (e) => {
+    if (!activeDragHandle || !scannerImage) return;
+    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+    if (clientX === undefined || clientY === undefined) return;
+
+    const container = document.querySelector('.scanner-preview-wrapper');
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    
+    // Convert movement to percentage
+    const dx = ((clientX - dragStartOffset.x) / rect.width) * 100;
+    const dy = ((clientY - dragStartOffset.y) / rect.height) * 100;
+    
+    setDragStartOffset({ x: clientX, y: clientY });
+    
+    setScannerCrop(prev => {
+      let { x, y, w, h } = prev;
+      const minSize = 10;
+      
+      if (activeDragHandle === 'center') {
+        x = Math.max(0, Math.min(100 - w, x + dx));
+        y = Math.max(0, Math.min(100 - h, y + dy));
+      } else if (activeDragHandle === 'tl') {
+        const newX = Math.max(0, Math.min(x + w - minSize, x + dx));
+        w = w - (newX - x);
+        x = newX;
+        const newY = Math.max(0, Math.min(y + h - minSize, y + dy));
+        h = h - (newY - y);
+        y = newY;
+      } else if (activeDragHandle === 'tr') {
+        w = Math.max(minSize, Math.min(100 - x, w + dx));
+        const newY = Math.max(0, Math.min(y + h - minSize, y + dy));
+        h = h - (newY - y);
+        y = newY;
+      } else if (activeDragHandle === 'bl') {
+        const newX = Math.max(0, Math.min(x + w - minSize, x + dx));
+        w = w - (newX - x);
+        x = newX;
+        h = Math.max(minSize, Math.min(100 - y, h + dy));
+      } else if (activeDragHandle === 'br') {
+        w = Math.max(minSize, Math.min(100 - x, w + dx));
+        h = Math.max(minSize, Math.min(100 - y, h + dy));
+      }
+      
+      return { x, y, w, h };
+    });
+  };
+
+  const handlePointerUp = () => {
+    setActiveDragHandle(null);
+  };
+
+  useEffect(() => {
+    if (activeDragHandle) {
+      window.addEventListener('mousemove', handlePointerMove);
+      window.addEventListener('mouseup', handlePointerUp);
+      window.addEventListener('touchmove', handlePointerMove, { passive: false });
+      window.addEventListener('touchend', handlePointerUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handlePointerMove);
+      window.removeEventListener('mouseup', handlePointerUp);
+      window.removeEventListener('touchmove', handlePointerMove);
+      window.removeEventListener('touchend', handlePointerUp);
+    };
+  }, [activeDragHandle, dragStartOffset]);
+
+  const handleScannerRotate = () => {
+    if (!scannerImage) return;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    canvas.width = scannerImage.height;
+    canvas.height = scannerImage.width;
+    
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate((90 * Math.PI) / 180);
+    ctx.drawImage(scannerImage, -scannerImage.width / 2, -scannerImage.height / 2);
+    
+    const rotatedSrc = canvas.toDataURL('image/jpeg', 0.95);
+    setScannerImageSrc(rotatedSrc);
+    
+    const img = new Image();
+    img.onload = () => {
+      setScannerImage(img);
+      setScannerImageDimensions({ w: img.width, h: img.height });
+      setScannerCrop({ x: 10, y: 10, w: 80, h: 80 });
+    };
+    img.src = rotatedSrc;
+  };
+
+  const processScannerImage = async (format) => {
+    if (!scannerImage) return;
+    setProcessing(true);
+    setProgress(10);
+    setProcessingStatus('Scanning image at high resolution...');
+    
+    try {
+      const scaleMap = { '1x': 1, '2x': 2, '3x': 3 };
+      const scale = scaleMap[scannerResolution] || 2;
+      
+      const srcX = (scannerCrop.x / 100) * scannerImage.width;
+      const srcY = (scannerCrop.y / 100) * scannerImage.height;
+      const srcW = (scannerCrop.w / 100) * scannerImage.width;
+      const srcH = (scannerCrop.h / 100) * scannerImage.height;
+      
+      const destW = Math.round(srcW * scale);
+      const destH = Math.round(srcH * scale);
+      
+      const canvas = document.createElement('canvas');
+      canvas.width = destW;
+      canvas.height = destH;
+      const ctx = canvas.getContext('2d');
+      
+      if (scannerFilter === 'magic') {
+        ctx.filter = 'contrast(1.35) brightness(1.08) saturate(1.2)';
+      } else if (scannerFilter === 'bw') {
+        ctx.filter = 'grayscale(1) contrast(3.5) brightness(1.05)';
+      } else if (scannerFilter === 'grayscale') {
+        ctx.filter = 'grayscale(1) contrast(1.2) brightness(1.05)';
+      } else {
+        ctx.filter = 'none';
+      }
+      
+      ctx.drawImage(scannerImage, srcX, srcY, srcW, srcH, 0, 0, destW, destH);
+      setProgress(50);
+      setProcessingStatus('Encoding output files...');
+      
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+      const resBytes = await fetch(dataUrl).then(res => res.arrayBuffer());
+      setProgress(80);
+      
+      const originalName = uploadedFiles[0]?.name || 'scanned_doc';
+      const baseName = originalName.substring(0, originalName.lastIndexOf('.')) || originalName;
+      
+      if (format === 'pdf') {
+        setProcessingStatus('Compiling scanned PDF document...');
+        const imageFiles = [{
+          name: `${baseName}_scanned.jpg`,
+          buffer: new Uint8Array(resBytes)
+        }];
+        const pdfBytes = await imageToPdf(imageFiles, { layout: 'a4', orientation: destH > destW ? 'portrait' : 'landscape', margin: 'none' });
+        
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        setResultBlob(blob);
+        setResultName(`${baseName}_scanned.pdf`);
+      } else {
+        const blob = new Blob([resBytes], { type: 'image/jpeg' });
+        setResultBlob(blob);
+        setResultName(`${baseName}_scanned.jpg`);
+      }
+      
+      setProgress(100);
+      setProcessing(false);
+    } catch (err) {
+      console.error(err);
+      setError('An error occurred while scanning and processing the image.');
+      setProcessing(false);
+    }
+  };
+
   // Define tools catalog
   const tools = [
     {
@@ -976,6 +1178,15 @@ function App() {
       accept: null // No file needed
     },
     {
+      id: 'scanner',
+      title: 'Doc Scanner',
+      description: 'Scan images, crop margins, apply high-contrast scanning filters, and save as high-res PDF/JPG.',
+      icon: <Scan size={24} />,
+      category: 'Utilities',
+      multiple: false,
+      accept: '.jpg,.jpeg,.png'
+    },
+    {
       id: 'grayscale',
       title: 'Grayscale PDF',
       description: 'Convert your PDF pages to grayscale (black & white) to save printer ink and toner.',
@@ -1147,6 +1358,15 @@ function App() {
     setCropMargins({ top: 10, bottom: 10, left: 10, right: 10 });
     setPlacedCrops({});
     setResultBlob(null);
+    
+    // Reset scanner states
+    setScannerImage(null);
+    setScannerImageSrc(null);
+    setScannerCrop({ x: 10, y: 10, w: 80, h: 80 });
+    setScannerFilter('magic');
+    setScannerResolution('2x');
+    setScannerRotation(0);
+    setActiveDragHandle(null);
     setResultName('');
     setProcessing(false);
     setProgress(0);
@@ -2314,6 +2534,9 @@ function App() {
                   <a href="#qr-generator" onClick={(e) => { e.preventDefault(); navigateToTool('qr-generator'); }} className="dropdown-link highlight">
                     <span className="link-icon"><QrCode size={18} /></span> QR Generator
                   </a>
+                  <a href="#scanner" onClick={(e) => { e.preventDefault(); navigateToTool('scanner'); }} className="dropdown-link font-semibold">
+                    <span className="link-icon"><Scan size={18} /></span> Doc Scanner
+                  </a>
                 </div>
               </div>
             </div>
@@ -2463,6 +2686,9 @@ function App() {
                     </a>
                     <a href="#unlock" onClick={(e) => { e.preventDefault(); navigateToTool('unlock'); setMobileMenuOpen(false); }} className="drawer-subitem tool-cat-security">
                       <LockOpen size={18} /> Unlock PDF
+                    </a>
+                    <a href="#scanner" onClick={(e) => { e.preventDefault(); navigateToTool('scanner'); setMobileMenuOpen(false); }} className="drawer-subitem tool-cat-utilities font-semibold">
+                      <Scan size={18} /> Doc Scanner
                     </a>
                     <a href="#qr-generator" onClick={(e) => { e.preventDefault(); navigateToTool('qr-generator'); setMobileMenuOpen(false); }} className="drawer-subitem font-semibold color-accent tool-cat-utilities">
                       <QrCode size={18} /> QR Code Generator
@@ -3119,7 +3345,83 @@ function App() {
                   </div>
 
                   {/* Merge View or General File List */}
-                  {activeTool === 'merge' ? (
+                  {activeTool === 'scanner' ? (
+                    scannerImageSrc ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', alignItems: 'center' }}>
+                        <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.75rem', color: 'var(--text-primary)' }}>
+                          Drag corners to crop, or use sidebar filters to enhance the document
+                        </div>
+                        
+                        <div
+                          className="scanner-preview-wrapper"
+                          style={{
+                            position: 'relative',
+                            border: '1px solid var(--border-color)',
+                            boxShadow: 'var(--shadow-md)',
+                            backgroundColor: 'var(--bg-secondary)',
+                            maxWidth: '100%',
+                            maxHeight: 'min(65vh, 520px)',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            overflow: 'hidden',
+                            userSelect: 'none'
+                          }}
+                        >
+                          <img
+                            src={scannerImageSrc}
+                            style={{
+                              maxWidth: '100%',
+                              maxHeight: 'min(65vh, 520px)',
+                              display: 'block',
+                              pointerEvents: 'none'
+                            }}
+                            alt="Scanner Source"
+                          />
+                          
+                          {/* Dark backdrop overlay outside the crop box */}
+                          <div
+                            style={{
+                              position: 'absolute',
+                              left: `${scannerCrop.x}%`,
+                              top: `${scannerCrop.y}%`,
+                              width: `${scannerCrop.w}%`,
+                              height: `${scannerCrop.h}%`,
+                              border: '2px solid var(--accent-color)',
+                              boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.45)',
+                              cursor: 'move'
+                            }}
+                            onMouseDown={(e) => handlePointerDown(e, 'center')}
+                            onTouchStart={(e) => handlePointerDown(e, 'center')}
+                          >
+                            {/* Drag handles for corners */}
+                            <div
+                              style={{ position: 'absolute', left: '-7px', top: '-7px', width: '14px', height: '14px', borderRadius: '50%', backgroundColor: 'var(--accent-color)', border: '2px solid white', cursor: 'nwse-resize', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}
+                              onMouseDown={(e) => { e.stopPropagation(); handlePointerDown(e, 'tl'); }}
+                              onTouchStart={(e) => { e.stopPropagation(); handlePointerDown(e, 'tl'); }}
+                            />
+                            <div
+                              style={{ position: 'absolute', right: '-7px', top: '-7px', width: '14px', height: '14px', borderRadius: '50%', backgroundColor: 'var(--accent-color)', border: '2px solid white', cursor: 'nesw-resize', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}
+                              onMouseDown={(e) => { e.stopPropagation(); handlePointerDown(e, 'tr'); }}
+                              onTouchStart={(e) => { e.stopPropagation(); handlePointerDown(e, 'tr'); }}
+                            />
+                            <div
+                              style={{ position: 'absolute', left: '-7px', bottom: '-7px', width: '14px', height: '14px', borderRadius: '50%', backgroundColor: 'var(--accent-color)', border: '2px solid white', cursor: 'nesw-resize', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}
+                              onMouseDown={(e) => { e.stopPropagation(); handlePointerDown(e, 'bl'); }}
+                              onTouchStart={(e) => { e.stopPropagation(); handlePointerDown(e, 'bl'); }}
+                            />
+                            <div
+                              style={{ position: 'absolute', right: '-7px', bottom: '-7px', width: '14px', height: '14px', borderRadius: '50%', backgroundColor: 'var(--accent-color)', border: '2px solid white', cursor: 'nwse-resize', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}
+                              onMouseDown={(e) => { e.stopPropagation(); handlePointerDown(e, 'br'); }}
+                              onTouchStart={(e) => { e.stopPropagation(); handlePointerDown(e, 'br'); }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="skeleton-pulse" style={{ width: '100%', height: '300px', borderRadius: 'var(--radius-md)' }} />
+                    )
+                  ) : activeTool === 'merge' ? (
                     <div className="files-preview-container">
                       <div className="files-grid" style={{ gridTemplateColumns: '1fr' }}>
                         {uploadedFiles.map((file, idx) => (
@@ -4205,6 +4507,112 @@ function App() {
                 {/* Right Sidebar Options Panel */}
                 <div className="workspace-sidebar">
                   {/* Tool-specific options */}
+                  {activeTool === 'scanner' && (
+                    <div className="sidebar-section" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      <h3>Scanner Controls</h3>
+                      
+                      <div className="form-group">
+                        <label style={{ fontSize: '0.85rem', fontWeight: '600', marginBottom: '0.4rem', display: 'block' }}>Scan Filter</label>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                          {[
+                            { id: 'original', label: 'Original Image' },
+                            { id: 'magic', label: 'Magic Color' },
+                            { id: 'bw', label: 'Black & White' },
+                            { id: 'grayscale', label: 'Grayscale' }
+                          ].map(f => (
+                            <button
+                              key={f.id}
+                              type="button"
+                              className="btn-upload"
+                              style={{
+                                padding: '0.5rem',
+                                fontSize: '0.8rem',
+                                backgroundColor: scannerFilter === f.id ? 'var(--accent-color)' : 'var(--bg-secondary)',
+                                color: scannerFilter === f.id ? 'white' : 'var(--text-primary)',
+                                border: scannerFilter === f.id ? '1px solid var(--accent-color)' : '1px solid var(--border-color)',
+                                borderRadius: 'var(--radius-sm)'
+                              }}
+                              onClick={() => setScannerFilter(f.id)}
+                            >
+                              {f.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="form-group">
+                        <label style={{ fontSize: '0.85rem', fontWeight: '600', marginBottom: '0.4rem', display: 'block' }}>Resolution DPI</label>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          {[
+                            { id: '1x', label: 'Standard (1x)' },
+                            { id: '2x', label: 'High-Res (2x)' },
+                            { id: '3x', label: 'Super-Res (3x)' }
+                          ].map(res => (
+                            <button
+                              key={res.id}
+                              type="button"
+                              className="btn-upload"
+                              style={{
+                                flex: 1,
+                                padding: '0.5rem 0.25rem',
+                                fontSize: '0.75rem',
+                                backgroundColor: scannerResolution === res.id ? 'var(--accent-color)' : 'var(--bg-secondary)',
+                                color: scannerResolution === res.id ? 'white' : 'var(--text-primary)',
+                                border: scannerResolution === res.id ? '1px solid var(--accent-color)' : '1px solid var(--border-color)',
+                                borderRadius: 'var(--radius-sm)'
+                              }}
+                              onClick={() => setScannerResolution(res.id)}
+                            >
+                              {res.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="form-group" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
+                        <label style={{ fontSize: '0.85rem', fontWeight: '600', marginBottom: '0.4rem', display: 'block' }}>Adjust Image</label>
+                        <button
+                          type="button"
+                          className="btn-reset"
+                          style={{
+                            width: '100%',
+                            padding: '0.5rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.5rem',
+                            fontSize: '0.8rem'
+                          }}
+                          onClick={handleScannerRotate}
+                        >
+                          <RotateCw size={14} />
+                          Rotate 90° Clockwise
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
+                        <button
+                          className="btn-upload"
+                          style={{ width: '100%', padding: '0.65rem', backgroundColor: 'var(--success-color)' }}
+                          onClick={() => processScannerImage('pdf')}
+                        >
+                          Convert to Scanned PDF
+                        </button>
+                        <button
+                          className="btn-upload"
+                          style={{
+                            width: '100%',
+                            padding: '0.65rem',
+                            backgroundColor: 'var(--accent-color)'
+                          }}
+                          onClick={() => processScannerImage('jpg')}
+                        >
+                          Save as Scanned Image (JPG)
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {activeTool === 'merge' && (
                     <div className="sidebar-section">
                       <h3>Merge Settings</h3>
