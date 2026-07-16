@@ -313,10 +313,10 @@ html.dark .navbar.scrolled {
 .nav-item-dropdown::after {
   content: '';
   position: absolute;
-  bottom: 6px;
+  bottom: 4px;
   left: 50%;
   width: 0;
-  height: 2px;
+  height: 3.5px;
   background-color: var(--accent-color);
   transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   transform: translateX(-50%);
@@ -336,7 +336,7 @@ html.dark .nav-item-dropdown:hover {
 
 .nav-item:hover::after,
 .nav-item-dropdown:hover::after {
-  width: 30px;
+  width: 80%;
 }
 
 .nav-item.active {
@@ -349,7 +349,7 @@ html.dark .nav-item.active {
 }
 
 .nav-item.active::after {
-  width: 30px;
+  width: 80%;
 }
 
 /* Dropdown Container */
