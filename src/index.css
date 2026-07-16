@@ -313,12 +313,12 @@ html.dark .navbar.scrolled {
 .nav-item-dropdown::after {
   content: '';
   position: absolute;
-  bottom: 4px;
+  bottom: 6px;
   left: 50%;
   width: 0;
   height: 2px;
   background-color: var(--accent-color);
-  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), left 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   transform: translateX(-50%);
   border-radius: 2px;
 }
@@ -336,8 +336,7 @@ html.dark .nav-item-dropdown:hover {
 
 .nav-item:hover::after,
 .nav-item-dropdown:hover::after {
-  width: 60%;
-  box-shadow: 0 0 10px var(--accent-color), 0 0 4px var(--accent-color);
+  width: 30px;
 }
 
 .nav-item.active {
@@ -350,8 +349,7 @@ html.dark .nav-item.active {
 }
 
 .nav-item.active::after {
-  width: 60%;
-  box-shadow: 0 0 10px var(--accent-color), 0 0 4px var(--accent-color);
+  width: 30px;
 }
 
 /* Dropdown Container */
