@@ -41,6 +41,15 @@
   --transition-fast: 0.15s ease;
   --transition-normal: 0.25s ease;
   --dropzone-pulse-bg: var(--accent-light);
+
+  /* Category Colors (RGB format for alpha opacity compositing) */
+  --cat-organize-rgb: 220, 38, 38;
+  --cat-edits-rgb: 168, 85, 247;
+  --cat-optimize-rgb: 22, 163, 74;
+  --cat-security-rgb: 99, 102, 241;
+  --cat-convert-to-pdf-rgb: 249, 115, 22;
+  --cat-convert-from-pdf-rgb: 59, 130, 246;
+  --cat-utilities-rgb: 6, 182, 212;
 }
 
 /* Dark Mode Theme Variables */
@@ -589,6 +598,34 @@ html.dark .grid-menu-dropdown {
   border-radius: 10px;
 }
 
+/* Category mappings for tool cards and grid items */
+.tool-card,
+.grid-menu-item {
+  --cat-color-rgb: 220, 38, 38; /* default fallback: red */
+}
+
+.tool-cat-organize {
+  --cat-color-rgb: var(--cat-organize-rgb);
+}
+.tool-cat-edits {
+  --cat-color-rgb: var(--cat-edits-rgb);
+}
+.tool-cat-optimize {
+  --cat-color-rgb: var(--cat-optimize-rgb);
+}
+.tool-cat-security {
+  --cat-color-rgb: var(--cat-security-rgb);
+}
+.tool-cat-convert-to-pdf {
+  --cat-color-rgb: var(--cat-convert-to-pdf-rgb);
+}
+.tool-cat-convert-from-pdf {
+  --cat-color-rgb: var(--cat-convert-from-pdf-rgb);
+}
+.tool-cat-utilities {
+  --cat-color-rgb: var(--cat-utilities-rgb);
+}
+
 .grid-menu-item {
   display: flex;
   flex-direction: column;
@@ -603,20 +640,23 @@ html.dark .grid-menu-dropdown {
   color: var(--text-secondary);
   transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.25),
               background-color 0.25s ease,
+              box-shadow 0.25s ease,
               border-color 0.25s ease,
               color 0.25s ease;
 }
 
 .grid-menu-item:hover {
   background-color: rgba(var(--cat-color-rgb), 0.05);
-  border-color: rgba(var(--cat-color-rgb), 0.15);
+  border-color: transparent;
   color: rgb(var(--cat-color-rgb));
   transform: translateY(-3px) scale(1.04);
+  box-shadow: 0 6px 16px -4px rgba(var(--cat-color-rgb), 0.22);
 }
 
 html.dark .grid-menu-item:hover {
   background-color: rgba(var(--cat-color-rgb), 0.08);
-  border-color: rgba(var(--cat-color-rgb), 0.25);
+  border-color: transparent;
+  box-shadow: 0 6px 16px -4px rgba(var(--cat-color-rgb), 0.45);
 }
 
 .grid-menu-icon {
