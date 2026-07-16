@@ -997,6 +997,16 @@ html.dark .drawer-content {
   width: 320px;
   height: 220px;
   cursor: pointer;
+  animation: hero-card-float 6s infinite ease-in-out alternate;
+}
+
+@keyframes hero-card-float {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-8px);
+  }
 }
 
 .interactive-3d-card {
@@ -1061,6 +1071,18 @@ html.dark .card-layer.background-layer {
   border-radius: var(--radius-sm);
   letter-spacing: 0.05em;
   box-shadow: 0 4px 10px rgba(220, 38, 38, 0.25);
+  animation: doc-logo-float 4.5s infinite ease-in-out alternate;
+}
+
+@keyframes doc-logo-float {
+  0% {
+    transform: translateY(0);
+    box-shadow: 0 4px 10px rgba(220, 38, 38, 0.25);
+  }
+  100% {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(220, 38, 38, 0.35);
+  }
 }
 
 .doc-lines {
@@ -1172,17 +1194,44 @@ html.dark .page-line {
 }
 
 .doc-illust-page.page-1 {
-  transform: rotate(-8deg) translateY(5px) translateZ(5px);
+  animation: page-illust-float-1 4s infinite ease-in-out alternate;
 }
 
 .doc-illust-page.page-2 {
-  transform: translateY(-5px) translateZ(15px);
   border-color: var(--accent-color);
   box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+  animation: page-illust-float-2 3.8s infinite ease-in-out alternate;
 }
 
 .doc-illust-page.page-3 {
-  transform: rotate(8deg) translateY(5px) translateZ(5px);
+  animation: page-illust-float-3 4.2s infinite ease-in-out alternate;
+}
+
+@keyframes page-illust-float-1 {
+  0% {
+    transform: rotate(-8deg) translateY(5px) translateZ(5px);
+  }
+  100% {
+    transform: rotate(-8deg) translateY(-2px) translateZ(5px);
+  }
+}
+
+@keyframes page-illust-float-2 {
+  0% {
+    transform: translateY(-5px) translateZ(15px);
+  }
+  100% {
+    transform: translateY(-11px) translateZ(15px);
+  }
+}
+
+@keyframes page-illust-float-3 {
+  0% {
+    transform: rotate(8deg) translateY(5px) translateZ(5px);
+  }
+  100% {
+    transform: rotate(8deg) translateY(-2px) translateZ(5px);
+  }
 }
 
 .card-layer.overlay-layer {
@@ -1211,6 +1260,7 @@ html.dark .page-line {
   background-color: rgba(22, 163, 74, 0.9);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  animation: badge-float-green 3s infinite ease-in-out alternate;
 }
 
 .badge-fast {
@@ -1219,6 +1269,25 @@ html.dark .page-line {
   background-color: rgba(220, 38, 38, 0.95);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  animation: badge-float-red 3.5s infinite ease-in-out alternate;
+}
+
+@keyframes badge-float-green {
+  0% {
+    transform: translateY(0) translateZ(60px);
+  }
+  100% {
+    transform: translateY(-6px) translateZ(60px);
+  }
+}
+
+@keyframes badge-float-red {
+  0% {
+    transform: translateY(0) translateZ(60px);
+  }
+  100% {
+    transform: translateY(-8px) translateZ(60px);
+  }
 }
 
 @media (max-width: 767px) {
