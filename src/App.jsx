@@ -2708,7 +2708,7 @@ function App() {
           <>
             <div className="hero">
               <div className="hero-left">
-                <h1>Organize, compress, and edit PDFs.</h1>
+                <h1>Free Client-Side PDF Tools &amp; Document Scanner</h1>
                 <p>Simple, lightning-fast tools that run completely client-side in your browser. Your files never leave your computer, ensuring absolute privacy.</p>
               </div>
               <div className="hero-right">
