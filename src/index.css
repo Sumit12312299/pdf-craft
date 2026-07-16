@@ -1194,16 +1194,19 @@ html.dark .page-line {
 }
 
 .doc-illust-page.page-1 {
+  transform: rotate(-8deg) translateY(5px) translateZ(5px);
   animation: page-illust-float-1 4s infinite ease-in-out alternate;
 }
 
 .doc-illust-page.page-2 {
+  transform: translateY(-5px) translateZ(15px);
   border-color: var(--accent-color);
   box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
   animation: page-illust-float-2 3.8s infinite ease-in-out alternate;
 }
 
 .doc-illust-page.page-3 {
+  transform: rotate(8deg) translateY(5px) translateZ(5px);
   animation: page-illust-float-3 4.2s infinite ease-in-out alternate;
 }
 
@@ -1260,6 +1263,7 @@ html.dark .page-line {
   background-color: rgba(22, 163, 74, 0.9);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  transform: translateZ(60px);
   animation: badge-float-green 3s infinite ease-in-out alternate;
 }
 
@@ -1269,6 +1273,7 @@ html.dark .page-line {
   background-color: rgba(220, 38, 38, 0.95);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  transform: translateZ(60px);
   animation: badge-float-red 3.5s infinite ease-in-out alternate;
 }
 
