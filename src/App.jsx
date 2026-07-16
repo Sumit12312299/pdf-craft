@@ -2351,7 +2351,11 @@ function App() {
                 </div>
                 <div className="grid-menu-body">
                   {tools.map(tool => (
-                    <button key={tool.id} className="grid-menu-item" onClick={() => { navigateToTool(tool.id); setGridMenuOpen(false); }}>
+                    <button
+                      key={tool.id}
+                      className={`grid-menu-item tool-cat-${tool.category.toLowerCase().replace(/\s+/g, '-')}`}
+                      onClick={() => { navigateToTool(tool.id); setGridMenuOpen(false); }}
+                    >
                       <span className="grid-menu-icon">{tool.icon}</span>
                       <span className="grid-menu-label">{tool.title}</span>
                     </button>

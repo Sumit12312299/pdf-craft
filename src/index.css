@@ -485,16 +485,31 @@ html.dark .nav-dropdown-menu {
   position: relative;
 }
 
+.btn-grid-menu svg rect {
+  transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.2) !important;
+  transform-origin: center;
+}
+
+.btn-grid-menu:hover svg rect:nth-child(even) {
+  transform: scale(1.25);
+  fill: var(--accent-color);
+}
+
+.btn-grid-menu:hover svg rect:nth-child(odd) {
+  transform: scale(0.85);
+}
+
 .grid-menu-dropdown {
   position: absolute;
   top: 100%;
   right: 0;
-  margin-top: 0.5rem;
-  width: 320px;
+  margin-top: 0.6rem;
+  width: 330px;
   background-color: var(--bg-primary);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-xl);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08), 
+              0 1px 3px rgba(0, 0, 0, 0.02);
   z-index: 1002;
   overflow: hidden;
   animation: gridDropdownSpring 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
@@ -506,6 +521,9 @@ html.dark .nav-dropdown-menu {
 
 html.dark .grid-menu-dropdown {
   background-color: rgba(11, 15, 25, 0.95);
+  border-color: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.45), 
+              0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 @keyframes gridDropdownSpring {
@@ -521,22 +539,33 @@ html.dark .grid-menu-dropdown {
 }
 
 .grid-menu-header {
-  padding: 0.75rem 1rem;
+  padding: 0.85rem 1.1rem;
   border-bottom: 1px solid var(--border-color);
   background-color: var(--bg-secondary);
-  font-weight: 700;
-  font-size: 0.8rem;
+  font-weight: 800;
+  font-size: 0.825rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  color: var(--text-primary);
 }
 
 .grid-menu-close {
   background: none;
   border: none;
-  font-size: 1.25rem;
+  font-size: 1.35rem;
   cursor: pointer;
   color: var(--text-secondary);
+  transition: transform 0.25s ease, color 0.25s ease;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.grid-menu-close:hover {
+  color: var(--accent-color);
+  transform: rotate(90deg) scale(1.15);
 }
 
 .grid-menu-body {
@@ -548,6 +577,18 @@ html.dark .grid-menu-dropdown {
   overflow-y: auto;
 }
 
+/* Scrollbar styles for the menu body */
+.grid-menu-body::-webkit-scrollbar {
+  width: 5px;
+}
+.grid-menu-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.grid-menu-body::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 10px;
+}
+
 .grid-menu-item {
   display: flex;
   flex-direction: column;
@@ -556,29 +597,43 @@ html.dark .grid-menu-dropdown {
   gap: 0.4rem;
   padding: 0.75rem 0.5rem;
   border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: none;
   cursor: pointer;
   color: var(--text-secondary);
-  transition: all var(--transition-fast);
+  transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.25),
+              background-color 0.25s ease,
+              border-color 0.25s ease,
+              color 0.25s ease;
 }
 
 .grid-menu-item:hover {
-  background-color: var(--bg-secondary);
-  border-color: var(--border-color);
-  color: var(--accent-color);
+  background-color: rgba(var(--cat-color-rgb), 0.05);
+  border-color: rgba(var(--cat-color-rgb), 0.15);
+  color: rgb(var(--cat-color-rgb));
+  transform: translateY(-3px) scale(1.04);
+}
+
+html.dark .grid-menu-item:hover {
+  background-color: rgba(var(--cat-color-rgb), 0.08);
+  border-color: rgba(var(--cat-color-rgb), 0.25);
 }
 
 .grid-menu-icon {
-  color: var(--accent-color);
+  color: rgb(var(--cat-color-rgb));
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.25);
+}
+
+.grid-menu-item:hover .grid-menu-icon {
+  transform: scale(1.15) rotate(4deg);
 }
 
 .grid-menu-label {
   font-size: 0.7rem;
-  font-weight: 600;
+  font-weight: 700;
   text-align: center;
   line-height: 1.2;
 }
