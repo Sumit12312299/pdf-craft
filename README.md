@@ -62,6 +62,7 @@ PDFCraft is a high-performance, client-side PDF manipulation and utility suite b
     *   [`@pdfsmaller/pdf-encrypt`](https://github.com/pdfsmaller/pdf-encrypt): AES-256 PDF encryption client-side.
     *   [`jszip`](https://stuk.github.io/jszip/): Unzipping and parsing slide structure in PPTX files.
     *   [`qrcode`](https://github.com/soldair/node-qrcode): Live QR Code generator.
+    *   [`tesseract.js`](https://tesseract.projectnaptha.com/): Client-side offline optical character recognition (OCR) for scanned PDFs and image files.
     *   [`lucide-react`](https://lucide.dev/): Premium modern iconography.
 
 ---
