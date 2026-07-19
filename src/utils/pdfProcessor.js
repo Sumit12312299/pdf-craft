@@ -1589,4 +1589,138 @@ export async function savePdfHyperlinks(pdfBuffer, actions) {
   return await pdfDoc.save();
 }
 
+// 27. Offline OCR on PDF (Scanned Image/PDF to text)
+export async function performOcrOnPdf(pdfBuffer, onProgress) {
+  if (!window.Tesseract) {
+    throw new Error('Tesseract.js library is not loaded.');
+  }
+  if (!window.pdfjsLib) {
+    throw new Error('PDF.js library is not loaded.');
+  }
+
+  const loadingTask = window.pdfjsLib.getDocument({ data: pdfBuffer.slice(0) });
+  const pdf = await loadingTask.promise;
+  const numPages = pdf.numPages;
+  let fullText = '';
+
+  const worker = await window.Tesseract.createWorker('eng', 1, {
+    logger: m => {
+      if (m.status === 'recognizing text' && onProgress) {
+        onProgress(m.progress);
+      }
+    }
+  });
+
+  for (let i = 1; i <= numPages; i++) {
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({ scale: 2.0 }); // high res for OCR
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const context = canvas.getContext('2d');
+    await page.render({ canvasContext: context, viewport }).promise;
+
+    const imageData = canvas.toDataURL('image/png');
+    const ret = await worker.recognize(imageData);
+    fullText += `--- Page ${i} ---\n\n${ret.data.text}\n\n`;
+  }
+
+  await worker.terminate();
+  return fullText;
+}
+
+// 28. Offline OCR on Image file
+export async function performOcrOnImage(imageBuffer, onProgress) {
+  if (!window.Tesseract) {
+    throw new Error('Tesseract.js library is not loaded.');
+  }
+
+  const worker = await window.Tesseract.createWorker('eng', 1, {
+    logger: m => {
+      if (m.status === 'recognizing text' && onProgress) {
+        onProgress(m.progress);
+      }
+    }
+  });
+
+  const blob = new Blob([imageBuffer]);
+  const url = URL.createObjectURL(blob);
+  const ret = await worker.recognize(url);
+  URL.revokeObjectURL(url);
+  await worker.terminate();
+  return ret.data.text;
+}
+
+// 29. Get PDF Form Fields (AcroForms)
+export async function getPdfFormFields(pdfBuffer) {
+  const pdfDoc = await PDFDocument.load(pdfBuffer);
+  const form = pdfDoc.getForm();
+  const fields = form.getFields();
+  
+  return fields.map(field => {
+    const name = field.getName();
+    const constructorName = field.constructor.name;
+    let type = 'unknown';
+    let value = '';
+    let options = [];
+    
+    if (constructorName === 'PDFTextField') {
+      type = 'text';
+      value = field.getText() || '';
+    } else if (constructorName === 'PDFCheckBox') {
+      type = 'checkbox';
+      value = field.isChecked();
+    } else if (constructorName === 'PDFRadioGroup') {
+      type = 'radio';
+      value = field.getSelected() || '';
+      options = field.getOptions();
+    } else if (constructorName === 'PDFDropdown') {
+      type = 'dropdown';
+      value = field.getSelected() || [];
+      options = field.getOptions();
+    } else if (constructorName === 'PDFOptionList') {
+      type = 'list';
+      value = field.getSelected() || [];
+      options = field.getOptions();
+    } else if (constructorName === 'PDFButton') {
+      type = 'button';
+    }
+    
+    return { name, type, value, options };
+  });
+}
+
+// 30. Save PDF Form Fields (AcroForms)
+export async function savePdfFormFields(pdfBuffer, fieldValues) {
+  const pdfDoc = await PDFDocument.load(pdfBuffer);
+  const form = pdfDoc.getForm();
+  
+  for (const [name, val] of Object.entries(fieldValues)) {
+    try {
+      const field = form.getField(name);
+      const constructorName = field.constructor.name;
+      
+      if (constructorName === 'PDFTextField') {
+        field.setText(String(val));
+      } else if (constructorName === 'PDFCheckBox') {
+        if (val) {
+          field.check();
+        } else {
+          field.uncheck();
+        }
+      } else if (constructorName === 'PDFRadioGroup') {
+        field.select(String(val));
+      } else if (constructorName === 'PDFDropdown') {
+        field.select(val);
+      } else if (constructorName === 'PDFOptionList') {
+        field.select(val);
+      }
+    } catch (e) {
+      console.warn(`Could not set field ${name}:`, e);
+    }
+  }
+  
+  return await pdfDoc.save();
+}
+
 

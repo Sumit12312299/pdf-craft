@@ -14,6 +14,7 @@ PDFCraft is a high-performance, client-side PDF manipulation and utility suite b
 
 ### ✍️ Edits & Enhancements
 *   **Edit PDF Links:** Inspect the PDF's internal annotation structures to list existing hyperlinks (URLs, emails), edit/update URLs directly in-place, delete unwanted links, or add new link anchors to page headers and footers.
+*   **PDF Form Filler:** Automatically detect interactive AcroForm fields (text fields, checkboxes, options dropdowns) inside the PDF and fill them in a clean client-side UI before saving the filled PDF.
 *   **Sign PDF:** Draw a custom signature or upload an image, then visually place and resize it on any page.
 *   **Stamp QR Code:** Generate a QR code from text or URLs with custom labels and colors, then stamp it on pages.
 *   **Add Page Numbers:** Insert styled headers or footers (e.g., "Page X of Y") in various layouts and color options.
@@ -30,6 +31,7 @@ PDFCraft is a high-performance, client-side PDF manipulation and utility suite b
 *   **Grayscale Conversion:** Convert color documents to grayscale (ink-saver mode) using hardware-accelerated canvas rendering.
 *   **Metadata Editor:** Easily modify document details like Title, Author, Subject, Keywords, and Creator.
 *   **Extract Text:** Smart paragraph-structure parser that analyzes line heights, headers, lists, and double spacing boundaries to extract beautifully formatted text layouts.
+*   **Offline OCR:** Perform client-side Optical Character Recognition (OCR) using Tesseract.js to scan and extract selectable text from scanned PDF documents or image files.
 
 ### 🔄 Document Conversions
 *   **To PDF:**

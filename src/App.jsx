@@ -66,7 +66,11 @@ import {
   extractImagesFromPdf,
   resizePdfPages,
   getPdfHyperlinks,
-  savePdfHyperlinks
+  savePdfHyperlinks,
+  performOcrOnPdf,
+  performOcrOnImage,
+  getPdfFormFields,
+  savePdfFormFields
 } from './utils/pdfProcessor';
 
 // Beautiful Custom SVG Icons representing document conversions
@@ -513,6 +517,12 @@ function App() {
   const [loadingLinks, setLoadingLinks] = useState(false);
   const [newLinkUrl, setNewLinkUrl] = useState('https://');
   const [newLinkPage, setNewLinkPage] = useState(0);
+
+  // Form Filler Tool States
+  const [formFieldsList, setFormFieldsList] = useState([]); // Array of { name, type, value, options }
+  const [formFieldValues, setFormFieldValues] = useState({}); // key-value pairs of name -> value
+  const [loadingFormFields, setLoadingFormFields] = useState(false);
+
   const [lightboxLoading, setLightboxLoading] = useState(false);
   const [unlockPassword, setUnlockPassword] = useState('');
   const [previewModalRotation, setPreviewModalRotation] = useState(0);
@@ -1240,6 +1250,24 @@ function App() {
       category: 'Edits',
       multiple: false,
       accept: '.pdf'
+    },
+    {
+      id: 'offline-ocr',
+      title: 'Offline OCR',
+      description: 'Scan and extract selectable text from images or scanned PDFs using client-side OCR engine.',
+      icon: <FileText size={24} />,
+      category: 'Utilities',
+      multiple: false,
+      accept: '.pdf,.jpg,.jpeg,.png'
+    },
+    {
+      id: 'form-filler',
+      title: 'PDF Form Filler',
+      description: 'Automatically detect interactive form fields inside the PDF and fill them in a clean UI.',
+      icon: <PenTool size={24} />,
+      category: 'Edits',
+      multiple: false,
+      accept: '.pdf'
     }
   ];
 
@@ -1358,6 +1386,27 @@ function App() {
             setError('Failed to extract PDF hyperlinks.');
           } finally {
             setLoadingLinks(false);
+          }
+        }
+
+        // Initialize form filler
+        if (currentTool?.id === 'form-filler') {
+          setLoadingFormFields(true);
+          try {
+            const fields = await getPdfFormFields(singleFile.buffer);
+            setFormFieldsList(fields);
+            
+            // Map values
+            const initialVals = {};
+            fields.forEach(f => {
+              initialVals[f.name] = f.value;
+            });
+            setFormFieldValues(initialVals);
+          } catch (e) {
+            console.error('Failed to extract form fields:', e);
+            setError('Failed to extract interactive form fields from PDF.');
+          } finally {
+            setLoadingFormFields(false);
           }
         }
       }
@@ -1481,6 +1530,9 @@ function App() {
     setLinkEditActions([]);
     setNewLinkUrl('https://');
     setNewLinkPage(0);
+    setFormFieldsList([]);
+    setFormFieldValues({});
+    setLoadingFormFields(false);
   };
 
   const backToHome = () => {
@@ -2143,6 +2195,35 @@ function App() {
         }
         outputBytes = await unlockPdf(file.buffer, unlockPassword);
         filename = `${file.name.replace('.pdf', '')}_unlocked.pdf`;
+      }
+
+      else if (activeTool === 'offline-ocr') {
+        setProcessingStatus('Performing client-side OCR text recognition...');
+        const file = uploadedFiles[0];
+        const isPdf = file.name?.toLowerCase().endsWith('.pdf');
+        let textResult = '';
+        if (isPdf) {
+          textResult = await performOcrOnPdf(file.buffer, (prog) => {
+            setProgress(20 + Math.round(prog * 0.7));
+          });
+        } else {
+          textResult = await performOcrOnImage(file.buffer, (prog) => {
+            setProgress(20 + Math.round(prog * 0.7));
+          });
+        }
+        setExtractedText(textResult);
+        setProgress(100);
+        setTimeout(() => {
+          setProcessing(false);
+        }, 150);
+        return;
+      }
+
+      else if (activeTool === 'form-filler') {
+        setProcessingStatus('Injecting interactive form values...');
+        const file = uploadedFiles[0];
+        outputBytes = await savePdfFormFields(file.buffer, formFieldValues);
+        filename = `${file.name.replace('.pdf', '')}_form_filled.pdf`;
       }
 
       else if (activeTool === 'extract-images') {
@@ -5891,6 +5972,72 @@ function App() {
                     </div>
                   )}
 
+                  {activeTool === 'offline-ocr' && (
+                    <div className="sidebar-section">
+                      <h3>Offline OCR</h3>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        Extracts selectable, searchable text from images or scanned PDFs directly inside your browser. No files are uploaded to any server.
+                      </p>
+                    </div>
+                  )}
+
+                  {activeTool === 'form-filler' && (
+                    <div className="sidebar-section" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <h3>Interactive Form Fields</h3>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        Below is the list of form elements detected inside this document. Update values in the list and click "Save Filled PDF".
+                      </p>
+                      {loadingFormFields ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          <div className="skeleton-pulse" style={{ height: '35px', borderRadius: '4px' }} />
+                          <div className="skeleton-pulse" style={{ height: '35px', borderRadius: '4px' }} />
+                        </div>
+                      ) : formFieldsList.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '350px', overflowY: 'auto', paddingRight: '0.25rem' }}>
+                          {formFieldsList.map((field) => (
+                            <div key={field.name} className="form-group" style={{ margin: 0 }}>
+                              <label style={{ fontSize: '0.75rem', fontWeight: '700', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                {field.name} ({field.type})
+                              </label>
+                              {field.type === 'Checkbox' ? (
+                                <label className="toggle-switch" style={{ alignSelf: 'flex-start' }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={!!formFieldValues[field.name]}
+                                    onChange={(e) => setFormFieldValues(prev => ({ ...prev, [field.name]: e.target.checked }))}
+                                  />
+                                  <span className="slider"></span>
+                                </label>
+                              ) : field.type === 'Dropdown' ? (
+                                <select
+                                  className="form-control"
+                                  value={formFieldValues[field.name] || ''}
+                                  onChange={(e) => setFormFieldValues(prev => ({ ...prev, [field.name]: e.target.value }))}
+                                >
+                                  <option value="">Select option...</option>
+                                  {field.options && field.options.map(opt => (
+                                    <option key={opt} value={opt}>{opt}</option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  value={formFieldValues[field.name] || ''}
+                                  onChange={(e) => setFormFieldValues(prev => ({ ...prev, [field.name]: e.target.value }))}
+                                />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{ padding: '1rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', border: '1px dashed var(--border-color)', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          No interactive AcroForm fields detected in this PDF.
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Primary Trigger Button */}
                   {activeTool !== 'scanner' && (
                     <button
@@ -5907,15 +6054,17 @@ function App() {
                       }
                     >
                       {
-                        activeTool === 'extract-text' ? 'Extract Text' :
-                          activeTool === 'extract-images' ? 'Extract Images' :
-                            activeTool === 'resize-pdf' ? 'Resize PDF Pages' :
-                              activeTool === 'links-editor' ? 'Save Updated PDF' :
-                                activeTool === 'pdf-to-docx' ? 'Convert to Word' :
-                                  activeTool === 'pdf-to-pptx' ? 'Convert to PowerPoint' :
-                                    activeTool === 'grayscale' ? 'Convert to Grayscale' :
-                                      activeTool === 'crop' ? 'Crop PDF Document' :
-                                        `Convert to ${currentTool?.id === 'pdf-to-img' ? 'Images' : 'PDF'}`
+                        activeTool === 'offline-ocr' ? 'Run Offline OCR' :
+                          activeTool === 'form-filler' ? 'Save Filled PDF' :
+                            activeTool === 'extract-text' ? 'Extract Text' :
+                              activeTool === 'extract-images' ? 'Extract Images' :
+                                activeTool === 'resize-pdf' ? 'Resize PDF Pages' :
+                                  activeTool === 'links-editor' ? 'Save Updated PDF' :
+                                    activeTool === 'pdf-to-docx' ? 'Convert to Word' :
+                                      activeTool === 'pdf-to-pptx' ? 'Convert to PowerPoint' :
+                                        activeTool === 'grayscale' ? 'Convert to Grayscale' :
+                                          activeTool === 'crop' ? 'Crop PDF Document' :
+                                            `Convert to ${currentTool?.id === 'pdf-to-img' ? 'Images' : 'PDF'}`
                       }
                     </button>
                   )}
