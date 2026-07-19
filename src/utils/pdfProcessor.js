@@ -1304,4 +1304,289 @@ export async function cropPdf(pdfBuffer, cropMargins, onProgress) {
   return await pdfDoc.save();
 }
 
+// 24. Extract Images from PDF using PDF.js Resolved Objects
+export async function extractImagesFromPdf(pdfBuffer, onProgress) {
+  if (!window.pdfjsLib) {
+    throw new Error('PDF.js library is not loaded.');
+  }
+  
+  const loadingTask = window.pdfjsLib.getDocument({ data: pdfBuffer });
+  const pdf = await loadingTask.promise;
+  const numPages = pdf.numPages;
+  const extractedImages = [];
+  let imageIndex = 1;
+  
+  for (let i = 1; i <= numPages; i++) {
+    const page = await pdf.getPage(i);
+    const ops = await page.getOperatorList();
+    
+    for (let j = 0; j < ops.fnArray.length; j++) {
+      const fn = ops.fnArray[j];
+      const isPaintImage = fn === window.pdfjsLib.OPS.paintImageXObject;
+      const isInlineImage = fn === window.pdfjsLib.OPS.paintInlineImage;
+      
+      if (isPaintImage || isInlineImage) {
+        const objId = ops.argsArray[j][0];
+        try {
+          const img = await new Promise((resolve, reject) => {
+            let attempts = 0;
+            const checkObj = () => {
+              const o = page.objs.get(objId);
+              if (o) {
+                resolve(o);
+              } else {
+                attempts++;
+                if (attempts > 50) {
+                  // Fallback: resolve null if takes too long
+                  resolve(null);
+                } else {
+                  setTimeout(checkObj, 30);
+                }
+              }
+            };
+            checkObj();
+          });
+          
+          if (img && img.width && img.height) {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            
+            let imgData;
+            if (img.data instanceof Uint8ClampedArray) {
+              if (img.data.length === img.width * img.height * 3) {
+                const rgba = new Uint8ClampedArray(img.width * img.height * 4);
+                for (let k = 0, l = 0; k < img.data.length; k += 3, l += 4) {
+                  rgba[l] = img.data[k];
+                  rgba[l+1] = img.data[k+1];
+                  rgba[l+2] = img.data[k+2];
+                  rgba[l+3] = 255;
+                }
+                imgData = new ImageData(rgba, img.width, img.height);
+              } else {
+                imgData = new ImageData(img.data, img.width, img.height);
+              }
+            } else if (img.data instanceof Uint8Array) {
+              const clamped = new Uint8ClampedArray(img.data);
+              imgData = new ImageData(clamped, img.width, img.height);
+            }
+            
+            if (imgData) {
+              ctx.putImageData(imgData, 0, 0);
+              const dataUrl = canvas.toDataURL('image/png');
+              const response = await fetch(dataUrl);
+              const arrayBuffer = await response.arrayBuffer();
+              
+              extractedImages.push({
+                name: `extracted_page_${i}_img_${imageIndex}.png`,
+                dataUrl,
+                bytes: new Uint8Array(arrayBuffer),
+                width: img.width,
+                height: img.height
+              });
+              imageIndex++;
+            }
+          }
+        } catch (err) {
+          console.warn('Failed to extract image object:', objId, err);
+        }
+      }
+    }
+    
+    if (onProgress) {
+      onProgress(Math.round((i / numPages) * 100));
+    }
+  }
+  
+  return extractedImages;
+}
+
+// 25. Resize PDF Pages with Aspect Ratio Options
+export async function resizePdfPages(pdfBuffer, targetSize, orientation, scaleOption = 'fit') {
+  const srcPdf = await PDFDocument.load(pdfBuffer);
+  const destPdf = await PDFDocument.create();
+  const numPages = srcPdf.getPageCount();
+  
+  const sizes = {
+    A4: { width: 595.28, height: 841.89 },
+    Letter: { width: 612, height: 792 },
+    A3: { width: 841.89, height: 1190.55 },
+    A5: { width: 419.53, height: 595.28 },
+    Legal: { width: 612, height: 1008 }
+  };
+  
+  const dims = sizes[targetSize] || sizes.A4;
+  const pageW = orientation === 'landscape' ? dims.height : dims.width;
+  const pageH = orientation === 'landscape' ? dims.width : dims.height;
+  
+  for (let i = 0; i < numPages; i++) {
+    const [embeddedPage] = await destPdf.embedPages([srcPdf.getPage(i)]);
+    const { width: origW, height: origH } = srcPdf.getPage(i).getSize();
+    
+    const destPage = destPdf.addPage([pageW, pageH]);
+    
+    let scaleX = pageW / origW;
+    let scaleY = pageH / origH;
+    
+    if (scaleOption === 'fit') {
+      const scale = Math.min(scaleX, scaleY);
+      scaleX = scale;
+      scaleY = scale;
+    }
+    
+    const newW = origW * scaleX;
+    const newH = origH * scaleY;
+    
+    const xOffset = (pageW - newW) / 2;
+    const yOffset = (pageH - newH) / 2;
+    
+    destPage.drawPage(embeddedPage, {
+      x: xOffset,
+      y: yOffset,
+      width: newW,
+      height: newH
+    });
+  }
+  
+  destPdf.setCreator('pdfCraft Resize Engine');
+  destPdf.setProducer('pdfCraft Engine');
+  
+  return await destPdf.save({ useObjectStreams: true });
+}
+
+// 26. Parse PDF Hyperlinks
+export async function getPdfHyperlinks(pdfBuffer) {
+  const pdfDoc = await PDFDocument.load(pdfBuffer);
+  const pages = pdfDoc.getPages();
+  const links = [];
+  
+  pages.forEach((page, pageIndex) => {
+    const annots = page.node.Annots();
+    if (annots) {
+      for (let i = 0; i < annots.size(); i++) {
+        const annotRef = annots.get(i);
+        const annot = pdfDoc.context.lookup(annotRef);
+        if (annot && annot.get(PDFName.of('Subtype')) === PDFName.of('Link')) {
+          const rect = annot.get(PDFName.of('Rect'));
+          const action = annot.get(PDFName.of('A'));
+          let url = '';
+          if (action) {
+            const uriDict = pdfDoc.context.lookup(action);
+            if (uriDict && uriDict.get(PDFName.of('S')) === PDFName.of('URI')) {
+              const uri = uriDict.get(PDFName.of('URI'));
+              url = uri.toString();
+              if (url.startsWith('(') && url.endsWith(')')) {
+                url = url.substring(1, url.length - 1);
+              }
+            }
+          }
+          
+          let rectArr = [];
+          if (rect) {
+            rectArr = rect.asArray().map(v => v.value);
+          }
+          
+          links.push({
+            id: `${pageIndex}-${i}`,
+            pageIndex,
+            annotIndex: i,
+            rect: rectArr,
+            url
+          });
+        }
+      }
+    }
+  });
+  return links;
+}
+
+// 27. Update / Save PDF Hyperlinks (updates, deletes, adds)
+export async function savePdfHyperlinks(pdfBuffer, actions) {
+  const pdfDoc = await PDFDocument.load(pdfBuffer);
+  const pages = pdfDoc.getPages();
+  
+  const pageActions = {};
+  for (const action of actions) {
+    if (!pageActions[action.pageIndex]) {
+      pageActions[action.pageIndex] = [];
+    }
+    pageActions[action.pageIndex].push(action);
+  }
+  
+  for (const pageIdxStr of Object.keys(pageActions)) {
+    const pageIndex = parseInt(pageIdxStr, 10);
+    const page = pages[pageIndex];
+    const pageActionsList = pageActions[pageIdxStr];
+    
+    const updates = pageActionsList.filter(a => a.type === 'update');
+    const deletes = pageActionsList.filter(a => a.type === 'delete').sort((a, b) => b.annotIndex - a.annotIndex);
+    const adds = pageActionsList.filter(a => a.type === 'add');
+    
+    let annots = page.node.Annots();
+    
+    for (const update of updates) {
+      if (annots) {
+        const annotRef = annots.get(update.annotIndex);
+        const annot = pdfDoc.context.lookup(annotRef);
+        if (annot) {
+          let action = annot.get(PDFName.of('A'));
+          if (!action) {
+            action = pdfDoc.context.obj({
+              Type: PDFName.of('Action'),
+              S: PDFName.of('URI'),
+              URI: update.url
+            });
+            annot.set(PDFName.of('A'), action);
+          } else {
+            const uriDict = pdfDoc.context.lookup(action);
+            if (uriDict) {
+              uriDict.set(PDFName.of('URI'), pdfDoc.context.obj(update.url));
+            }
+          }
+        }
+      }
+    }
+    
+    for (const del of deletes) {
+      if (annots) {
+        annots.remove(del.annotIndex);
+      }
+    }
+    
+    for (const add of adds) {
+      if (!annots) {
+        annots = pdfDoc.context.obj([]);
+        page.node.set(PDFName.of('Annots'), annots);
+      }
+      
+      const rect = pdfDoc.context.obj([
+        add.rect[0],
+        add.rect[1],
+        add.rect[2],
+        add.rect[3]
+      ]);
+      
+      const action = pdfDoc.context.obj({
+        Type: PDFName.of('Action'),
+        S: PDFName.of('URI'),
+        URI: add.url
+      });
+      
+      const linkAnnot = pdfDoc.context.obj({
+        Type: PDFName.of('Annot'),
+        Subtype: PDFName.of('Link'),
+        Rect: rect,
+        A: action,
+        Border: pdfDoc.context.obj([0, 0, 0])
+      });
+      
+      const linkRef = pdfDoc.context.register(linkAnnot);
+      annots.push(linkRef);
+    }
+  }
+  
+  return await pdfDoc.save();
+}
+
 

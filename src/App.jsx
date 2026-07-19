@@ -62,7 +62,11 @@ import {
   convertPdfToXlsx,
   convertPdfToPdfA,
   convertToGrayscalePdf,
-  cropPdf
+  cropPdf,
+  extractImagesFromPdf,
+  resizePdfPages,
+  getPdfHyperlinks,
+  savePdfHyperlinks
 } from './utils/pdfProcessor';
 
 // Beautiful Custom SVG Icons representing document conversions
@@ -494,6 +498,21 @@ function App() {
   const [scannerRotation, setScannerRotation] = useState(0);
   const [activeDragHandle, setActiveDragHandle] = useState(null);
   const [dragStartOffset, setDragStartOffset] = useState({ x: 0, y: 0 });
+
+  // Extract Images Tool States
+  const [extractedImagesList, setExtractedImagesList] = useState([]); // Array of { name, dataUrl, bytes, width, height }
+
+  // Resize PDF Tool States
+  const [resizeTargetSize, setResizeTargetSize] = useState('A4'); // A4, Letter, A3, A5, Legal
+  const [resizeOrientation, setResizeOrientation] = useState('portrait'); // portrait, landscape
+  const [resizeScaleOption, setResizeScaleOption] = useState('fit'); // fit, stretch
+
+  // Links Editor Tool States
+  const [pdfHyperlinksList, setPdfHyperlinksList] = useState([]); // Array of { id, pageIndex, annotIndex, rect, url }
+  const [linkEditActions, setLinkEditActions] = useState([]); // Array of { type: 'update'|'delete'|'add', pageIndex, annotIndex, url, rect }
+  const [loadingLinks, setLoadingLinks] = useState(false);
+  const [newLinkUrl, setNewLinkUrl] = useState('https://');
+  const [newLinkPage, setNewLinkPage] = useState(0);
   const [lightboxLoading, setLightboxLoading] = useState(false);
   const [unlockPassword, setUnlockPassword] = useState('');
   const [previewModalRotation, setPreviewModalRotation] = useState(0);
@@ -1194,6 +1213,33 @@ function App() {
       category: 'Optimize',
       multiple: false,
       accept: '.pdf'
+    },
+    {
+      id: 'extract-images',
+      title: 'Extract Images',
+      description: 'Scan and extract all embedded images and diagrams from a PDF as individual PNG files.',
+      icon: <FileImage size={24} />,
+      category: 'Convert from PDF',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'resize-pdf',
+      title: 'Resize Pages',
+      description: 'Resize PDF pages to standard formats like A4, Letter, Legal, A3 with scale-to-fit options.',
+      icon: <Sliders size={24} />,
+      category: 'Optimize',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'links-editor',
+      title: 'Edit PDF Links',
+      description: 'Inspect the document for active hyperlinks and edit, delete, or add new URLs directly.',
+      icon: <Share2 size={24} />,
+      category: 'Edits',
+      multiple: false,
+      accept: '.pdf'
     }
   ];
 
@@ -1298,6 +1344,21 @@ function App() {
             rotation: 0
           }));
           setOrganizePages(pages);
+        }
+
+        // Initialize links editor for links tool
+        if (currentTool?.id === 'links-editor') {
+          setLoadingLinks(true);
+          try {
+            const links = await getPdfHyperlinks(singleFile.buffer);
+            setPdfHyperlinksList(links);
+            setLinkEditActions([]);
+          } catch (e) {
+            console.error('Failed to get PDF links:', e);
+            setError('Failed to extract PDF hyperlinks.');
+          } finally {
+            setLoadingLinks(false);
+          }
         }
       }
     }
@@ -1410,6 +1471,16 @@ function App() {
     setQrFgColor('#000000');
     setQrBgColor('#ffffff');
     setQrDataUrl('');
+
+    // Reset new tools
+    setExtractedImagesList([]);
+    setResizeTargetSize('A4');
+    setResizeOrientation('portrait');
+    setResizeScaleOption('fit');
+    setPdfHyperlinksList([]);
+    setLinkEditActions([]);
+    setNewLinkUrl('https://');
+    setNewLinkPage(0);
   };
 
   const backToHome = () => {
@@ -2072,6 +2143,50 @@ function App() {
         }
         outputBytes = await unlockPdf(file.buffer, unlockPassword);
         filename = `${file.name.replace('.pdf', '')}_unlocked.pdf`;
+      }
+
+      else if (activeTool === 'extract-images') {
+        setProcessingStatus('Extracting images from PDF...');
+        const file = uploadedFiles[0];
+        const extracted = await extractImagesFromPdf(file.buffer, (prog) => {
+          setProgress(20 + Math.round(prog * 0.6));
+        });
+
+        if (extracted.length === 0) {
+          throw new Error('No embedded images found in this PDF document.');
+        }
+
+        setExtractedImagesList(extracted);
+
+        // Package them in a zip for download
+        const zip = new JSZip();
+        extracted.forEach((img) => {
+          zip.file(img.name, img.bytes);
+        });
+
+        setProcessingStatus('Compressing images ZIP archive...');
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        setResultBlob(zipBlob);
+        setResultName(`${file.name.replace('.pdf', '')}_extracted_images.zip`);
+        setProgress(100);
+        setTimeout(() => {
+          setProcessing(false);
+        }, 150);
+        return;
+      }
+
+      else if (activeTool === 'resize-pdf') {
+        setProcessingStatus('Resizing PDF pages...');
+        const file = uploadedFiles[0];
+        outputBytes = await resizePdfPages(file.buffer, resizeTargetSize, resizeOrientation, resizeScaleOption);
+        filename = `${file.name.replace('.pdf', '')}_resized_${resizeTargetSize.toLowerCase()}.pdf`;
+      }
+
+      else if (activeTool === 'links-editor') {
+        setProcessingStatus('Saving updated hyperlinks...');
+        const file = uploadedFiles[0];
+        outputBytes = await savePdfHyperlinks(file.buffer, linkEditActions);
+        filename = `${file.name.replace('.pdf', '')}_links_updated.pdf`;
       }
 
       else if (activeTool === 'pdf-to-docx') {
@@ -4465,6 +4580,148 @@ function App() {
                         })}
                       </div>
                     </div>
+                  ) : activeTool === 'extract-images' ? (
+                    <div className="files-preview-container" style={{ width: '100%' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <div style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-primary)' }}>
+                          Extracted Images ({extractedImagesList.length})
+                        </div>
+                        {extractedImagesList.length > 0 && resultBlob && (
+                          <button
+                            className="btn-download-success"
+                            style={{ padding: '0.4rem 1rem', fontSize: '0.8rem' }}
+                            onClick={() => downloadBlob(resultBlob, resultName)}
+                          >
+                            <Download size={14} /> Download All (ZIP)
+                          </button>
+                        )}
+                      </div>
+                      {extractedImagesList.length > 0 ? (
+                        <div className="files-grid">
+                          {extractedImagesList.map((img, idx) => (
+                            <div key={idx} className="file-preview-card" style={{ padding: '0.5rem' }}>
+                              <div className="file-preview-thumbnail" style={{ height: '140px', backgroundColor: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                <img src={img.dataUrl} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} alt={img.name} />
+                              </div>
+                              <div className="file-preview-info" style={{ marginTop: '0.5rem' }}>
+                                <div className="file-preview-name" style={{ fontSize: '0.75rem', fontWeight: '700' }}>{img.name}</div>
+                                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                                  {img.width} × {img.height} • {(img.bytes.length / 1024).toFixed(1)} KB
+                                </div>
+                                <button
+                                  className="btn-upload"
+                                  style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', width: '100%', marginTop: '0.5rem' }}
+                                  onClick={() => {
+                                    const blob = new Blob([img.bytes], { type: 'image/png' });
+                                    downloadBlob(blob, img.name);
+                                  }}
+                                >
+                                  Download Image
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border-color)' }}>
+                          <FileImage size={48} style={{ color: 'var(--text-muted)', marginBottom: '1rem' }} />
+                          <div style={{ fontWeight: '700', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>No Images Extracted Yet</div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textAlign: 'center', maxWidth: '300px' }}>
+                            Click the <strong>Extract Images</strong> button in the right panel to scan the document.
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : activeTool === 'links-editor' ? (
+                    <div className="files-preview-container" style={{ width: '100%' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <div style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-primary)' }}>
+                          Hyperlink Inspector ({pdfHyperlinksList.length})
+                        </div>
+                      </div>
+                      {loadingLinks ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          <div className="skeleton-pulse" style={{ height: '40px', borderRadius: '4px' }} />
+                          <div className="skeleton-pulse" style={{ height: '40px', borderRadius: '4px' }} />
+                          <div className="skeleton-pulse" style={{ height: '40px', borderRadius: '4px' }} />
+                        </div>
+                      ) : pdfHyperlinksList.length > 0 ? (
+                        <div style={{ overflowX: 'auto', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', textAlign: 'left' }}>
+                            <thead>
+                              <tr style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
+                                <th style={{ padding: '0.75rem 1rem', fontWeight: '700' }}>Page</th>
+                                <th style={{ padding: '0.75rem 1rem', fontWeight: '700' }}>Hyperlink Destination URL</th>
+                                <th style={{ padding: '0.75rem 1rem', fontWeight: '700', textAlign: 'right' }}>Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {pdfHyperlinksList.map((link) => (
+                                <tr key={link.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                  <td style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>Page {link.pageIndex + 1}</td>
+                                  <td style={{ padding: '0.75rem 1rem' }}>
+                                    <input
+                                      type="text"
+                                      className="form-control"
+                                      style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', margin: 0, width: '100%' }}
+                                      value={link.url}
+                                      onChange={(e) => {
+                                        const newUrl = e.target.value;
+                                        setPdfHyperlinksList(prev => prev.map(l => l.id === link.id ? { ...l, url: newUrl } : l));
+                                        setLinkEditActions(prev => {
+                                          const existingIdx = prev.findIndex(a => a.pageIndex === link.pageIndex && a.annotIndex === link.annotIndex && a.type === 'update');
+                                          if (existingIdx >= 0) {
+                                            const updated = [...prev];
+                                            updated[existingIdx] = { ...updated[existingIdx], url: newUrl };
+                                            return updated;
+                                          } else {
+                                            return [...prev, {
+                                              type: link.isNew ? 'add' : 'update',
+                                              pageIndex: link.pageIndex,
+                                              annotIndex: link.annotIndex,
+                                              url: newUrl,
+                                              rect: link.rect
+                                            }];
+                                          }
+                                        });
+                                      }}
+                                    />
+                                  </td>
+                                  <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
+                                    <button
+                                      className="btn-icon"
+                                      style={{ color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', backgroundColor: 'rgba(239,68,68,0.05)', padding: '4px 8px', borderRadius: '4px' }}
+                                      onClick={() => {
+                                        setPdfHyperlinksList(prev => prev.filter(l => l.id !== link.id));
+                                        if (link.isNew) {
+                                          setLinkEditActions(prev => prev.filter(a => !(a.type === 'add' && a.pageIndex === link.pageIndex && a.url === link.url)));
+                                        } else {
+                                          setLinkEditActions(prev => [...prev, {
+                                            type: 'delete',
+                                            pageIndex: link.pageIndex,
+                                            annotIndex: link.annotIndex
+                                          }]);
+                                        }
+                                      }}
+                                    >
+                                      Delete Link
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border-color)' }}>
+                          <Share2 size={48} style={{ color: 'var(--text-muted)', marginBottom: '1rem' }} />
+                          <div style={{ fontWeight: '700', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>No Hyperlinks Detected</div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textAlign: 'center', maxWidth: '300px' }}>
+                            We couldn't find any links in this document. Use the sidebar options to insert new hyperlink anchors.
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     /* Default Single File Preview */
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: '1rem' }}>
@@ -5473,6 +5730,167 @@ function App() {
                     </div>
                   )}
 
+                  {activeTool === 'extract-images' && (
+                    <div className="sidebar-section">
+                      <h3>Image Extractor</h3>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        Locate and extract all embedded photos, diagrams, and raster graphics inside the PDF. Extracted images can be downloaded individually or together as a ZIP.
+                      </p>
+                    </div>
+                  )}
+
+                  {activeTool === 'resize-pdf' && (
+                    <div className="sidebar-section" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <h3>Page Resize Settings</h3>
+                      <div className="form-group">
+                        <label>Target Page Size</label>
+                        <select
+                          className="form-control"
+                          value={resizeTargetSize}
+                          onChange={(e) => setResizeTargetSize(e.target.value)}
+                        >
+                          <option value="A4">A4 (Standard International)</option>
+                          <option value="Letter">US Letter (Standard Office)</option>
+                          <option value="A3">A3 (Large Print)</option>
+                          <option value="A5">A5 (Compact Booklet)</option>
+                          <option value="Legal">Legal (Contract Document)</option>
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label>Orientation</label>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button
+                            type="button"
+                            className={`option-select-btn ${resizeOrientation === 'portrait' ? 'active' : ''}`}
+                            style={{ flex: 1 }}
+                            onClick={() => setResizeOrientation('portrait')}
+                          >
+                            Portrait
+                          </button>
+                          <button
+                            type="button"
+                            className={`option-select-btn ${resizeOrientation === 'landscape' ? 'active' : ''}`}
+                            style={{ flex: 1 }}
+                            onClick={() => setResizeOrientation('landscape')}
+                          >
+                            Landscape
+                          </button>
+                        </div>
+                      </div>
+                      <div className="form-group">
+                        <label>Content Scaling</label>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button
+                            type="button"
+                            className={`option-select-btn ${resizeScaleOption === 'fit' ? 'active' : ''}`}
+                            style={{ flex: 1 }}
+                            onClick={() => setResizeScaleOption('fit')}
+                            title="Preserve aspect ratio (fits without cropping/stretching)"
+                          >
+                            Scale to Fit
+                          </button>
+                          <button
+                            type="button"
+                            className={`option-select-btn ${resizeScaleOption === 'stretch' ? 'active' : ''}`}
+                            style={{ flex: 1 }}
+                            onClick={() => setResizeScaleOption('stretch')}
+                            title="Stretch fill (fits exactly by distorting aspect ratio if needed)"
+                          >
+                            Stretch Fill
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeTool === 'links-editor' && (
+                    <div className="sidebar-section" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <h3>Add New Link</h3>
+                      <div className="form-group">
+                        <label>Destination URL</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={newLinkUrl}
+                          onChange={(e) => setNewLinkUrl(e.target.value)}
+                          placeholder="https://example.com"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Target Page</label>
+                        <select
+                          className="form-control"
+                          value={newLinkPage}
+                          onChange={(e) => setNewLinkPage(parseInt(e.target.value, 10))}
+                        >
+                          {uploadedFiles[0] && Array.from({ length: uploadedFiles[0].pageCount }).map((_, idx) => (
+                            <option key={idx} value={idx}>Page {idx + 1}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <button
+                          type="button"
+                          className="btn-upload"
+                          style={{ padding: '0.5rem', fontSize: '0.75rem', width: '100%', backgroundColor: 'var(--accent-color)', color: 'white', border: 'none' }}
+                          onClick={() => {
+                            if (!newLinkUrl.trim() || newLinkUrl === 'https://') {
+                              alert('Please enter a valid URL.');
+                              return;
+                            }
+                            const rect = [50, 780, 545, 815]; // Header area
+                            const newId = `new-${Date.now()}`;
+                            setPdfHyperlinksList(prev => [...prev, {
+                              id: newId,
+                              pageIndex: newLinkPage,
+                              annotIndex: -1,
+                              rect,
+                              url: newLinkUrl,
+                              isNew: true
+                            }]);
+                            setLinkEditActions(prev => [...prev, {
+                              type: 'add',
+                              pageIndex: newLinkPage,
+                              url: newLinkUrl,
+                              rect
+                            }]);
+                          }}
+                        >
+                          + Add to Page Header
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-upload"
+                          style={{ padding: '0.5rem', fontSize: '0.75rem', width: '100%', backgroundColor: 'var(--accent-color)', color: 'white', border: 'none' }}
+                          onClick={() => {
+                            if (!newLinkUrl.trim() || newLinkUrl === 'https://') {
+                              alert('Please enter a valid URL.');
+                              return;
+                            }
+                            const rect = [50, 30, 545, 65]; // Footer area
+                            const newId = `new-${Date.now()}`;
+                            setPdfHyperlinksList(prev => [...prev, {
+                              id: newId,
+                              pageIndex: newLinkPage,
+                              annotIndex: -1,
+                              rect,
+                              url: newLinkUrl,
+                              isNew: true
+                            }]);
+                            setLinkEditActions(prev => [...prev, {
+                              type: 'add',
+                              pageIndex: newLinkPage,
+                              url: newLinkUrl,
+                              rect
+                            }]);
+                          }}
+                        >
+                          + Add to Page Footer
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Primary Trigger Button */}
                   {activeTool !== 'scanner' && (
                     <button
@@ -5484,16 +5902,20 @@ function App() {
                         ((activeTool === 'sign' || activeTool === 'qr') && activePageToSign !== null) ||
                         (activeTool === 'crop' && (activePageToCrop !== null || Object.keys(placedCrops).length === 0)) ||
                         (activeTool === 'protect' && !protectPassword.trim()) ||
-                        (activeTool === 'unlock' && !unlockPassword.trim())
+                        (activeTool === 'unlock' && !unlockPassword.trim()) ||
+                        (activeTool === 'links-editor' && linkEditActions.length === 0)
                       }
                     >
                       {
                         activeTool === 'extract-text' ? 'Extract Text' :
-                          activeTool === 'pdf-to-docx' ? 'Convert to Word' :
-                            activeTool === 'pdf-to-pptx' ? 'Convert to PowerPoint' :
-                              activeTool === 'grayscale' ? 'Convert to Grayscale' :
-                                activeTool === 'crop' ? 'Crop PDF Document' :
-                                  `Convert to ${currentTool?.id === 'pdf-to-img' ? 'Images' : 'PDF'}`
+                          activeTool === 'extract-images' ? 'Extract Images' :
+                            activeTool === 'resize-pdf' ? 'Resize PDF Pages' :
+                              activeTool === 'links-editor' ? 'Save Updated PDF' :
+                                activeTool === 'pdf-to-docx' ? 'Convert to Word' :
+                                  activeTool === 'pdf-to-pptx' ? 'Convert to PowerPoint' :
+                                    activeTool === 'grayscale' ? 'Convert to Grayscale' :
+                                      activeTool === 'crop' ? 'Crop PDF Document' :
+                                        `Convert to ${currentTool?.id === 'pdf-to-img' ? 'Images' : 'PDF'}`
                       }
                     </button>
                   )}

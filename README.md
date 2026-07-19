@@ -13,6 +13,7 @@ PDFCraft is a high-performance, client-side PDF manipulation and utility suite b
 *   **Rotate PDF:** Apply global rotation (90, 180, or 270 degrees) to all pages in a document.
 
 ### ✍️ Edits & Enhancements
+*   **Edit PDF Links:** Inspect the PDF's internal annotation structures to list existing hyperlinks (URLs, emails), edit/update URLs directly in-place, delete unwanted links, or add new link anchors to page headers and footers.
 *   **Sign PDF:** Draw a custom signature or upload an image, then visually place and resize it on any page.
 *   **Stamp QR Code:** Generate a QR code from text or URLs with custom labels and colors, then stamp it on pages.
 *   **Add Page Numbers:** Insert styled headers or footers (e.g., "Page X of Y") in various layouts and color options.
@@ -24,20 +25,22 @@ PDFCraft is a high-performance, client-side PDF manipulation and utility suite b
 *   **Unlock PDF:** Strip password protection from encrypted PDFs (requires the current password).
 
 ### ⚡ Optimization
+*   **Resize Pages:** Scale PDF pages to standard international formats (A4, Letter, A3, Legal, A5) with responsive aspect-ratio-aware "Scale to Fit" or "Stretch Fill" layout adjustments.
 *   **Compress PDF:** Reduce file sizes using smart client-side rasterization settings (high, recommended, low) while preserving visual clarity.
 *   **Grayscale Conversion:** Convert color documents to grayscale (ink-saver mode) using hardware-accelerated canvas rendering.
 *   **Metadata Editor:** Easily modify document details like Title, Author, Subject, Keywords, and Creator.
-*   **Extract Text:** Scan and extract text contents from any PDF entirely client-side.
+*   **Extract Text:** Smart paragraph-structure parser that analyzes line heights, headers, lists, and double spacing boundaries to extract beautifully formatted text layouts.
 
 ### 🔄 Document Conversions
 *   **To PDF:**
     *   **JPG / PNG to PDF:** Convert images into a clean, paginated PDF with adjustable orientation (portrait/landscape) and margins.
-    *   **Word (DOCX) to PDF:** Render Word documents into PDFs locally using Mammoth.js.
+    *   **Word (DOCX) to PDF:** Render Word documents into PDFs locally using Mammoth.js with auto-scaling (shrink-to-fit) layout constraints.
     *   **PowerPoint (PPTX) to PDF:** Convert slides into PDFs using XML zip parsing.
-    *   **Excel (XLSX) to PDF:** Convert spreadsheets to PDFs using SheetJS.
+    *   **Excel (XLSX) to PDF:** Convert spreadsheets to PDFs using SheetJS with landscape fitting options.
     *   **HTML to PDF:** Render HTML files directly to PDF layout.
 *   **From PDF:**
-    *   **PDF to Word (DOCX):** Reconstruct editable DOCX files by extracting structural text layouts.
+    *   **Extract Images:** Scan and extract all embedded binary raster graphics (photos, figures, diagrams) from a PDF to download individually or grouped in a ZIP.
+    *   **PDF to Word (DOCX):** Reconstruct editable DOCX files utilizing a dynamic bounding-box letters positioning algorithm for multi-column and table alignment layout accuracy.
     *   **PDF to PowerPoint (PPTX):** Convert PDF pages into slide layouts.
     *   **PDF to Excel (XLSX):** Extract tabular data into structured spreadsheet formats.
     *   **PDF to PDF/A:** Standardize files to the PDF/A format for long-term archiving.
