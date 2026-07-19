@@ -1,4 +1,4 @@
-import { PDFDocument, rgb, degrees, StandardFonts } from 'pdf-lib';
+import { PDFDocument, rgb, degrees, StandardFonts, PDFName, PDFRawStream } from 'pdf-lib';
 import { encryptPDF } from '@pdfsmaller/pdf-encrypt';
 import JSZip from 'jszip';
 import { Document, Packer, Paragraph, TextRun, PageBreak } from 'docx';
@@ -103,78 +103,127 @@ export async function organizePdf(pdfBuffer, pageActions) {
   return await destPdf.save();
 }
 
-// 4. Compress PDF (using high-performance client-side page rasterization)
+// Helper function to compress a single image using canvas re-encoding
+async function compressImageBytes(bytes, quality, scale, grayscale = false) {
+  return new Promise((resolve, reject) => {
+    const blob = new Blob([bytes]);
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Canvas context not available'));
+          return;
+        }
+        
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        canvas.width = w;
+        canvas.height = h;
+
+        if (grayscale) {
+          ctx.filter = 'grayscale(100%)';
+        }
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+
+        canvas.toBlob((compressedBlob) => {
+          if (!compressedBlob) {
+            reject(new Error('Canvas toBlob failed'));
+            return;
+          }
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            resolve(new Uint8Array(reader.result));
+          };
+          reader.onerror = () => reject(reader.error);
+          reader.readAsArrayBuffer(compressedBlob);
+        }, 'image/jpeg', quality);
+      } catch (err) {
+        reject(err);
+      }
+    };
+    
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Failed to load image'));
+    };
+    
+    img.src = url;
+  });
+}
+
+// 4. Compress PDF (Structural Image Compression - Preserves Searchable Text Layer)
 export async function compressPdf(pdfBuffer, compressionLevel, onProgress) {
-  if (!window.pdfjsLib) {
-    // Wait briefly if PDF.js is not loaded yet
-    await new Promise(resolve => setTimeout(resolve, 500));
-    if (!window.pdfjsLib) {
-      throw new Error('PDF.js library is not loaded. Please try again.');
-    }
-  }
-
   try {
-    const loadingTask = window.pdfjsLib.getDocument({ data: pdfBuffer.slice(0) });
-    const pdf = await loadingTask.promise;
-    const numPages = pdf.numPages;
-    const destPdf = await PDFDocument.create();
-
-    // Set compression settings (scale of rendering and JPEG quality)
-    let scale = 1.3;
-    let quality = 0.65;
-
+    const pdfDoc = await PDFDocument.load(pdfBuffer);
+    
+    let scale = 0.7;
+    let quality = 0.6;
     if (compressionLevel === 'high') {
-      scale = 0.95;
+      scale = 0.45;
       quality = 0.45;
     } else if (compressionLevel === 'low') {
-      scale = 1.8;
-      quality = 0.8;
+      scale = 0.85;
+      quality = 0.75;
     }
 
-    for (let i = 1; i <= numPages; i++) {
-      const page = await pdf.getPage(i);
-      
-      const viewport = page.getViewport({ scale });
-      const canvas = document.createElement('canvas');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      const context = canvas.getContext('2d');
+    const indirectObjects = pdfDoc.context.enumerateIndirectObjects();
+    let totalImages = 0;
+    let processedImages = 0;
 
-      // Set white background to avoid transparent pages turning black in JPEG
-      context.fillStyle = '#ffffff';
-      context.fillRect(0, 0, canvas.width, canvas.height);
-
-      await page.render({ canvasContext: context, viewport }).promise;
-
-      const jpegDataUrl = canvas.toDataURL('image/jpeg', quality);
-      const jpegBytes = await fetch(jpegDataUrl).then(res => res.arrayBuffer());
-
-      const embeddedImg = await destPdf.embedJpg(jpegBytes);
-      
-      // Page size in PDF points (1.0 scale)
-      const originalViewport = page.getViewport({ scale: 1.0 });
-      const destPage = destPdf.addPage([originalViewport.width, originalViewport.height]);
-
-      destPage.drawImage(embeddedImg, {
-        x: 0,
-        y: 0,
-        width: originalViewport.width,
-        height: originalViewport.height,
-      });
-
-      if (onProgress) {
-        onProgress(Math.round((i / numPages) * 100));
+    for (const [ref, object] of indirectObjects) {
+      if (object instanceof PDFRawStream) {
+        const dict = object.dict;
+        if (dict.get(PDFName.of('Subtype')) === PDFName.of('Image')) {
+          totalImages++;
+        }
       }
     }
 
-    // Set metadata on compressed PDF
-    destPdf.setCreator('pdfCraft Compress Engine');
-    destPdf.setProducer('pdfCraft Engine');
+    if (totalImages === 0) {
+      return await pdfDoc.save({ useObjectStreams: true });
+    }
 
-    return await destPdf.save({
-      useObjectStreams: true,
-      addDefaultPage: false
-    });
+    for (const [ref, object] of indirectObjects) {
+      if (object instanceof PDFRawStream) {
+        const dict = object.dict;
+        if (dict.get(PDFName.of('Subtype')) === PDFName.of('Image')) {
+          try {
+            const bytes = object.contents;
+            const compressedBytes = await compressImageBytes(bytes, quality, scale, false);
+            
+            const newStream = pdfDoc.context.stream(compressedBytes, {
+              Type: PDFName.of('XObject'),
+              Subtype: PDFName.of('Image'),
+              Width: dict.get(PDFName.of('Width')),
+              Height: dict.get(PDFName.of('Height')),
+              BitsPerComponent: dict.get(PDFName.of('BitsPerComponent')) || 8,
+              ColorSpace: dict.get(PDFName.of('ColorSpace')),
+              Filter: PDFName.of('DCTDecode'),
+            });
+            pdfDoc.context.assign(ref, newStream);
+          } catch (err) {
+            console.warn('Skipping image compression due to error:', err);
+          }
+          processedImages++;
+          if (onProgress) {
+            onProgress(Math.round((processedImages / totalImages) * 100));
+          }
+        }
+      }
+    }
+
+    pdfDoc.setCreator('pdfCraft Compress Engine');
+    pdfDoc.setProducer('pdfCraft Engine');
+
+    return await pdfDoc.save({ useObjectStreams: true });
   } catch (err) {
     console.error('Error compressing PDF:', err);
     throw new Error('Failed to compress PDF. Please check the file format.');
@@ -1008,67 +1057,60 @@ export async function convertPdfToPdfA(pdfBuffer) {
   return await pdfDoc.save();
 }
 
-// 22. Convert PDF to Grayscale (Ink-Saver)
+// 22. Convert PDF to Grayscale (Ink-Saver - Structural Image Grayscale)
 export async function convertToGrayscalePdf(pdfBuffer, onProgress) {
-  if (!window.pdfjsLib) {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    if (!window.pdfjsLib) {
-      throw new Error('PDF.js library is not loaded. Please try again.');
-    }
-  }
-
   try {
-    const loadingTask = window.pdfjsLib.getDocument({ data: pdfBuffer.slice(0) });
-    const pdf = await loadingTask.promise;
-    const numPages = pdf.numPages;
-    const destPdf = await PDFDocument.create();
+    const pdfDoc = await PDFDocument.load(pdfBuffer);
+    const indirectObjects = pdfDoc.context.enumerateIndirectObjects();
+    let totalImages = 0;
+    let processedImages = 0;
 
-    const scale = 1.8;
-    const quality = 0.85;
-
-    for (let i = 1; i <= numPages; i++) {
-      const page = await pdf.getPage(i);
-      const viewport = page.getViewport({ scale });
-      const canvas = document.createElement('canvas');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      const context = canvas.getContext('2d');
-
-      // Apply hardware accelerated grayscale filter
-      context.filter = 'grayscale(100%)';
-
-      context.fillStyle = '#ffffff';
-      context.fillRect(0, 0, canvas.width, canvas.height);
-
-      await page.render({ canvasContext: context, viewport }).promise;
-
-      const jpegDataUrl = canvas.toDataURL('image/jpeg', quality);
-      const jpegBytes = await fetch(jpegDataUrl).then(res => res.arrayBuffer());
-
-      const embeddedImg = await destPdf.embedJpg(jpegBytes);
-      
-      const originalViewport = page.getViewport({ scale: 1.0 });
-      const destPage = destPdf.addPage([originalViewport.width, originalViewport.height]);
-
-      destPage.drawImage(embeddedImg, {
-        x: 0,
-        y: 0,
-        width: originalViewport.width,
-        height: originalViewport.height,
-      });
-
-      if (onProgress) {
-        onProgress(Math.round((i / numPages) * 100));
+    for (const [ref, object] of indirectObjects) {
+      if (object instanceof PDFRawStream) {
+        const dict = object.dict;
+        if (dict.get(PDFName.of('Subtype')) === PDFName.of('Image')) {
+          totalImages++;
+        }
       }
     }
 
-    destPdf.setCreator('pdfCraft Grayscale Engine');
-    destPdf.setProducer('pdfCraft Engine');
+    if (totalImages === 0) {
+      return await pdfDoc.save({ useObjectStreams: true });
+    }
 
-    return await destPdf.save({
-      useObjectStreams: true,
-      addDefaultPage: false
-    });
+    for (const [ref, object] of indirectObjects) {
+      if (object instanceof PDFRawStream) {
+        const dict = object.dict;
+        if (dict.get(PDFName.of('Subtype')) === PDFName.of('Image')) {
+          try {
+            const bytes = object.contents;
+            const compressedBytes = await compressImageBytes(bytes, 0.85, 1.0, true);
+            
+            const newStream = pdfDoc.context.stream(compressedBytes, {
+              Type: PDFName.of('XObject'),
+              Subtype: PDFName.of('Image'),
+              Width: dict.get(PDFName.of('Width')),
+              Height: dict.get(PDFName.of('Height')),
+              BitsPerComponent: dict.get(PDFName.of('BitsPerComponent')) || 8,
+              ColorSpace: PDFName.of('DeviceGray'),
+              Filter: PDFName.of('DCTDecode'),
+            });
+            pdfDoc.context.assign(ref, newStream);
+          } catch (err) {
+            console.warn('Skipping image grayscale conversion due to error:', err);
+          }
+          processedImages++;
+          if (onProgress) {
+            onProgress(Math.round((processedImages / totalImages) * 100));
+          }
+        }
+      }
+    }
+
+    pdfDoc.setCreator('pdfCraft Grayscale Engine');
+    pdfDoc.setProducer('pdfCraft Engine');
+
+    return await pdfDoc.save({ useObjectStreams: true });
   } catch (err) {
     console.error('Error converting PDF to grayscale:', err);
     throw new Error('Failed to convert PDF to grayscale.');
