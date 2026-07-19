@@ -409,9 +409,8 @@ export async function editMetadata(pdfBuffer, metadata) {
   return await pdfDoc.save();
 }
 
-// 10. Extract Text
+// 10. Extract Text (Structural & Formatted Paragraph Extraction)
 export async function extractTextFromPdf(pdfBuffer, onProgress) {
-  // Uses global window.pdfjsLib loaded from index.html CDN
   if (!window.pdfjsLib) {
     throw new Error('PDF.js library is not loaded yet. Please wait a moment.');
   }
@@ -424,7 +423,54 @@ export async function extractTextFromPdf(pdfBuffer, onProgress) {
   for (let i = 1; i <= numPages; i++) {
     const page = await pdf.getPage(i);
     const textContent = await page.getTextContent();
-    const pageText = textContent.items.map(item => item.str).join(' ');
+    const items = textContent.items;
+    
+    const { lines } = extractStructuredLayout(items);
+    let pageText = '';
+    
+    for (let j = 0; j < lines.length; j++) {
+      const currentLine = lines[j];
+      const lineText = currentLine.map(item => item.str).join(' ').trim();
+      
+      if (!lineText) continue;
+      
+      if (j === 0) {
+        pageText += lineText;
+      } else {
+        // Find previous non-empty line
+        let prevLine = null;
+        for (let k = j - 1; k >= 0; k--) {
+          const checkText = lines[k].map(item => item.str).join('').trim();
+          if (checkText) {
+            prevLine = lines[k];
+            break;
+          }
+        }
+        
+        if (!prevLine) {
+          pageText += lineText;
+          continue;
+        }
+        
+        const currentAvgY = currentLine.reduce((sum, item) => sum + item.transform[5], 0) / currentLine.length;
+        const currentAvgH = currentLine.reduce((sum, item) => sum + (item.height || 12), 0) / currentLine.length;
+        
+        const prevAvgY = prevLine.reduce((sum, item) => sum + item.transform[5], 0) / prevLine.length;
+        const prevAvgH = prevLine.reduce((sum, item) => sum + (item.height || 12), 0) / prevLine.length;
+        
+        const gap = prevAvgY - currentAvgY;
+        const maxH = Math.max(currentAvgH, prevAvgH);
+        
+        const isListItem = /^[•\-\*\d+\.\)]/.test(lineText);
+        
+        if (gap > maxH * 1.95 || gap > 22) {
+          pageText += '\n\n' + lineText;
+        } else {
+          pageText += '\n' + lineText;
+        }
+      }
+    }
+    
     fullText += `--- Page ${i} ---\n\n${pageText}\n\n`;
     
     if (onProgress) {
