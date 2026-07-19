@@ -548,6 +548,10 @@ export async function convertDocxToPdf(docxBuffer) {
   // Inject basic CSS rules to format the mammoth output cleanly
   tempDiv.innerHTML = `
     <style>
+      #docx-temp-render * {
+        box-sizing: border-box !important;
+        max-width: 100% !important;
+      }
       #docx-temp-render h1, #docx-temp-render h2, #docx-temp-render h3 {
         color: #0f172a;
         margin-top: 1.5rem;
@@ -558,9 +562,21 @@ export async function convertDocxToPdf(docxBuffer) {
       #docx-temp-render h2 { font-size: 20px; }
       #docx-temp-render h3 { font-size: 16px; }
       #docx-temp-render p { margin-bottom: 1rem; }
-      #docx-temp-render img { max-width: 100%; height: auto; display: block; margin: 1rem auto; border-radius: 4px; }
-      #docx-temp-render table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
-      #docx-temp-render th, #docx-temp-render td { border: 1px solid #cbd5e1; padding: 8px 12px; text-align: left; }
+      #docx-temp-render img { max-width: 100% !important; height: auto !important; display: block; margin: 1rem auto; border-radius: 4px; }
+      #docx-temp-render table { 
+        width: 100% !important; 
+        table-layout: fixed !important; 
+        border-collapse: collapse; 
+        margin: 1rem 0; 
+      }
+      #docx-temp-render th, #docx-temp-render td { 
+        border: 1px solid #cbd5e1; 
+        padding: 8px 12px; 
+        text-align: left; 
+        word-break: break-word !important; 
+        overflow-wrap: break-word !important; 
+        white-space: normal !important; 
+      }
       #docx-temp-render th { background-color: #f1f5f9; font-weight: 600; }
       #docx-temp-render ul, #docx-temp-render ol { margin-bottom: 1rem; padding-left: 20px; }
       #docx-temp-render li { margin-bottom: 0.25rem; }
@@ -727,6 +743,79 @@ export async function convertPptxToPdf(pptxBuffer) {
 }
 
 // 16. Convert PDF to DOCX
+// Shared helper to extract structured layout from PDF page text items (Dynamic Line & Column grouping)
+function extractStructuredLayout(items) {
+  if (!items || items.length === 0) return { lines: [], columns: [] };
+
+  const lines = [];
+  // Sort items by Y coordinate descending (top of the page first)
+  const sortedItems = [...items].sort((a, b) => b.transform[5] - a.transform[5]);
+
+  for (const item of sortedItems) {
+    const y = item.transform[5];
+    const h = item.height || 12;
+
+    // Find if there is an existing line within dynamic Y tolerance
+    let placed = false;
+    for (const line of lines) {
+      const avgY = line.reduce((sum, it) => sum + it.transform[5], 0) / line.length;
+      const avgH = line.reduce((sum, it) => sum + (it.height || 12), 0) / line.length;
+      const tolerance = Math.max(avgH * 0.65, 6);
+      if (Math.abs(y - avgY) <= tolerance) {
+        line.push(item);
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) {
+      lines.push([item]);
+    }
+  }
+
+  // Sort each line horizontally (left to right)
+  for (const line of lines) {
+    line.sort((a, b) => a.transform[4] - b.transform[4]);
+  }
+
+  // Sort all lines vertically by average Y coordinate descending
+  lines.sort((a, b) => {
+    const avgYa = a.reduce((sum, it) => sum + it.transform[5], 0) / a.length;
+    const avgYb = b.reduce((sum, it) => sum + it.transform[5], 0) / b.length;
+    return avgYb - avgYa;
+  });
+
+  // Identify column intervals
+  const colIntervals = [];
+  for (const line of lines) {
+    for (const item of line) {
+      const xStart = item.transform[4];
+      const xEnd = xStart + (item.width || 0);
+      colIntervals.push({ start: xStart, end: xEnd });
+    }
+  }
+  
+  colIntervals.sort((a, b) => a.start - b.start);
+
+  const columns = [];
+  for (const interval of colIntervals) {
+    if (columns.length === 0) {
+      columns.push({ ...interval });
+    } else {
+      const lastCol = columns[columns.length - 1];
+      const gap = interval.start - lastCol.end;
+      // Gap threshold for column merging (18 points is typical word/column spacer boundary)
+      if (gap <= 18) {
+        lastCol.end = Math.max(lastCol.end, interval.end);
+      } else {
+        columns.push({ ...interval });
+      }
+    }
+  }
+
+  return { lines, columns };
+}
+
+// 16. Convert PDF to DOCX
 export async function convertPdfToDocx(pdfBuffer, onProgress) {
   if (!window.pdfjsLib) {
     throw new Error('PDF.js is not loaded yet.');
@@ -741,18 +830,10 @@ export async function convertPdfToDocx(pdfBuffer, onProgress) {
     const textContent = await page.getTextContent();
     const items = textContent.items;
     
-    const lineGroups = {};
-    for (const item of items) {
-      const y = Math.round(item.transform[5] / 10) * 10;
-      if (!lineGroups[y]) lineGroups[y] = [];
-      lineGroups[y].push(item);
-    }
+    const { lines } = extractStructuredLayout(items);
     
-    const sortedYs = Object.keys(lineGroups).sort((a, b) => b - a);
-    
-    for (const y of sortedYs) {
-      const lineItems = lineGroups[y].sort((a, b) => a.transform[4] - b.transform[4]);
-      const lineText = lineItems.map(item => item.str).join(' ');
+    for (const line of lines) {
+      const lineText = line.map(item => item.str).join(' ');
       if (lineText.trim()) {
         docChildren.push(
           new Paragraph({
@@ -799,28 +880,21 @@ export async function convertPdfToPptx(pdfBuffer, onProgress) {
     const textContent = await page.getTextContent();
     const items = textContent.items;
     
-    const lineGroups = {};
-    for (const item of items) {
-      const y = Math.round(item.transform[5] / 10) * 10;
-      if (!lineGroups[y]) lineGroups[y] = [];
-      lineGroups[y].push(item);
-    }
+    const { lines } = extractStructuredLayout(items);
+    const pageLinesText = [];
     
-    const sortedYs = Object.keys(lineGroups).sort((a, b) => b - a);
-    const lines = [];
-    for (const y of sortedYs) {
-      const lineItems = lineGroups[y].sort((a, b) => a.transform[4] - b.transform[4]);
-      const lineText = lineItems.map(item => item.str).join(' ');
+    for (const line of lines) {
+      const lineText = line.map(item => item.str).join(' ');
       if (lineText.trim()) {
-        lines.push(lineText);
+        pageLinesText.push(lineText);
       }
     }
     
     const slide = pptx.addSlide();
     slide.addText(`Slide ${i}`, { x: 0.5, y: 0.5, w: '90%', h: 0.5, fontSize: 18, bold: true, color: '475569' });
     
-    if (lines.length > 0) {
-      slide.addText(lines.join('\n'), {
+    if (pageLinesText.length > 0) {
+      slide.addText(pageLinesText.join('\n'), {
         x: 0.5,
         y: 1.2,
         w: 9.0,
@@ -859,7 +933,7 @@ export async function convertXlsxToPdf(xlsxBuffer) {
   tempDiv.style.position = 'absolute';
   tempDiv.style.left = '-9999px';
   tempDiv.style.top = '-9999px';
-  tempDiv.style.width = '1000px';
+  tempDiv.style.width = '1123px'; // Match A4 landscape width at 96 DPI
   tempDiv.style.padding = '40px';
   tempDiv.style.boxSizing = 'border-box';
   tempDiv.style.fontFamily = '"Plus Jakarta Sans", Arial, sans-serif';
@@ -867,10 +941,33 @@ export async function convertXlsxToPdf(xlsxBuffer) {
 
   let sheetsHtml = `
     <style>
-      .xlsx-sheet { margin-bottom: 3rem; page-break-after: always; }
+      .xlsx-sheet { 
+        margin-bottom: 3rem; 
+        page-break-after: always; 
+        box-sizing: border-box !important; 
+        max-width: 100% !important; 
+      }
+      .xlsx-sheet * {
+        box-sizing: border-box !important;
+        max-width: 100% !important;
+      }
       .xlsx-sheet-title { font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 1rem; border-bottom: 2px solid #dc2626; padding-bottom: 0.5rem; }
-      .xlsx-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; font-size: 12px; }
-      .xlsx-table th, .xlsx-table td { border: 1px solid #cbd5e1; padding: 6px 10px; text-align: left; }
+      .xlsx-table { 
+        width: 100% !important; 
+        table-layout: fixed !important; 
+        word-wrap: break-word !important; 
+        border-collapse: collapse; 
+        margin-bottom: 1.5rem; 
+        font-size: 12px; 
+      }
+      .xlsx-table th, .xlsx-table td { 
+        border: 1px solid #cbd5e1; 
+        padding: 6px 10px; 
+        text-align: left; 
+        word-break: break-word !important; 
+        overflow-wrap: break-word !important; 
+        white-space: normal !important; 
+      }
       .xlsx-table th { background-color: #f1f5f9; font-weight: 600; color: #334155; }
       .xlsx-table tr:nth-child(even) { background-color: #f8fafc; }
     </style>
@@ -972,39 +1069,40 @@ export async function convertPdfToXlsx(pdfBuffer, onProgress) {
     const textContent = await page.getTextContent();
     const items = textContent.items;
 
-    const lineGroups = {};
-    for (const item of items) {
-      const y = Math.round(item.transform[5]);
-      if (!lineGroups[y]) lineGroups[y] = [];
-      lineGroups[y].push(item);
-    }
-
-    const sortedYs = Object.keys(lineGroups).sort((a, b) => b - a);
+    const { lines, columns } = extractStructuredLayout(items);
     const sheetData = [];
 
-    for (const y of sortedYs) {
-      const lineItems = lineGroups[y].sort((a, b) => a.transform[4] - b.transform[4]);
+    for (const line of lines) {
+      const rowCells = Array(columns.length).fill('');
       
-      const row = [];
-      let lastX = -999;
-      let currentCell = '';
+      for (const item of line) {
+        const xStart = item.transform[4];
+        const xEnd = xStart + (item.width || 0);
+        const xMid = (xStart + xEnd) / 2;
 
-      for (const item of lineItems) {
-        const x = item.transform[4];
-        if (lastX !== -999 && (x - lastX) > 28) {
-          row.push(currentCell.trim());
-          currentCell = item.str;
-        } else {
-          currentCell += (currentCell ? ' ' : '') + item.str;
+        let bestColIdx = 0;
+        let minDistance = Infinity;
+
+        for (let c = 0; c < columns.length; c++) {
+          const col = columns[c];
+          if (xMid >= col.start && xMid <= col.end) {
+            bestColIdx = c;
+            break;
+          }
+          const colMid = (col.start + col.end) / 2;
+          const dist = Math.abs(xMid - colMid);
+          if (dist < minDistance) {
+            minDistance = dist;
+            bestColIdx = c;
+          }
         }
-        lastX = x + (item.width || 0);
-      }
-      if (currentCell) {
-        row.push(currentCell.trim());
+
+        rowCells[bestColIdx] += (rowCells[bestColIdx] ? ' ' : '') + item.str;
       }
 
-      if (row.length > 0) {
-        sheetData.push(row);
+      // Add row only if it has at least one cell with non-empty content
+      if (rowCells.some(cell => cell.trim() !== '')) {
+        sheetData.push(rowCells);
       }
     }
 
