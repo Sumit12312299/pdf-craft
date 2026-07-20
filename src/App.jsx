@@ -33,7 +33,9 @@ import {
   Printer,
   GripVertical,
   Crop,
-  Scan
+  Scan,
+  GitCompare,
+  Split
 } from 'lucide-react';
 
 import {
@@ -69,7 +71,8 @@ import {
   performOcrOnImage,
   getPdfFormFields,
   savePdfFormFields,
-  redactPdf
+  redactPdf,
+  comparePdfs
 } from './utils/pdfProcessor';
 
 // Beautiful Custom SVG Icons representing document conversions
@@ -530,6 +533,16 @@ function App() {
   const [redactStart, setRedactStart] = useState(null);
   const [currentRedactBox, setCurrentRedactBox] = useState(null);
 
+  // PDF Visual Compare / Diff Viewer States
+  const [compareMode, setCompareMode] = useState('side-by-side'); // 'side-by-side', 'split-slider', 'diff-heatmap'
+  const [compareActivePage, setCompareActivePage] = useState(0);
+  const [compareSliderPos, setCompareSliderPos] = useState(50);
+  const [compareImageA, setCompareImageA] = useState(null);
+  const [compareImageB, setCompareImageB] = useState(null);
+  const [compareDiffCanvasUrl, setCompareDiffCanvasUrl] = useState(null);
+  const [compareDiffPercent, setCompareDiffPercent] = useState(null);
+  const [renderingCompare, setRenderingCompare] = useState(false);
+
   const [lightboxLoading, setLightboxLoading] = useState(false);
   const [unlockPassword, setUnlockPassword] = useState('');
   const [previewModalRotation, setPreviewModalRotation] = useState(0);
@@ -697,6 +710,125 @@ function App() {
     })();
     return () => { cancelled = true; };
   }, [activePageToRedact, uploadedFiles]);
+
+  // High-Res Rendering for PDF Compare Tool Pages & Pixel Diff
+  useEffect(() => {
+    if (activeTool !== 'compare' || uploadedFiles.length === 0) return;
+    let cancelled = false;
+
+    (async () => {
+      setRenderingCompare(true);
+      setCompareImageA(null);
+      setCompareImageB(null);
+      setCompareDiffCanvasUrl(null);
+      setCompareDiffPercent(null);
+
+      try {
+        if (!window.pdfjsLib) return;
+
+        // Render Page from Doc A
+        let imgA = null;
+        if (uploadedFiles[0]?.buffer) {
+          const loadingA = window.pdfjsLib.getDocument({ data: uploadedFiles[0].buffer.slice(0) });
+          const pdfA = await loadingA.promise;
+          const pageIndexA = Math.min(compareActivePage, pdfA.numPages - 1);
+          const pageA = await pdfA.getPage(pageIndexA + 1);
+          const viewportA = pageA.getViewport({ scale: 2 });
+          const canvasA = document.createElement('canvas');
+          canvasA.width = viewportA.width;
+          canvasA.height = viewportA.height;
+          await pageA.render({ canvasContext: canvasA.getContext('2d'), viewport: viewportA }).promise;
+          imgA = canvasA;
+          if (!cancelled) setCompareImageA(canvasA.toDataURL('image/jpeg', 0.92));
+        }
+
+        // Render Page from Doc B
+        let imgB = null;
+        if (uploadedFiles[1]?.buffer) {
+          const loadingB = window.pdfjsLib.getDocument({ data: uploadedFiles[1].buffer.slice(0) });
+          const pdfB = await loadingB.promise;
+          const pageIndexB = Math.min(compareActivePage, pdfB.numPages - 1);
+          const pageB = await pdfB.getPage(pageIndexB + 1);
+          const viewportB = pageB.getViewport({ scale: 2 });
+          const canvasB = document.createElement('canvas');
+          canvasB.width = viewportB.width;
+          canvasB.height = viewportB.height;
+          await pageB.render({ canvasContext: canvasB.getContext('2d'), viewport: viewportB }).promise;
+          imgB = canvasB;
+          if (!cancelled) setCompareImageB(canvasB.toDataURL('image/jpeg', 0.92));
+        }
+
+        // Compute Pixel Diff & Heatmap Overlay if both pages rendered
+        if (imgA && imgB && !cancelled) {
+          const targetW = Math.max(imgA.width, imgB.width);
+          const targetH = Math.max(imgA.height, imgB.height);
+
+          const diffCanvas = document.createElement('canvas');
+          diffCanvas.width = targetW;
+          diffCanvas.height = targetH;
+          const ctx = diffCanvas.getContext('2d');
+
+          // Draw Doc A base onto diffCanvas
+          ctx.drawImage(imgA, 0, 0, targetW, targetH);
+          const imgDataA = ctx.getImageData(0, 0, targetW, targetH);
+
+          // Render Doc B onto temp canvas
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = targetW;
+          tempCanvas.height = targetH;
+          const tempCtx = tempCanvas.getContext('2d');
+          tempCtx.drawImage(imgB, 0, 0, targetW, targetH);
+          const imgDataB = tempCtx.getImageData(0, 0, targetW, targetH);
+
+          const diffData = ctx.createImageData(targetW, targetH);
+          let diffPixelCount = 0;
+          const totalPixels = targetW * targetH;
+
+          for (let i = 0; i < imgDataA.data.length; i += 4) {
+            const rA = imgDataA.data[i];
+            const gA = imgDataA.data[i + 1];
+            const bA = imgDataA.data[i + 2];
+
+            const rB = imgDataB.data[i];
+            const gB = imgDataB.data[i + 1];
+            const bB = imgDataB.data[i + 2];
+
+            const diffR = Math.abs(rA - rB);
+            const diffG = Math.abs(gA - gB);
+            const diffB = Math.abs(bA - bB);
+            const totalDiff = diffR + diffG + diffB;
+
+            if (totalDiff > 30) {
+              diffPixelCount++;
+              diffData.data[i] = 239;     // R
+              diffData.data[i + 1] = 68;  // G
+              diffData.data[i + 2] = 68;  // B
+              diffData.data[i + 3] = 230; // Alpha
+            } else {
+              const gray = Math.round(0.299 * rA + 0.587 * gA + 0.114 * bA);
+              diffData.data[i] = gray;
+              diffData.data[i + 1] = gray;
+              diffData.data[i + 2] = gray;
+              diffData.data[i + 3] = 90;
+            }
+          }
+
+          ctx.putImageData(diffData, 0, 0);
+          const diffPct = Math.round((diffPixelCount / totalPixels) * 1000) / 10;
+          if (!cancelled) {
+            setCompareDiffCanvasUrl(diffCanvas.toDataURL('image/png'));
+            setCompareDiffPercent(diffPct);
+          }
+        }
+      } catch (err) {
+        console.error('Compare PDF render failed:', err);
+      } finally {
+        if (!cancelled) setRenderingCompare(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [activeTool, compareActivePage, uploadedFiles]);
 
   // Initializing Theme
   useEffect(() => {
@@ -1357,6 +1489,15 @@ function App() {
       category: 'Edits',
       multiple: false,
       accept: '.pdf'
+    },
+    {
+      id: 'compare',
+      title: 'Compare PDFs',
+      description: 'Visually compare two PDF documents side-by-side or with interactive split-screen overlay and pixel diff highlighting.',
+      icon: <GitCompare size={24} />,
+      category: 'Utilities',
+      multiple: true,
+      accept: '.pdf'
     }
   ];
 
@@ -1565,6 +1706,16 @@ function App() {
     setHighResRedactPageUrl(null);
     setCurrentRedactBox(null);
     setIsDrawingRedact(false);
+
+    // Reset Compare tool state
+    setCompareMode('side-by-side');
+    setCompareActivePage(0);
+    setCompareSliderPos(50);
+    setCompareImageA(null);
+    setCompareImageB(null);
+    setCompareDiffCanvasUrl(null);
+    setCompareDiffPercent(null);
+    setRenderingCompare(false);
     
     // Reset scanner states
     setScannerImage(null);
@@ -2518,6 +2669,15 @@ function App() {
         return;
       }
 
+      else if (activeTool === 'compare') {
+        setProcessingStatus('Generating PDF visual comparison report...');
+        if (uploadedFiles.length < 2) {
+          throw new Error('Please upload 2 PDF files to compare.');
+        }
+        outputBytes = await comparePdfs(uploadedFiles[0].buffer, uploadedFiles[1].buffer);
+        filename = 'PDF_Comparison_Report.pdf';
+      }
+
       if (outputBytes) {
         setProgress(90);
         setProcessingStatus('Finalizing document...');
@@ -2842,6 +3002,9 @@ function App() {
                   </a>
                   <a href="#scanner" onClick={(e) => { e.preventDefault(); navigateToTool('scanner'); }} className="dropdown-link font-semibold">
                     <span className="link-icon"><Scan size={18} /></span> Doc Scanner
+                  </a>
+                  <a href="#compare" onClick={(e) => { e.preventDefault(); navigateToTool('compare'); }} className="dropdown-link font-semibold">
+                    <span className="link-icon"><GitCompare size={18} /></span> Compare PDFs
                   </a>
                 </div>
               </div>
@@ -5031,6 +5194,233 @@ function App() {
                         )}
                       </div>
                     </div>
+                  ) : activeTool === 'compare' ? (
+                    /* Interactive PDF Compare / Visual Diff Workspace */
+                    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '1rem', alignItems: 'center' }}>
+                      {uploadedFiles.length < 2 ? (
+                        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', border: '2px dashed var(--border-color)', gap: '1rem' }}>
+                          <GitCompare size={48} style={{ color: 'var(--accent-color)' }} />
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontWeight: '700', fontSize: '1.1rem', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
+                              Document A Uploaded: {uploadedFiles[0].name}
+                            </div>
+                            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', maxWidth: '400px' }}>
+                              Upload a second PDF file (Document B - Modified version) to begin side-by-side visual diff comparison.
+                            </div>
+                          </div>
+                          <label className="btn-upload" style={{ cursor: 'pointer', padding: '0.6rem 1.2rem', fontSize: '0.85rem' }}>
+                            + Select Document B to Compare
+                            <input
+                              type="file"
+                              className="file-input"
+                              accept=".pdf"
+                              onChange={handleFileInput}
+                            />
+                          </label>
+                        </div>
+                      ) : (
+                        <>
+                          {/* Controls Bar */}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', width: '100%', backgroundColor: 'var(--bg-primary)', padding: '0.6rem 1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', gap: '0.5rem' }}>
+                            {/* View Mode Switcher */}
+                            <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: 'var(--bg-secondary)', padding: '3px', borderRadius: '6px' }}>
+                              <button
+                                type="button"
+                                className={`option-select-btn ${compareMode === 'side-by-side' ? 'active' : ''}`}
+                                onClick={() => setCompareMode('side-by-side')}
+                                style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', fontWeight: '600' }}
+                              >
+                                Side-by-Side
+                              </button>
+                              <button
+                                type="button"
+                                className={`option-select-btn ${compareMode === 'split-slider' ? 'active' : ''}`}
+                                onClick={() => setCompareMode('split-slider')}
+                                style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', fontWeight: '600' }}
+                              >
+                                Split Slider
+                              </button>
+                              <button
+                                type="button"
+                                className={`option-select-btn ${compareMode === 'diff-heatmap' ? 'active' : ''}`}
+                                onClick={() => setCompareMode('diff-heatmap')}
+                                style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', fontWeight: '600' }}
+                              >
+                                Visual Diff
+                              </button>
+                            </div>
+
+                            {/* Page Switcher */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <button
+                                className="btn-icon"
+                                disabled={compareActivePage === 0}
+                                onClick={() => setCompareActivePage(prev => Math.max(0, prev - 1))}
+                                style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem' }}
+                              >
+                                ◀ Prev Page
+                              </button>
+                              <span style={{ fontSize: '0.85rem', fontWeight: '700' }}>
+                                Page {compareActivePage + 1} of {Math.max(uploadedFiles[0].pageCount, uploadedFiles[1]?.pageCount || 0)}
+                              </span>
+                              <button
+                                className="btn-icon"
+                                disabled={compareActivePage >= Math.max(uploadedFiles[0].pageCount, uploadedFiles[1]?.pageCount || 0) - 1}
+                                onClick={() => setCompareActivePage(prev => Math.min(Math.max(uploadedFiles[0].pageCount, uploadedFiles[1]?.pageCount || 0) - 1, prev + 1))}
+                                style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem' }}
+                              >
+                                Next Page ▶
+                              </button>
+                            </div>
+
+                            {/* Visual Diff Percentage Badge */}
+                            <div>
+                              {renderingCompare ? (
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Comparing pages...</span>
+                              ) : compareDiffPercent !== null ? (
+                                <span style={{
+                                  fontSize: '0.75rem',
+                                  fontWeight: '700',
+                                  backgroundColor: compareDiffPercent > 0 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(34, 197, 94, 0.15)',
+                                  color: compareDiffPercent > 0 ? '#ef4444' : '#22c55e',
+                                  padding: '0.25rem 0.6rem',
+                                  borderRadius: 'var(--radius-full)',
+                                  border: `1px solid ${compareDiffPercent > 0 ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)'}`
+                                }}>
+                                  {compareDiffPercent > 0 ? `⚡ ${compareDiffPercent}% Visual Difference` : '✓ 100% Visually Identical'}
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+
+                          {/* Canvas Comparison Displays */}
+                          {compareMode === 'side-by-side' ? (
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', width: '100%' }}>
+                              {/* Doc A Panel */}
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                                <div style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--accent-color)', marginBottom: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
+                                  Doc A (Original): {uploadedFiles[0].name}
+                                </div>
+                                <div style={{ minHeight: '350px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+                                  {compareImageA ? (
+                                    <img src={compareImageA} style={{ maxWidth: '100%', maxHeight: '55vh', objectFit: 'contain', boxShadow: 'var(--shadow-md)', borderRadius: '4px' }} alt="Doc A" />
+                                  ) : (
+                                    <div className="skeleton-pulse" style={{ width: '220px', height: '300px', borderRadius: '4px' }} />
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Doc B Panel */}
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                                <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#3b82f6', marginBottom: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
+                                  Doc B (Modified): {uploadedFiles[1].name}
+                                </div>
+                                <div style={{ minHeight: '350px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+                                  {compareImageB ? (
+                                    <img src={compareImageB} style={{ maxWidth: '100%', maxHeight: '55vh', objectFit: 'contain', boxShadow: 'var(--shadow-md)', borderRadius: '4px' }} alt="Doc B" />
+                                  ) : (
+                                    <div className="skeleton-pulse" style={{ width: '220px', height: '300px', borderRadius: '4px' }} />
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ) : compareMode === 'split-slider' ? (
+                            /* Split Screen Slider View */
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', gap: '0.75rem' }}>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                Drag slider below or move handle left/right to reveal differences between Document A and B.
+                              </div>
+                              <div
+                                style={{
+                                  position: 'relative',
+                                  display: 'inline-block',
+                                  maxWidth: '100%',
+                                  boxShadow: 'var(--shadow-lg)',
+                                  borderRadius: 'var(--radius-md)',
+                                  overflow: 'hidden',
+                                  backgroundColor: '#ffffff'
+                                }}
+                              >
+                                {compareImageA && (
+                                  <img src={compareImageA} style={{ display: 'block', maxWidth: '100%', maxHeight: '60vh', objectFit: 'contain' }} alt="Doc A" />
+                                )}
+                                {compareImageB && (
+                                  <div
+                                    style={{
+                                      position: 'absolute',
+                                      top: 0,
+                                      left: 0,
+                                      width: '100%',
+                                      height: '100%',
+                                      overflow: 'hidden',
+                                      clipPath: `polygon(0 0, ${compareSliderPos}% 0, ${compareSliderPos}% 100%, 0 100%)`
+                                    }}
+                                  >
+                                    <img src={compareImageB} style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain' }} alt="Doc B Overlay" />
+                                  </div>
+                                )}
+
+                                {/* Interactive Divider Line */}
+                                <div
+                                  style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    bottom: 0,
+                                    left: `${compareSliderPos}%`,
+                                    width: '3px',
+                                    backgroundColor: 'var(--accent-color)',
+                                    boxShadow: '0 0 8px rgba(0,0,0,0.5)',
+                                    transform: 'translateX(-50%)',
+                                    pointerEvents: 'none',
+                                    zIndex: 10
+                                  }}
+                                >
+                                  <div style={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    backgroundColor: 'var(--accent-color)',
+                                    color: 'white',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 'bold',
+                                    padding: '4px 6px',
+                                    borderRadius: '12px',
+                                    boxShadow: 'var(--shadow-md)',
+                                    whiteSpace: 'nowrap'
+                                  }}>
+                                    ↔ {compareSliderPos}%
+                                  </div>
+                                </div>
+                              </div>
+
+                              <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                value={compareSliderPos}
+                                onChange={(e) => setCompareSliderPos(Number(e.target.value))}
+                                style={{ width: '80%', maxWidth: '400px', cursor: 'pointer' }}
+                              />
+                            </div>
+                          ) : (
+                            /* Visual Diff Heatmap View */
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', gap: '0.75rem' }}>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
+                                <span style={{ color: '#ef4444', fontWeight: 'bold' }}>Red/Neon pixels</span> indicate visual differences, text additions, or deletions between Document A {"&"} B.
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'center', backgroundColor: 'var(--bg-secondary)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', width: '100%' }}>
+                                {compareDiffCanvasUrl ? (
+                                  <img src={compareDiffCanvasUrl} style={{ maxWidth: '100%', maxHeight: '60vh', objectFit: 'contain', boxShadow: 'var(--shadow-lg)', borderRadius: '4px' }} alt="Heatmap Visual Diff" />
+                                ) : (
+                                  <div style={{ padding: '3rem', color: 'var(--text-muted)' }}>Calculating visual difference overlay...</div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
                   ) : (
                     /* Default Single File Preview */
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: '1rem' }}>
@@ -5600,6 +5990,73 @@ function App() {
                         style={{ marginTop: '0.5rem' }}
                       >
                         <EyeOff size={18} /> Apply Redactions &amp; Save PDF
+                      </button>
+                    </div>
+                  )}
+
+                  {activeTool === 'compare' && (
+                    <div className="sidebar-section" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      <h3>Compare Controls</h3>
+
+                      <div className="form-group">
+                        <label style={{ fontSize: '0.85rem', fontWeight: '600', marginBottom: '0.4rem', display: 'block' }}>Comparison Mode</label>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                          <button
+                            type="button"
+                            className={`option-select-btn ${compareMode === 'side-by-side' ? 'active' : ''}`}
+                            onClick={() => setCompareMode('side-by-side')}
+                            style={{ textAlign: 'left', padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}
+                          >
+                            <strong>Side-by-Side View</strong>
+                            <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>Dual panel view of both documents</div>
+                          </button>
+
+                          <button
+                            type="button"
+                            className={`option-select-btn ${compareMode === 'split-slider' ? 'active' : ''}`}
+                            onClick={() => setCompareMode('split-slider')}
+                            style={{ textAlign: 'left', padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}
+                          >
+                            <strong>Split-Screen Slider</strong>
+                            <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>Interactive slider overlay comparison</div>
+                          </button>
+
+                          <button
+                            type="button"
+                            className={`option-select-btn ${compareMode === 'diff-heatmap' ? 'active' : ''}`}
+                            onClick={() => setCompareMode('diff-heatmap')}
+                            style={{ textAlign: 'left', padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}
+                          >
+                            <strong>Visual Heatmap Diff</strong>
+                            <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>Highlight pixel differences in neon red</div>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* File Info Summary */}
+                      <div className="form-group" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
+                        <label style={{ fontSize: '0.8rem', fontWeight: '700', marginBottom: '0.5rem', display: 'block' }}>Documents Loaded</label>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          {uploadedFiles.map((file, idx) => (
+                            <div key={idx} style={{ backgroundColor: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '0.75rem' }}>
+                              <div style={{ fontWeight: '700', color: idx === 0 ? 'var(--accent-color)' : '#3b82f6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                Doc {idx === 0 ? 'A (Original)' : 'B (Modified)'}: {file.name}
+                              </div>
+                              <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem', marginTop: '2px' }}>
+                                {(file.size / 1024 / 1024).toFixed(2)} MB • {file.pageCount} pages
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <button
+                        className="btn-action-primary"
+                        disabled={uploadedFiles.length < 2}
+                        onClick={runProcess}
+                        style={{ marginTop: '0.5rem' }}
+                      >
+                        <GitCompare size={18} /> Export Comparison Report
                       </button>
                     </div>
                   )}
