@@ -7,7 +7,6 @@ import {
   Layers,
   RotateCw,
   Sliders,
-  Image as ImageIcon,
   FileImage,
   Hash,
   Type,
@@ -16,8 +15,6 @@ import {
   UploadCloud,
   Trash2,
   ArrowLeft,
-  ArrowRight,
-  CheckCircle2,
   Sun,
   Moon,
   Info,
@@ -488,7 +485,6 @@ function App() {
   const [canvasZoom, setCanvasZoom] = useState(2);
   const [panPos, setPanPos] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
-  const panStartRef = useRef({ x: 0, y: 0 });
   const [previewModalImage, setPreviewModalImage] = useState(null);
   const [previewModalTitle, setPreviewModalTitle] = useState('');
 
@@ -639,7 +635,7 @@ function App() {
       }
     })();
     return () => { cancelled = true; };
-  }, [activePageToSign]);
+  }, [activePageToSign, uploadedFiles]);
 
   // Render high-res page image whenever crop page changes
   useEffect(() => {
@@ -664,7 +660,7 @@ function App() {
       }
     })();
     return () => { cancelled = true; };
-  }, [activePageToCrop]);
+  }, [activePageToCrop, uploadedFiles]);
 
   // Initializing Theme
   useEffect(() => {
@@ -887,6 +883,7 @@ function App() {
 
   const handleScannerRotate = () => {
     if (!scannerImage) return;
+    setScannerRotation(prev => (prev + 90) % 360);
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     
@@ -1362,7 +1359,7 @@ function App() {
 
       // Trigger background thumbnail pre-rendering if PDF
       if (singleFile.pageCount > 0) {
-        const previews = await loadPagePreviews(singleFile.buffer);
+        await loadPagePreviews(singleFile.buffer);
 
         // Initialize organize list for organize tool
         if (currentTool?.id === 'organize') {
@@ -1649,7 +1646,7 @@ function App() {
         }
       }
       setSelectedPagesForSplit(newSelected);
-    } catch (e) {
+    } catch (_) {
       // Ignore parse errors on half-typed values
     }
   };

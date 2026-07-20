@@ -178,7 +178,7 @@ export async function compressPdf(pdfBuffer, compressionLevel, onProgress) {
     let totalImages = 0;
     let processedImages = 0;
 
-    for (const [ref, object] of indirectObjects) {
+    for (const [, object] of indirectObjects) {
       if (object instanceof PDFRawStream) {
         const dict = object.dict;
         if (dict.get(PDFName.of('Subtype')) === PDFName.of('Image')) {
@@ -461,9 +461,9 @@ export async function extractTextFromPdf(pdfBuffer, onProgress) {
         const gap = prevAvgY - currentAvgY;
         const maxH = Math.max(currentAvgH, prevAvgH);
         
-        const isListItem = /^[•\-\*\d+\.\)]/.test(lineText);
+        const isListItem = /^[•\-*\d+.)]/.test(lineText);
         
-        if (gap > maxH * 1.95 || gap > 22) {
+        if (!isListItem && (gap > maxH * 1.95 || gap > 22)) {
           pageText += '\n\n' + lineText;
         } else {
           pageText += '\n' + lineText;
@@ -799,7 +799,6 @@ function extractStructuredLayout(items) {
 
   for (const item of sortedItems) {
     const y = item.transform[5];
-    const h = item.height || 12;
 
     // Find if there is an existing line within dynamic Y tolerance
     let placed = false;
@@ -1209,7 +1208,7 @@ export async function convertToGrayscalePdf(pdfBuffer, onProgress) {
     let totalImages = 0;
     let processedImages = 0;
 
-    for (const [ref, object] of indirectObjects) {
+    for (const [, object] of indirectObjects) {
       if (object instanceof PDFRawStream) {
         const dict = object.dict;
         if (dict.get(PDFName.of('Subtype')) === PDFName.of('Image')) {
@@ -1328,7 +1327,7 @@ export async function extractImagesFromPdf(pdfBuffer, onProgress) {
       if (isPaintImage || isInlineImage) {
         const objId = ops.argsArray[j][0];
         try {
-          const img = await new Promise((resolve, reject) => {
+          const img = await new Promise((resolve) => {
             let attempts = 0;
             const checkObj = () => {
               const o = page.objs.get(objId);
