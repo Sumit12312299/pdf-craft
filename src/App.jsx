@@ -847,26 +847,22 @@ function App() {
   const applyTheme = (newTheme) => {
     setTheme(newTheme);
     localStorage.setItem('pdf-craft-theme', newTheme);
-    document.documentElement.classList.remove('dark', 'theme-naruto', 'theme-saiyan');
     if (newTheme === 'dark') {
       document.documentElement.classList.add('dark');
-    } else if (newTheme === 'naruto') {
-      document.documentElement.classList.add('dark', 'theme-naruto');
-    } else if (newTheme === 'saiyan') {
-      document.documentElement.classList.add('dark', 'theme-saiyan');
+    } else {
+      document.documentElement.classList.remove('dark');
     }
   };
 
   const toggleTheme = () => {
-    const themes = ['light', 'dark', 'naruto', 'saiyan'];
-    const nextIdx = (themes.indexOf(theme) + 1) % themes.length;
-    applyTheme(themes[nextIdx]);
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    applyTheme(newTheme);
   };
 
   // Initializing Theme
   useEffect(() => {
     const savedTheme = localStorage.getItem('pdf-craft-theme') || 'light';
-    applyTheme(savedTheme);
+    applyTheme(savedTheme === 'dark' ? 'dark' : 'light');
   }, []);
 
   // Handle Android/Mobile Physical Back Button
@@ -3092,109 +3088,9 @@ function App() {
         </div>
 
         <div className="navbar-right">
-          {/* Interactive Theme Picker Dropdown */}
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => setThemeMenuOpen(!themeMenuOpen)}
-              className="btn-icon btn-theme-toggle"
-              title="Select Application Theme"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                padding: '0.4rem 0.75rem',
-                borderRadius: 'var(--radius-full)',
-                border: '1px solid var(--border-color)',
-                background: 'var(--bg-secondary)',
-                cursor: 'pointer',
-                fontWeight: '600',
-                fontSize: '0.8rem',
-                color: 'var(--text-primary)'
-              }}
-            >
-              {theme === 'light' && <><Sun size={16} /> <span>Light</span></>}
-              {theme === 'dark' && <><Moon size={16} /> <span>Dark</span></>}
-              {theme === 'naruto' && <><span>🦊</span> <span style={{ color: '#f97316', fontWeight: '800' }}>Naruto</span></>}
-              {theme === 'saiyan' && <><span>⚡</span> <span style={{ color: '#eab308', fontWeight: '800' }}>Saiyan</span></>}
-              <ChevronDown size={14} style={{ opacity: 0.7, transform: themeMenuOpen ? 'rotate(180deg)' : 'none', transition: '0.2s' }} />
-            </button>
-
-            {themeMenuOpen && (
-              <>
-                {/* Backdrop overlay */}
-                <div
-                  onClick={() => setThemeMenuOpen(false)}
-                  style={{ position: 'fixed', inset: 0, zIndex: 998 }}
-                />
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 'calc(100% + 8px)',
-                    right: 0,
-                    zIndex: 999,
-                    width: '220px',
-                    backgroundColor: 'var(--bg-secondary)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: 'var(--radius-md)',
-                    boxShadow: 'var(--shadow-xl)',
-                    padding: '0.5rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.35rem',
-                    backdropFilter: 'blur(16px)'
-                  }}
-                >
-                  <div style={{ padding: '0.35rem 0.5rem', fontSize: '0.7rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    Select Theme
-                  </div>
-
-                  {[
-                    { id: 'light', name: 'Light Mode', icon: '☀️', desc: 'Clean, high contrast design' },
-                    { id: 'dark', name: 'Dark Mode', icon: '🌙', desc: 'Sleek obsidian dark mode' },
-                    { id: 'naruto', name: 'Naruto Nine-Tails', icon: '🦊', desc: 'Kurama Chakra Flame Theme', badge: '#f97316' },
-                    { id: 'saiyan', name: 'Super Saiyan', icon: '⚡', desc: 'Golden Aura Power Theme', badge: '#eab308' }
-                  ].map((item) => (
-                    <button
-                      key={item.id}
-                      onClick={() => {
-                        applyTheme(item.id);
-                        setThemeMenuOpen(false);
-                      }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justify: 'space-between',
-                        padding: '0.5rem 0.65rem',
-                        borderRadius: '8px',
-                        border: theme === item.id ? '1px solid var(--accent-color)' : '1px solid transparent',
-                        backgroundColor: theme === item.id ? 'var(--accent-light)' : 'transparent',
-                        color: 'var(--text-primary)',
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        width: '100%',
-                        transition: 'var(--transition-fast)'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                        <span style={{ fontSize: '1.1rem' }}>{item.icon}</span>
-                        <div>
-                          <div style={{ fontSize: '0.8rem', fontWeight: theme === item.id ? '800' : '600', color: item.badge || 'inherit' }}>
-                            {item.name}
-                          </div>
-                          <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', opacity: 0.8 }}>
-                            {item.desc}
-                          </div>
-                        </div>
-                      </div>
-                      {theme === item.id && (
-                        <span style={{ fontSize: '0.85rem', color: 'var(--accent-color)', fontWeight: 'bold' }}>✓</span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+          <button onClick={toggleTheme} className="btn-icon btn-theme-toggle" title="Toggle light/dark theme">
+            {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+          </button>
 
           {/* 9-Dot Menu Button */}
           <div className="grid-menu-trigger">
