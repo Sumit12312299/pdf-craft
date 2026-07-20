@@ -80,6 +80,108 @@ html.dark {
   --dropzone-pulse-bg: rgba(239, 68, 68, 0.08);
 }
 
+/* 🦊 Naruto Nine-Tails (Kurama Chakra) Anime Theme */
+html.theme-naruto {
+  --bg-primary: #0c0a09;
+  --bg-primary-rgb: 12, 10, 9;
+  --bg-secondary: #1c1917;
+  --bg-tertiary: #292524;
+
+  --text-primary: #ffedd5;
+  --text-secondary: #fdba74;
+  --text-muted: #a8a29e;
+
+  --border-color: #44403c;
+  --border-color-rgb: 68, 64, 60;
+  --border-hover: #ea580c;
+
+  --accent-color: #ea580c; /* Fiery Kurama Orange */
+  --accent-hover: #f97316;
+  --accent-light: rgba(234, 88, 12, 0.2);
+
+  --shadow-sm: 0 1px 2px 0 rgba(234, 88, 12, 0.3);
+  --shadow-md: 0 4px 12px -1px rgba(234, 88, 12, 0.35);
+  --shadow-lg: 0 10px 20px -3px rgba(234, 88, 12, 0.45);
+  --shadow-xl: 0 20px 30px -5px rgba(234, 88, 12, 0.6);
+  --dropzone-pulse-bg: rgba(234, 88, 12, 0.15);
+}
+
+html.theme-naruto .btn-action-primary,
+html.theme-naruto .btn-upload {
+  background: linear-gradient(135deg, #ea580c 0%, #d97706 100%) !important;
+  box-shadow: 0 0 15px rgba(234, 88, 12, 0.5) !important;
+  border-color: #f97316 !important;
+}
+
+html.theme-naruto .btn-action-primary:hover,
+html.theme-naruto .btn-upload:hover {
+  box-shadow: 0 0 25px rgba(249, 115, 22, 0.8) !important;
+}
+
+html.theme-naruto .logo-pdf {
+  color: #f97316 !important;
+  text-shadow: 0 0 12px rgba(249, 115, 22, 0.8);
+}
+html.theme-naruto .logo-craft {
+  color: #fbbf24 !important;
+  text-shadow: 0 0 12px rgba(251, 191, 36, 0.8);
+}
+html.theme-naruto .navbar {
+  border-bottom: 2px solid rgba(234, 88, 12, 0.4) !important;
+  box-shadow: 0 4px 20px rgba(234, 88, 12, 0.25) !important;
+}
+
+/* ⚡ Super Saiyan (Dragon Ball Gold) Anime Theme */
+html.theme-saiyan {
+  --bg-primary: #0a0e1a;
+  --bg-primary-rgb: 10, 14, 26;
+  --bg-secondary: #111827;
+  --bg-tertiary: #1e293b;
+
+  --text-primary: #fef08a;
+  --text-secondary: #fde047;
+  --text-muted: #94a3b8;
+
+  --border-color: #334155;
+  --border-color-rgb: 51, 65, 85;
+  --border-hover: #eab308;
+
+  --accent-color: #eab308; /* Golden Saiyan Aura */
+  --accent-hover: #facc15;
+  --accent-light: rgba(234, 179, 8, 0.2);
+
+  --shadow-sm: 0 1px 2px 0 rgba(234, 179, 8, 0.3);
+  --shadow-md: 0 4px 12px -1px rgba(234, 179, 8, 0.35);
+  --shadow-lg: 0 10px 20px -3px rgba(234, 179, 8, 0.45);
+  --shadow-xl: 0 20px 30px -5px rgba(234, 179, 8, 0.6);
+  --dropzone-pulse-bg: rgba(234, 179, 8, 0.15);
+}
+
+html.theme-saiyan .btn-action-primary,
+html.theme-saiyan .btn-upload {
+  background: linear-gradient(135deg, #eab308 0%, #06b6d4 100%) !important;
+  box-shadow: 0 0 15px rgba(234, 179, 8, 0.5) !important;
+  border-color: #facc15 !important;
+}
+
+html.theme-saiyan .btn-action-primary:hover,
+html.theme-saiyan .btn-upload:hover {
+  box-shadow: 0 0 25px rgba(6, 182, 212, 0.8) !important;
+}
+
+html.theme-saiyan .logo-pdf {
+  color: #facc15 !important;
+  text-shadow: 0 0 12px rgba(250, 204, 21, 0.8);
+}
+html.theme-saiyan .logo-craft {
+  color: #38bdf8 !important;
+  text-shadow: 0 0 12px rgba(56, 189, 248, 0.8);
+}
+html.theme-saiyan .navbar {
+  border-bottom: 2px solid rgba(234, 179, 8, 0.4) !important;
+  box-shadow: 0 4px 20px rgba(234, 179, 8, 0.25) !important;
+}
+
 html {
   scroll-behavior: smooth;
 }

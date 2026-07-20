@@ -841,34 +841,44 @@ function App() {
     return () => { cancelled = true; };
   }, [activeTool, compareActivePage, uploadedFiles]);
 
+  const applyTheme = (newTheme) => {
+    setTheme(newTheme);
+    localStorage.setItem('pdf-craft-theme', newTheme);
+    document.documentElement.classList.remove('dark', 'theme-naruto', 'theme-saiyan');
+    if (newTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else if (newTheme === 'naruto') {
+      document.documentElement.classList.add('dark', 'theme-naruto');
+    } else if (newTheme === 'saiyan') {
+      document.documentElement.classList.add('dark', 'theme-saiyan');
+    }
+  };
+
+  const toggleTheme = () => {
+    const themes = ['light', 'dark', 'naruto', 'saiyan'];
+    const nextIdx = (themes.indexOf(theme) + 1) % themes.length;
+    applyTheme(themes[nextIdx]);
+  };
+
   // Initializing Theme
   useEffect(() => {
     const savedTheme = localStorage.getItem('pdf-craft-theme') || 'light';
-    setTheme(savedTheme);
-    if (savedTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    applyTheme(savedTheme);
   }, []);
 
   // Handle Android/Mobile Physical Back Button
-  // When a tool is opened, push a fake history state so the back button returns to home
   useEffect(() => {
     if (activeTool !== null) {
-      // Push a state so back button has somewhere to go
       window.history.pushState({ tool: activeTool }, '', window.location.href);
     }
   }, [activeTool]);
 
   useEffect(() => {
     const handlePopState = (e) => {
-      // If we're inside a tool, intercept the back button and go home
       if (activeTool !== null) {
         e.preventDefault();
         resetToolState();
         setActiveTool(null);
-        // Push state again so the next back press is also intercepted if needed
       }
     };
 
@@ -877,17 +887,6 @@ function App() {
       window.removeEventListener('popstate', handlePopState);
     };
   }, [activeTool]);
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('pdf-craft-theme', newTheme);
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  };
 
   // QR Code Real-time generation effect
   useEffect(() => {
@@ -3090,8 +3089,25 @@ function App() {
         </div>
 
         <div className="navbar-right">
-          <button onClick={toggleTheme} className="btn-icon btn-theme-toggle" title="Toggle theme">
-            {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+          <button
+            onClick={toggleTheme}
+            className="btn-icon btn-theme-toggle"
+            title={`Current Theme: ${theme.toUpperCase()} (Click to toggle Light / Dark / Naruto / Saiyan)`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.4rem 0.65rem',
+              borderRadius: 'var(--radius-full)',
+              border: '1px solid var(--border-color)',
+              background: 'var(--bg-secondary)',
+              cursor: 'pointer'
+            }}
+          >
+            {theme === 'light' && <><Sun size={16} /><span style={{ fontSize: '0.75rem', fontWeight: '600' }}>Light</span></>}
+            {theme === 'dark' && <><Moon size={16} /><span style={{ fontSize: '0.75rem', fontWeight: '600' }}>Dark</span></>}
+            {theme === 'naruto' && <><span>🦊</span><span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#f97316' }}>Naruto</span></>}
+            {theme === 'saiyan' && <><span>⚡</span><span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#eab308' }}>Saiyan</span></>}
           </button>
 
           {/* 9-Dot Menu Button */}
