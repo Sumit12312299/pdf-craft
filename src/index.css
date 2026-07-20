@@ -106,29 +106,78 @@ html.theme-naruto {
   --dropzone-pulse-bg: rgba(234, 88, 12, 0.15);
 }
 
+/* Naruto Kurama Mode Background Overlay & Chakra Glow */
+html.theme-naruto body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  background-image: 
+    radial-gradient(circle at 50% 30%, rgba(234, 88, 12, 0.22) 0%, transparent 65%),
+    url('/naruto_kurama_bg.png');
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  opacity: 0.22;
+  pointer-events: none;
+  filter: saturate(1.4) contrast(1.1);
+  animation: kuramaChakraPulse 6s ease-in-out infinite alternate;
+}
+
+@keyframes kuramaChakraPulse {
+  0% {
+    opacity: 0.18;
+    filter: saturate(1.3) drop-shadow(0 0 10px rgba(234, 88, 12, 0.4));
+  }
+  50% {
+    opacity: 0.26;
+    filter: saturate(1.6) drop-shadow(0 0 25px rgba(249, 115, 22, 0.7));
+  }
+  100% {
+    opacity: 0.20;
+    filter: saturate(1.4) drop-shadow(0 0 15px rgba(251, 191, 36, 0.5));
+  }
+}
+
+html.theme-naruto .tool-card {
+  border: 1px solid rgba(234, 88, 12, 0.35) !important;
+  background-color: rgba(28, 25, 23, 0.85) !important;
+  backdrop-filter: blur(8px);
+}
+
+html.theme-naruto .tool-card:hover {
+  border-color: #f97316 !important;
+  box-shadow: 0 10px 30px -5px rgba(234, 88, 12, 0.5), 0 0 18px rgba(249, 115, 22, 0.3) !important;
+}
+
 html.theme-naruto .btn-action-primary,
 html.theme-naruto .btn-upload {
   background: linear-gradient(135deg, #ea580c 0%, #d97706 100%) !important;
-  box-shadow: 0 0 15px rgba(234, 88, 12, 0.5) !important;
+  box-shadow: 0 0 15px rgba(234, 88, 12, 0.6) !important;
   border-color: #f97316 !important;
 }
 
 html.theme-naruto .btn-action-primary:hover,
 html.theme-naruto .btn-upload:hover {
-  box-shadow: 0 0 25px rgba(249, 115, 22, 0.8) !important;
+  box-shadow: 0 0 28px rgba(249, 115, 22, 0.9) !important;
 }
 
 html.theme-naruto .logo-pdf {
   color: #f97316 !important;
-  text-shadow: 0 0 12px rgba(249, 115, 22, 0.8);
+  text-shadow: 0 0 15px rgba(249, 115, 22, 0.9);
 }
+
 html.theme-naruto .logo-craft {
   color: #fbbf24 !important;
-  text-shadow: 0 0 12px rgba(251, 191, 36, 0.8);
+  text-shadow: 0 0 15px rgba(251, 191, 36, 0.9);
 }
+
 html.theme-naruto .navbar {
-  border-bottom: 2px solid rgba(234, 88, 12, 0.4) !important;
-  box-shadow: 0 4px 20px rgba(234, 88, 12, 0.25) !important;
+  border-bottom: 2px solid rgba(234, 88, 12, 0.45) !important;
+  box-shadow: 0 4px 25px rgba(234, 88, 12, 0.3) !important;
 }
 
 /* ⚡ Super Saiyan (Dragon Ball Gold) Anime Theme */
@@ -146,7 +195,8 @@ html.theme-saiyan {
   --border-color-rgb: 51, 65, 85;
   --border-hover: #eab308;
 
-  --accent-color: #eab308; /* Golden Saiyan Aura */
+  --accent-color: #eab308;
+  /* Golden Saiyan Aura */
   --accent-hover: #facc15;
   --accent-light: rgba(234, 179, 8, 0.2);
 
@@ -173,10 +223,12 @@ html.theme-saiyan .logo-pdf {
   color: #facc15 !important;
   text-shadow: 0 0 12px rgba(250, 204, 21, 0.8);
 }
+
 html.theme-saiyan .logo-craft {
   color: #38bdf8 !important;
   text-shadow: 0 0 12px rgba(56, 189, 248, 0.8);
 }
+
 html.theme-saiyan .navbar {
   border-bottom: 2px solid rgba(234, 179, 8, 0.4) !important;
   box-shadow: 0 4px 20px rgba(234, 179, 8, 0.25) !important;
@@ -213,7 +265,7 @@ body::before {
   height: 100vh;
   z-index: -2;
   background-color: var(--bg-primary);
-  background-image: 
+  background-image:
     radial-gradient(circle at 15% 15%, rgba(220, 38, 38, 0.06) 0%, transparent 40%),
     radial-gradient(circle at 85% 85%, rgba(239, 68, 68, 0.04) 0%, transparent 45%),
     radial-gradient(circle at 50% 50%, rgba(220, 38, 38, 0.02) 0%, transparent 60%);
@@ -222,7 +274,7 @@ body::before {
 }
 
 html.dark body::before {
-  background-image: 
+  background-image:
     radial-gradient(circle at 15% 15%, rgba(239, 68, 68, 0.04) 0%, transparent 45%),
     radial-gradient(circle at 85% 85%, rgba(220, 38, 38, 0.03) 0%, transparent 50%),
     radial-gradient(circle at 50% 50%, rgba(239, 68, 68, 0.015) 0%, transparent 60%);
@@ -275,10 +327,10 @@ html.dark body::before {
   position: sticky;
   top: 0;
   z-index: 1000;
-  transition: padding 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
-              background-color 0.35s ease, 
-              border-color 0.35s ease, 
-              box-shadow 0.35s ease;
+  transition: padding 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.35s ease,
+    border-color 0.35s ease,
+    box-shadow 0.35s ease;
 }
 
 html.dark .navbar {
@@ -291,15 +343,15 @@ html.dark .navbar {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom-color: rgba(220, 38, 38, 0.08);
-  box-shadow: 0 4px 30px -10px rgba(0, 0, 0, 0.08), 
-              0 1px 3px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 4px 30px -10px rgba(0, 0, 0, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
 html.dark .navbar.scrolled {
   background-color: rgba(15, 23, 42, 0.80);
   border-bottom-color: rgba(239, 68, 68, 0.08);
-  box-shadow: 0 4px 30px -10px rgba(0, 0, 0, 0.35), 
-              0 1px 3px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 30px -10px rgba(0, 0, 0, 0.35),
+    0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 .navbar-left {
@@ -371,12 +423,16 @@ html.dark .navbar.scrolled {
 }
 
 @keyframes heartBeatHover {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
   }
+
   35% {
     transform: scale(1.3);
   }
+
   70% {
     transform: scale(1.1);
   }
@@ -621,8 +677,8 @@ html.dark .nav-dropdown-menu {
   background-color: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08), 
-              0 1px 3px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.02);
   z-index: 1002;
   overflow: hidden;
   animation: gridDropdownSpring 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
@@ -635,8 +691,8 @@ html.dark .nav-dropdown-menu {
 html.dark .grid-menu-dropdown {
   background-color: rgba(11, 15, 25, 0.95);
   border-color: rgba(255, 255, 255, 0.05);
-  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.45), 
-              0 1px 3px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.45),
+    0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 @keyframes gridDropdownSpring {
@@ -694,9 +750,11 @@ html.dark .grid-menu-dropdown {
 .grid-menu-body::-webkit-scrollbar {
   width: 5px;
 }
+
 .grid-menu-body::-webkit-scrollbar-track {
   background: transparent;
 }
+
 .grid-menu-body::-webkit-scrollbar-thumb {
   background: var(--border-color);
   border-radius: 10px;
@@ -705,27 +763,34 @@ html.dark .grid-menu-dropdown {
 /* Category mappings for tool cards and grid items */
 .tool-card,
 .grid-menu-item {
-  --cat-color-rgb: 220, 38, 38; /* default fallback: red */
+  --cat-color-rgb: 220, 38, 38;
+  /* default fallback: red */
 }
 
 .tool-cat-organize {
   --cat-color-rgb: var(--cat-organize-rgb);
 }
+
 .tool-cat-edits {
   --cat-color-rgb: var(--cat-edits-rgb);
 }
+
 .tool-cat-optimize {
   --cat-color-rgb: var(--cat-optimize-rgb);
 }
+
 .tool-cat-security {
   --cat-color-rgb: var(--cat-security-rgb);
 }
+
 .tool-cat-convert-to-pdf {
   --cat-color-rgb: var(--cat-convert-to-pdf-rgb);
 }
+
 .tool-cat-convert-from-pdf {
   --cat-color-rgb: var(--cat-convert-from-pdf-rgb);
 }
+
 .tool-cat-utilities {
   --cat-color-rgb: var(--cat-utilities-rgb);
 }
@@ -743,10 +808,10 @@ html.dark .grid-menu-dropdown {
   cursor: pointer;
   color: var(--text-secondary);
   transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.25),
-              background-color 0.25s ease,
-              box-shadow 0.25s ease,
-              border-color 0.25s ease,
-              color 0.25s ease;
+    background-color 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease,
+    color 0.25s ease;
 }
 
 .grid-menu-item:hover {
@@ -841,6 +906,7 @@ html.dark .drawer-content {
   from {
     transform: translateX(-100%);
   }
+
   to {
     transform: translateX(0);
   }
@@ -851,6 +917,7 @@ html.dark .drawer-content {
     opacity: 0;
     transform: translateX(-12px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -895,11 +962,25 @@ html.dark .drawer-content {
 }
 
 /* Staggered Animations for Drawer Elements */
-.drawer-body > *:nth-child(1) { animation-delay: 40ms; }
-.drawer-body > *:nth-child(2) { animation-delay: 80ms; }
-.drawer-body > *:nth-child(3) { animation-delay: 120ms; }
-.drawer-body > *:nth-child(4) { animation-delay: 160ms; }
-.drawer-body > *:nth-child(5) { animation-delay: 200ms; }
+.drawer-body>*:nth-child(1) {
+  animation-delay: 40ms;
+}
+
+.drawer-body>*:nth-child(2) {
+  animation-delay: 80ms;
+}
+
+.drawer-body>*:nth-child(3) {
+  animation-delay: 120ms;
+}
+
+.drawer-body>*:nth-child(4) {
+  animation-delay: 160ms;
+}
+
+.drawer-body>*:nth-child(5) {
+  animation-delay: 200ms;
+}
 
 .drawer-item {
   color: var(--text-primary);
@@ -1106,6 +1187,7 @@ html.dark .drawer-content {
   0% {
     transform: translateY(0);
   }
+
   100% {
     transform: translateY(-8px);
   }
@@ -1133,7 +1215,7 @@ html.dark .drawer-content {
 }
 
 .card-layer.background-layer {
-  background: 
+  background:
     radial-gradient(var(--border-hover) 1px, transparent 1px),
     linear-gradient(135deg, rgba(220, 38, 38, 0.08) 0%, rgba(239, 68, 68, 0.02) 100%);
   background-size: 12px 12px, 100% 100%;
@@ -1144,7 +1226,7 @@ html.dark .drawer-content {
 }
 
 html.dark .card-layer.background-layer {
-  background: 
+  background:
     radial-gradient(rgba(239, 68, 68, 0.15) 1px, transparent 1px),
     linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(17, 24, 39, 0.6) 100%);
   background-size: 12px 12px, 100% 100%;
@@ -1181,6 +1263,7 @@ html.dark .card-layer.background-layer {
     transform: translateY(0);
     box-shadow: 0 4px 10px rgba(220, 38, 38, 0.25);
   }
+
   100% {
     transform: translateY(-3px);
     box-shadow: 0 6px 15px rgba(220, 38, 38, 0.35);
@@ -1316,6 +1399,7 @@ html.dark .page-line {
   0% {
     transform: rotate(-8deg) translateY(5px) translateZ(5px);
   }
+
   100% {
     transform: rotate(-8deg) translateY(-2px) translateZ(5px);
   }
@@ -1325,6 +1409,7 @@ html.dark .page-line {
   0% {
     transform: translateY(-5px) translateZ(15px);
   }
+
   100% {
     transform: translateY(-11px) translateZ(15px);
   }
@@ -1334,6 +1419,7 @@ html.dark .page-line {
   0% {
     transform: rotate(8deg) translateY(5px) translateZ(5px);
   }
+
   100% {
     transform: rotate(8deg) translateY(-2px) translateZ(5px);
   }
@@ -1383,6 +1469,7 @@ html.dark .page-line {
   0% {
     transform: translateY(0) translateZ(60px);
   }
+
   100% {
     transform: translateY(-6px) translateZ(60px);
   }
@@ -1392,6 +1479,7 @@ html.dark .page-line {
   0% {
     transform: translateY(0) translateZ(60px);
   }
+
   100% {
     transform: translateY(-8px) translateZ(60px);
   }
@@ -1428,7 +1516,7 @@ html.dark .page-line {
 
 .tool-card {
   position: relative;
-  background-image: 
+  background-image:
     radial-gradient(var(--border-color) 1px, transparent 1px),
     linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
   background-size: 10px 10px, 100% 100%;
@@ -1452,7 +1540,7 @@ html.dark .page-line {
 }
 
 html.dark .tool-card {
-  background-image: 
+  background-image:
     radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
     linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
 }
@@ -1492,7 +1580,7 @@ html.dark .tool-card::before {
   box-shadow: 0 10px 30px -10px rgba(var(--cat-color-rgb), 0.25),
     0 1px 3px rgba(0, 0, 0, 0.05),
     0 0 15px 2px rgba(var(--cat-color-rgb), 0.12);
-  background-image: 
+  background-image:
     radial-gradient(rgba(var(--cat-color-rgb), 0.15) 1px, transparent 1px),
     linear-gradient(135deg, var(--bg-primary) 0%, rgba(var(--cat-color-rgb), 0.02) 100%);
 }
@@ -1503,7 +1591,7 @@ html.dark .tool-card:hover {
   box-shadow: 0 10px 30px -10px rgba(var(--cat-color-rgb), 0.35),
     0 1px 3px rgba(0, 0, 0, 0.3),
     0 0 20px 2px rgba(var(--cat-color-rgb), 0.18);
-  background-image: 
+  background-image:
     radial-gradient(rgba(var(--cat-color-rgb), 0.25) 1px, transparent 1px),
     linear-gradient(135deg, var(--bg-primary) 0%, rgba(var(--cat-color-rgb), 0.03) 100%);
 }
@@ -1871,37 +1959,37 @@ html.dark .workspace-main.dropzone.active {
   align-items: center;
   box-shadow: var(--shadow-sm);
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.25s ease,
-              box-shadow 0.25s ease,
-              opacity 0.25s ease;
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    opacity 0.25s ease;
   user-select: none;
 }
 
 .file-preview-card.selected {
   border-color: var(--accent-color);
   background-image: linear-gradient(135deg, var(--accent-light) 0%, rgba(220, 38, 38, 0.03) 100%);
-  box-shadow: 0 8px 20px -8px rgba(220, 38, 38, 0.2), 
-              0 0 0 1.5px var(--accent-color);
+  box-shadow: 0 8px 20px -8px rgba(220, 38, 38, 0.2),
+    0 0 0 1.5px var(--accent-color);
 }
 
 html.dark .file-preview-card.selected {
   background-image: linear-gradient(135deg, rgba(225, 29, 72, 0.15) 0%, rgba(225, 29, 72, 0.02) 100%);
-  box-shadow: 0 8px 25px -8px rgba(239, 68, 68, 0.35), 
-              0 0 0 1.5px var(--accent-color);
+  box-shadow: 0 8px 25px -8px rgba(239, 68, 68, 0.35),
+    0 0 0 1.5px var(--accent-color);
 }
 
 .file-preview-card:hover {
   transform: translateY(-4px) scale(1.01) translateZ(0);
   border-color: var(--accent-hover);
-  box-shadow: 0 12px 25px -10px rgba(0, 0, 0, 0.08), 
-              0 0 12px 1px rgba(220, 38, 38, 0.06), 
-              var(--shadow-md);
+  box-shadow: 0 12px 25px -10px rgba(0, 0, 0, 0.08),
+    0 0 12px 1px rgba(220, 38, 38, 0.06),
+    var(--shadow-md);
 }
 
 html.dark .file-preview-card:hover {
-  box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.4), 
-              0 0 15px 2px rgba(239, 68, 68, 0.08), 
-              var(--shadow-md);
+  box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.4),
+    0 0 15px 2px rgba(239, 68, 68, 0.08),
+    var(--shadow-md);
 }
 
 .file-preview-thumbnail {
@@ -3421,6 +3509,7 @@ input:checked+.slider:before {
     opacity: 0;
     transform: scale(0.97);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -3536,6 +3625,7 @@ html.dark .progress-ring-bg {
   0% {
     transform: translateZ(-20px) rotate(-6deg) translateY(5px);
   }
+
   100% {
     transform: translateZ(-24px) rotate(-8deg) translateY(7px);
   }
@@ -3545,6 +3635,7 @@ html.dark .progress-ring-bg {
   0% {
     transform: translateZ(-10px) rotate(4deg) translateY(-2px);
   }
+
   100% {
     transform: translateZ(-12px) rotate(5deg) translateY(1px);
   }
@@ -3554,6 +3645,7 @@ html.dark .progress-ring-bg {
   0% {
     transform: translateZ(0px) translateY(0px);
   }
+
   100% {
     transform: translateZ(4px) translateY(-4px);
   }
@@ -3579,9 +3671,11 @@ html.dark .progress-ring-bg {
   0% {
     transform: translate3d(0, 0, 0);
   }
+
   50% {
     transform: translate3d(0, 476px, 0);
   }
+
   100% {
     transform: translate3d(0, 0, 0);
   }
@@ -3623,10 +3717,13 @@ textarea:focus-visible,
 }
 
 @keyframes badge-dot-pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }
+
   50% {
     opacity: 0.4;
     transform: scale(0.75);
