@@ -3484,3 +3484,49 @@ html.dark .progress-ring-bg {
     transform: translate3d(0, 0, 0);
   }
 }
+
+/* UI & Tactile Interaction Refinements */
+button:active,
+.btn-icon:active,
+.btn-back:active,
+.btn-grid-menu:active,
+.btn-burger-menu:active {
+  transform: scale(0.97);
+}
+
+.tool-card:active {
+  transform: translateY(-2px) scale(0.99) translateZ(0);
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+.tool-card:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+  border-radius: var(--radius-md);
+}
+
+.floating-badge::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+  margin-right: 4px;
+  box-shadow: 0 0 8px currentColor;
+  animation: badge-dot-pulse 2s infinite ease-in-out;
+}
+
+@keyframes badge-dot-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.75);
+  }
+}
