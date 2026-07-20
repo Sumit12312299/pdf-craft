@@ -29,6 +29,7 @@ import {
   Menu,
   X,
   Eye,
+  EyeOff,
   Printer,
   GripVertical,
   Crop,
@@ -67,7 +68,8 @@ import {
   performOcrOnPdf,
   performOcrOnImage,
   getPdfFormFields,
-  savePdfFormFields
+  savePdfFormFields,
+  redactPdf
 } from './utils/pdfProcessor';
 
 // Beautiful Custom SVG Icons representing document conversions
@@ -519,6 +521,15 @@ function App() {
   const [formFieldValues, setFormFieldValues] = useState({}); // key-value pairs of name -> value
   const [loadingFormFields, setLoadingFormFields] = useState(false);
 
+  // Redaction Tool States
+  const [placedRedactions, setPlacedRedactions] = useState([]); // Array of { id, pageIndex, x, y, width, height, pageW, pageH, color }
+  const [activePageToRedact, setActivePageToRedact] = useState(0);
+  const [redactionColor, setRedactionColor] = useState('#000000');
+  const [highResRedactPageUrl, setHighResRedactPageUrl] = useState(null);
+  const [isDrawingRedact, setIsDrawingRedact] = useState(false);
+  const [redactStart, setRedactStart] = useState(null);
+  const [currentRedactBox, setCurrentRedactBox] = useState(null);
+
   const [lightboxLoading, setLightboxLoading] = useState(false);
   const [unlockPassword, setUnlockPassword] = useState('');
   const [previewModalRotation, setPreviewModalRotation] = useState(0);
@@ -661,6 +672,31 @@ function App() {
     })();
     return () => { cancelled = true; };
   }, [activePageToCrop, uploadedFiles]);
+
+  // Render high-res page image whenever redaction page changes
+  useEffect(() => {
+    setHighResRedactPageUrl(null);
+    if (activePageToRedact === null || !uploadedFiles[0]?.buffer) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        if (window.pdfjsLib) {
+          const loadingTask = window.pdfjsLib.getDocument({ data: uploadedFiles[0].buffer.slice(0) });
+          const pdf = await loadingTask.promise;
+          const page = await pdf.getPage(activePageToRedact + 1);
+          const viewport = page.getViewport({ scale: 2.5 });
+          const canvas = document.createElement('canvas');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+          if (!cancelled) setHighResRedactPageUrl(canvas.toDataURL('image/jpeg', 0.95));
+        }
+      } catch (err) {
+        console.error('Hi-res redact page render failed:', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [activePageToRedact, uploadedFiles]);
 
   // Initializing Theme
   useEffect(() => {
@@ -887,6 +923,7 @@ function App() {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     
+    // Swap width and height for 90-deg rotation
     canvas.width = scannerImage.height;
     canvas.height = scannerImage.width;
     
@@ -894,16 +931,62 @@ function App() {
     ctx.rotate((90 * Math.PI) / 180);
     ctx.drawImage(scannerImage, -scannerImage.width / 2, -scannerImage.height / 2);
     
-    const rotatedSrc = canvas.toDataURL('image/jpeg', 0.95);
-    setScannerImageSrc(rotatedSrc);
-    
+    const rotatedSrc = canvas.toDataURL('image/jpeg', 0.92);
     const img = new Image();
     img.onload = () => {
       setScannerImage(img);
-      setScannerImageDimensions({ w: img.width, h: img.height });
-      setScannerCrop({ x: 10, y: 10, w: 80, h: 80 });
+      setScannerImageSrc(rotatedSrc);
+      setScannerCrop({ x: 10, y: 10, w: 80, h: 80 }); // Reset crop box after rotation
     };
     img.src = rotatedSrc;
+  };
+
+  // REDACTION INTERACTIVE CANVAS DRAWING HANDLERS
+  const handleRedactMouseDown = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    setIsDrawingRedact(true);
+    setRedactStart({ x, y, containerW: rect.width, containerH: rect.height });
+    setCurrentRedactBox({ x, y, w: 0, h: 0 });
+  };
+
+  const handleRedactMouseMove = (e) => {
+    if (!isDrawingRedact || !redactStart) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const currentX = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+    const currentY = Math.max(0, Math.min(e.clientY - rect.top, rect.height));
+
+    const x = Math.min(redactStart.x, currentX);
+    const y = Math.min(redactStart.y, currentY);
+    const w = Math.abs(currentX - redactStart.x);
+    const h = Math.abs(currentY - redactStart.y);
+
+    setCurrentRedactBox({ x, y, w, h });
+  };
+
+  const handleRedactMouseUp = () => {
+    if (!isDrawingRedact || !currentRedactBox) return;
+    setIsDrawingRedact(false);
+
+    if (currentRedactBox.w > 4 && currentRedactBox.h > 4) {
+      setPlacedRedactions(prev => [
+        ...prev,
+        {
+          id: `redact-${Date.now()}-${Math.random()}`,
+          pageIndex: activePageToRedact,
+          x: currentRedactBox.x,
+          y: currentRedactBox.y,
+          width: currentRedactBox.w,
+          height: currentRedactBox.h,
+          pageW: redactStart.containerW,
+          pageH: redactStart.containerH,
+          color: redactionColor
+        }
+      ]);
+    }
+    setCurrentRedactBox(null);
+    setRedactStart(null);
   };
 
   const processScannerImage = async (format) => {
@@ -1037,6 +1120,15 @@ function App() {
       title: 'Unlock PDF',
       description: 'Remove password protection from a PDF file. Enter the current password to unlock it.',
       icon: <LockOpen size={24} />,
+      category: 'Security',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'redact',
+      title: 'Redact PDF',
+      description: 'Permanently draw blackout boxes over sensitive text, numbers, or sections in your PDF.',
+      icon: <EyeOff size={24} />,
       category: 'Security',
       multiple: false,
       accept: '.pdf'
@@ -1465,6 +1557,14 @@ function App() {
     setCropMargins({ top: 10, bottom: 10, left: 10, right: 10 });
     setPlacedCrops({});
     setResultBlob(null);
+    
+    // Reset redaction state
+    setPlacedRedactions([]);
+    setActivePageToRedact(0);
+    setRedactionColor('#000000');
+    setHighResRedactPageUrl(null);
+    setCurrentRedactBox(null);
+    setIsDrawingRedact(false);
     
     // Reset scanner states
     setScannerImage(null);
@@ -2194,6 +2294,16 @@ function App() {
         filename = `${file.name.replace('.pdf', '')}_unlocked.pdf`;
       }
 
+      else if (activeTool === 'redact') {
+        setProcessingStatus('Applying permanent blackout redactions...');
+        const file = uploadedFiles[0];
+        if (placedRedactions.length === 0) {
+          throw new Error('Please draw at least one blackout box on a page before applying redaction.');
+        }
+        outputBytes = await redactPdf(file.buffer, placedRedactions);
+        filename = `${file.name.replace('.pdf', '')}_redacted.pdf`;
+      }
+
       else if (activeTool === 'offline-ocr') {
         setProcessingStatus('Performing client-side OCR text recognition...');
         const file = uploadedFiles[0];
@@ -2723,6 +2833,9 @@ function App() {
                   </a>
                   <a href="#protect" onClick={(e) => { e.preventDefault(); navigateToTool('protect'); }} className="dropdown-link">
                     <span className="link-icon"><Lock size={18} /></span> Protect PDF
+                  </a>
+                  <a href="#redact" onClick={(e) => { e.preventDefault(); navigateToTool('redact'); }} className="dropdown-link font-semibold">
+                    <span className="link-icon"><EyeOff size={18} /></span> Redact PDF
                   </a>
                   <a href="#qr-generator" onClick={(e) => { e.preventDefault(); navigateToTool('qr-generator'); }} className="dropdown-link highlight">
                     <span className="link-icon"><QrCode size={18} /></span> QR Generator
@@ -4800,6 +4913,124 @@ function App() {
                         </div>
                       )}
                     </div>
+                  ) : activeTool === 'redact' ? (
+                    /* Interactive PDF Redaction Workspace */
+                    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '1rem', alignItems: 'center' }}>
+                      {/* Page Navigation Bar */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', backgroundColor: 'var(--bg-primary)', padding: '0.5rem 1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                        <div style={{ fontSize: '0.85rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span>Page {activePageToRedact + 1} of {uploadedFiles[0].pageCount}</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>
+                            (Click {'&'} drag over image below to draw blackout box)
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button
+                            className="btn-icon"
+                            disabled={activePageToRedact === 0}
+                            onClick={() => setActivePageToRedact(prev => Math.max(0, prev - 1))}
+                            style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem' }}
+                          >
+                            ◀ Prev Page
+                          </button>
+                          <button
+                            className="btn-icon"
+                            disabled={activePageToRedact >= uploadedFiles[0].pageCount - 1}
+                            onClick={() => setActivePageToRedact(prev => Math.min(uploadedFiles[0].pageCount - 1, prev + 1))}
+                            style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem' }}
+                          >
+                            Next Page ▶
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Canvas Interactive Redaction Area */}
+                      <div
+                        style={{
+                          position: 'relative',
+                          display: 'inline-block',
+                          maxWidth: '100%',
+                          border: '1px solid var(--border-color)',
+                          boxShadow: 'var(--shadow-md)',
+                          borderRadius: 'var(--radius-md)',
+                          backgroundColor: '#ffffff',
+                          overflow: 'hidden',
+                          cursor: 'crosshair',
+                          userSelect: 'none'
+                        }}
+                        onMouseDown={handleRedactMouseDown}
+                        onMouseMove={handleRedactMouseMove}
+                        onMouseUp={handleRedactMouseUp}
+                      >
+                        {/* Page Image */}
+                        <img
+                          src={highResRedactPageUrl || pagePreviews.find(p => p.originalIndex === activePageToRedact)?.dataUrl}
+                          alt={`Page ${activePageToRedact + 1}`}
+                          style={{ display: 'block', maxWidth: '100%', maxHeight: '65vh', objectFit: 'contain', pointerEvents: 'none' }}
+                        />
+
+                        {/* Placed Redaction Boxes on Current Page */}
+                        {placedRedactions
+                          .filter(r => r.pageIndex === activePageToRedact)
+                          .map((box) => (
+                            <div
+                              key={box.id}
+                              style={{
+                                position: 'absolute',
+                                left: `${box.x}px`,
+                                top: `${box.y}px`,
+                                width: `${box.width}px`,
+                                height: `${box.height}px`,
+                                backgroundColor: box.color || '#000000',
+                                border: '1px solid rgba(255, 255, 255, 0.4)',
+                                zIndex: 10,
+                                display: 'flex',
+                                alignItems: 'flex-start',
+                                justifyContent: 'flex-end',
+                                padding: '2px'
+                              }}
+                            >
+                              <button
+                                type="button"
+                                style={{
+                                  background: 'rgba(239, 68, 68, 0.9)',
+                                  border: 'none',
+                                  color: 'white',
+                                  borderRadius: '2px',
+                                  cursor: 'pointer',
+                                  padding: '1px 3px',
+                                  lineHeight: 1
+                                }}
+                                title="Remove redaction box"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPlacedRedactions(prev => prev.filter(r => r.id !== box.id));
+                                }}
+                              >
+                                <Trash2 size={10} />
+                              </button>
+                            </div>
+                          ))}
+
+                        {/* Live Dragging Redaction Box */}
+                        {currentRedactBox && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              left: `${currentRedactBox.x}px`,
+                              top: `${currentRedactBox.y}px`,
+                              width: `${currentRedactBox.w}px`,
+                              height: `${currentRedactBox.h}px`,
+                              backgroundColor: redactionColor,
+                              opacity: 0.8,
+                              border: '2px dashed #ffffff',
+                              zIndex: 20,
+                              pointerEvents: 'none'
+                            }}
+                          />
+                        )}
+                      </div>
+                    </div>
                   ) : (
                     /* Default Single File Preview */
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: '1rem' }}>
@@ -5281,6 +5512,95 @@ function App() {
                           onKeyDown={(e) => e.key === 'Enter' && runProcess()}
                         />
                       </div>
+                    </div>
+                  )}
+
+                  {activeTool === 'redact' && (
+                    <div className="sidebar-section" style={{ gap: '1rem' }}>
+                      <h3>Redaction Options</h3>
+
+                      <div className="form-group">
+                        <label>Redaction Box Color</label>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.4rem' }}>
+                          {[
+                            { label: 'Blackout', color: '#000000' },
+                            { label: 'Whiteout', color: '#ffffff' },
+                            { label: 'Red', color: '#dc2626' }
+                          ].map(c => (
+                            <button
+                              key={c.color}
+                              type="button"
+                              className={`option-select-btn ${redactionColor === c.color ? 'active' : ''}`}
+                              onClick={() => setRedactionColor(c.color)}
+                              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.2rem', fontSize: '0.75rem' }}
+                            >
+                              <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: c.color, border: '1px solid var(--border-color)' }}></span>
+                              {c.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="form-group" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                          <label style={{ fontSize: '0.8rem', fontWeight: '700' }}>
+                            Placed Redactions ({placedRedactions.length})
+                          </label>
+                          {placedRedactions.length > 0 && (
+                            <button
+                              type="button"
+                              style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', fontWeight: '600' }}
+                              onClick={() => setPlacedRedactions([])}
+                            >
+                              Clear All
+                            </button>
+                          )}
+                        </div>
+
+                        {placedRedactions.length === 0 ? (
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic', textAlign: 'center', padding: '0.5rem 0' }}>
+                            No blackout boxes drawn yet. Click {"&"} drag on the page image to censor text.
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', maxHeight: '160px', overflowY: 'auto' }}>
+                            {placedRedactions.map((box, idx) => (
+                              <div
+                                key={box.id}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  backgroundColor: 'var(--bg-secondary)',
+                                  padding: '0.35rem 0.5rem',
+                                  borderRadius: '4px',
+                                  border: '1px solid var(--border-color)',
+                                  fontSize: '0.75rem'
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: box.color || '#000000' }}></span>
+                                  <span>Page {box.pageIndex + 1} box #{idx + 1}</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px' }}
+                                  onClick={() => setPlacedRedactions(prev => prev.filter(r => r.id !== box.id))}
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        className="btn-action-primary"
+                        onClick={runProcess}
+                        style={{ marginTop: '0.5rem' }}
+                      >
+                        <EyeOff size={18} /> Apply Redactions &amp; Save PDF
+                      </button>
                     </div>
                   )}
 

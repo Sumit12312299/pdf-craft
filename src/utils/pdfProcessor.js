@@ -1722,4 +1722,44 @@ export async function savePdfFormFields(pdfBuffer, fieldValues) {
   return await pdfDoc.save();
 }
 
+// 25. Redact PDF (Visual Blackout / Permanent Censorship)
+export async function redactPdf(pdfBuffer, redactions) {
+  // redactions: Array of { pageIndex, x, y, width, height, pageW, pageH, color }
+  const pdfDoc = await PDFDocument.load(pdfBuffer);
+  const pages = pdfDoc.getPages();
+
+  for (const item of redactions) {
+    const page = pages[item.pageIndex];
+    if (!page) continue;
+
+    const { width: pdfPageW, height: pdfPageH } = page.getSize();
+
+    // Scale factors from HTML UI container to PDF point dimensions
+    const scaleX = pdfPageW / item.pageW;
+    const scaleY = pdfPageH / item.pageH;
+
+    const w = item.width * scaleX;
+    const h = item.height * scaleY;
+    const x = item.x * scaleX;
+    // Invert Y coordinate because PDF origin is bottom-left
+    const y = pdfPageH - ((item.y + item.height) * scaleY);
+
+    const boxColor = hexToRgbPercent(item.color || '#000000');
+
+    page.drawRectangle({
+      x,
+      y,
+      width: w,
+      height: h,
+      color: rgb(boxColor.r, boxColor.g, boxColor.b)
+    });
+  }
+
+  pdfDoc.setCreator('pdfCraft Redaction Engine');
+  pdfDoc.setProducer('pdfCraft Engine');
+
+  return await pdfDoc.save();
+}
+
+
 
