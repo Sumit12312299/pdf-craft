@@ -1863,5 +1863,292 @@ export async function comparePdfs(bufferA, bufferB) {
   return await resultPdf.save();
 }
 
+/**
+ * PDF Page Flattening Engine
+ * Permanently flattens form fields, annotations, comments, and drawings into un-editable base page graphics.
+ */
+export async function flattenPdf(arrayBuffer) {
+  const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+  
+  // Flatten interactive form fields if present
+  try {
+    const form = pdfDoc.getForm();
+    form.flatten();
+  } catch (e) {
+    // No form fields found
+  }
+
+  // Render pages to high-res clean images to flatten all vector annotations & signatures permanently
+  if (window.pdfjsLib) {
+    const loadingTask = window.pdfjsLib.getDocument({ data: arrayBuffer.slice(0) });
+    const pdf = await loadingTask.promise;
+    const flatPdf = await PDFDocument.create();
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale: 2.2 });
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const ctx = canvas.getContext('2d');
+      await page.render({ canvasContext: ctx, viewport }).promise;
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.94);
+      const jpgImg = await flatPdf.embedJpg(imgData);
+
+      const origViewport = page.getViewport({ scale: 1.0 });
+      const newPage = flatPdf.addPage([origViewport.width, origViewport.height]);
+      newPage.drawImage(jpgImg, {
+        x: 0,
+        y: 0,
+        width: origViewport.width,
+        height: origViewport.height
+      });
+    }
+
+    flatPdf.setCreator('pdfCraft Page Flattening Engine');
+    return await flatPdf.save();
+  }
+
+  return await pdfDoc.save();
+}
+
+/**
+ * N-Up / Booklet Layout Printer (2-Up & 4-Up Grid)
+ * Combines multiple PDF pages onto single sheets (2-Up Landscape or 4-Up Grid Portrait).
+ */
+export async function nUpPdf(arrayBuffer, layout = '2-up', drawBorders = true, onProgress) {
+  const srcDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+  const outDoc = await PDFDocument.create();
+  const embeddedPages = await outDoc.embedPdf(srcDoc);
+  const totalPages = embeddedPages.length;
+
+  const margin = 18; // 18pt margin (0.25 inch)
+
+  if (layout === '2-up') {
+    // A4 Landscape: 841.89 x 595.28 pt
+    const sheetW = 841.89;
+    const sheetH = 595.28;
+    const slotW = (sheetW - 3 * margin) / 2;
+    const slotH = sheetH - 2 * margin;
+
+    for (let i = 0; i < totalPages; i += 2) {
+      if (onProgress) onProgress(Math.round((i / totalPages) * 100));
+      const page = outDoc.addPage([sheetW, sheetH]);
+
+      for (let slot = 0; slot < 2; slot++) {
+        const pageIdx = i + slot;
+        if (pageIdx >= totalPages) break;
+
+        const embPage = embeddedPages[pageIdx];
+        const scale = Math.min(slotW / embPage.width, slotH / embPage.height);
+        const drawW = embPage.width * scale;
+        const drawH = embPage.height * scale;
+
+        const x = margin + slot * (slotW + margin) + (slotW - drawW) / 2;
+        const y = margin + (slotH - drawH) / 2;
+
+        page.drawPage(embPage, {
+          x,
+          y,
+          width: drawW,
+          height: drawH
+        });
+
+        if (drawBorders) {
+          page.drawRectangle({
+            x,
+            y,
+            width: drawW,
+            height: drawH,
+            borderColor: rgb(0.7, 0.7, 0.7),
+            borderWidth: 0.5
+          });
+        }
+      }
+    }
+  } else if (layout === '4-up') {
+    // A4 Portrait: 595.28 x 841.89 pt
+    const sheetW = 595.28;
+    const sheetH = 841.89;
+    const slotW = (sheetW - 3 * margin) / 2;
+    const slotH = (sheetH - 3 * margin) / 2;
+
+    for (let i = 0; i < totalPages; i += 4) {
+      if (onProgress) onProgress(Math.round((i / totalPages) * 100));
+      const page = outDoc.addPage([sheetW, sheetH]);
+
+      const positions = [
+        { col: 0, row: 1 }, // Top-Left
+        { col: 1, row: 1 }, // Top-Right
+        { col: 0, row: 0 }, // Bottom-Left
+        { col: 1, row: 0 }  // Bottom-Right
+      ];
+
+      for (let slot = 0; slot < 4; slot++) {
+        const pageIdx = i + slot;
+        if (pageIdx >= totalPages) break;
+
+        const embPage = embeddedPages[pageIdx];
+        const scale = Math.min(slotW / embPage.width, slotH / embPage.height);
+        const drawW = embPage.width * scale;
+        const drawH = embPage.height * scale;
+
+        const pos = positions[slot];
+        const slotX = margin + pos.col * (slotW + margin);
+        const slotY = margin + pos.row * (slotH + margin);
+
+        const x = slotX + (slotW - drawW) / 2;
+        const y = slotY + (slotH - drawH) / 2;
+
+        page.drawPage(embPage, {
+          x,
+          y,
+          width: drawW,
+          height: drawH
+        });
+
+        if (drawBorders) {
+          page.drawRectangle({
+            x,
+            y,
+            width: drawW,
+            height: drawH,
+            borderColor: rgb(0.7, 0.7, 0.7),
+            borderWidth: 0.5
+          });
+        }
+      }
+    }
+  }
+
+  outDoc.setCreator('pdfCraft N-Up Booklet Printer');
+  return await outDoc.save();
+}
+
+/**
+ * Auto-Deskew & Scanned Page Straightener
+ * Detects tilt angle of scanned pages and straightens text alignment.
+ */
+export async function deskewPdf(arrayBuffer, manualAngle = 0, autoDetect = true, onProgress) {
+  if (!window.pdfjsLib) throw new Error('PDF worker is not initialized.');
+
+  const loadingTask = window.pdfjsLib.getDocument({ data: arrayBuffer.slice(0) });
+  const pdf = await loadingTask.promise;
+  const deskewedPdf = await PDFDocument.create();
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    if (onProgress) onProgress(Math.round((i / pdf.numPages) * 100));
+
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({ scale: 2.0 });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+    await page.render({ canvasContext: ctx, viewport }).promise;
+
+    let targetAngle = manualAngle;
+
+    if (autoDetect && manualAngle === 0) {
+      // Estimate skew angle via projection profile variance
+      targetAngle = detectSkewAngle(ctx, canvas.width, canvas.height);
+    }
+
+    // Rotate canvas image by -targetAngle
+    const rotatedCanvas = document.createElement('canvas');
+    const rad = (targetAngle * Math.PI) / 180;
+    const absCos = Math.abs(Math.cos(rad));
+    const absSin = Math.abs(Math.sin(rad));
+
+    rotatedCanvas.width = canvas.width * absCos + canvas.height * absSin;
+    rotatedCanvas.height = canvas.width * absSin + canvas.height * absCos;
+    const rotCtx = rotatedCanvas.getContext('2d');
+
+    rotCtx.fillStyle = '#ffffff';
+    rotCtx.fillRect(0, 0, rotatedCanvas.width, rotatedCanvas.height);
+    rotCtx.translate(rotatedCanvas.width / 2, rotatedCanvas.height / 2);
+    rotCtx.rotate(-rad);
+    rotCtx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+
+    const imgData = rotatedCanvas.toDataURL('image/jpeg', 0.94);
+    const jpgImg = await deskewedPdf.embedJpg(imgData);
+
+    const origViewport = page.getViewport({ scale: 1.0 });
+    const newPage = deskewedPdf.addPage([origViewport.width, origViewport.height]);
+    newPage.drawImage(jpgImg, {
+      x: 0,
+      y: 0,
+      width: origViewport.width,
+      height: origViewport.height
+    });
+  }
+
+  deskewedPdf.setCreator('pdfCraft Auto-Deskew Straightener');
+  return await deskewedPdf.save();
+}
+
+/**
+ * Helper function to estimate document skew angle (-10 to +10 degrees)
+ */
+function detectSkewAngle(ctx, width, height) {
+  try {
+    // Sample central section of canvas for speed
+    const sampleW = Math.min(width, 800);
+    const sampleH = Math.min(height, 800);
+    const startX = Math.floor((width - sampleW) / 2);
+    const startY = Math.floor((height - sampleH) / 2);
+
+    const imgData = ctx.getImageData(startX, startY, sampleW, sampleH);
+    const data = imgData.data;
+
+    let maxVariance = -1;
+    let bestAngle = 0;
+
+    // Scan angles from -8° to +8° in 0.5° steps
+    for (let angle = -8; angle <= 8; angle += 0.5) {
+      const rad = (angle * Math.PI) / 180;
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
+
+      const rowSums = new Float32Array(sampleH);
+      let validSamples = 0;
+
+      for (let y = 0; y < sampleH; y += 4) {
+        for (let x = 0; x < sampleW; x += 4) {
+          const rotY = Math.round((x - sampleW / 2) * sin + (y - sampleH / 2) * cos + sampleH / 2);
+          if (rotY >= 0 && rotY < sampleH) {
+            const idx = (y * sampleW + x) * 4;
+            const gray = 255 - (data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114);
+            rowSums[rotY] += gray;
+            validSamples++;
+          }
+        }
+      }
+
+      // Compute variance of row sums (peaks indicate horizontal text lines)
+      let sum = 0;
+      for (let i = 0; i < sampleH; i++) sum += rowSums[i];
+      const mean = sum / sampleH;
+
+      let variance = 0;
+      for (let i = 0; i < sampleH; i++) {
+        const diff = rowSums[i] - mean;
+        variance += diff * diff;
+      }
+
+      if (variance > maxVariance) {
+        maxVariance = variance;
+        bestAngle = angle;
+      }
+    }
+
+    return bestAngle;
+  } catch (e) {
+    return 0;
+  }
+}
+
+
 
 

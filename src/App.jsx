@@ -35,7 +35,9 @@ import {
   Crop,
   Scan,
   GitCompare,
-  Split
+  Split,
+  Grid,
+  Compass
 } from 'lucide-react';
 
 import {
@@ -72,7 +74,10 @@ import {
   getPdfFormFields,
   savePdfFormFields,
   redactPdf,
-  comparePdfs
+  comparePdfs,
+  flattenPdf,
+  nUpPdf,
+  deskewPdf
 } from './utils/pdfProcessor';
 
 // Beautiful Custom SVG Icons representing document conversions
@@ -542,6 +547,12 @@ function App() {
   const [compareDiffCanvasUrl, setCompareDiffCanvasUrl] = useState(null);
   const [compareDiffPercent, setCompareDiffPercent] = useState(null);
   const [renderingCompare, setRenderingCompare] = useState(false);
+
+  // N-Up & Deskew States
+  const [nUpLayout, setNUpLayout] = useState('2-up'); // '2-up', '4-up'
+  const [nUpBorders, setNUpBorders] = useState(true);
+  const [deskewAngle, setDeskewAngle] = useState(0);
+  const [deskewAuto, setDeskewAuto] = useState(true);
 
   const [lightboxLoading, setLightboxLoading] = useState(false);
   const [unlockPassword, setUnlockPassword] = useState('');
@@ -1498,6 +1509,33 @@ function App() {
       category: 'Utilities',
       multiple: true,
       accept: '.pdf'
+    },
+    {
+      id: 'flatten',
+      title: 'Flatten PDF',
+      description: 'Permanently flatten form fields, annotations, comments, and signatures into un-editable base page graphics.',
+      icon: <Layers size={24} />,
+      category: 'Security',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'n-up',
+      title: 'N-Up Booklet Printer',
+      description: 'Combine multiple PDF pages onto single sheets (2-Up landscape or 4-Up grid) for booklet printing.',
+      icon: <Grid size={24} />,
+      category: 'Organize',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'deskew',
+      title: 'Auto-Deskew Straightener',
+      description: 'Detect tilt angle on scanned documents and straighten text alignment automatically or manually.',
+      icon: <Compass size={24} />,
+      category: 'Optimize',
+      multiple: false,
+      accept: '.pdf'
     }
   ];
 
@@ -1781,6 +1819,12 @@ function App() {
     setFormFieldsList([]);
     setFormFieldValues({});
     setLoadingFormFields(false);
+
+    // Reset N-Up and Deskew states
+    setNUpLayout('2-up');
+    setNUpBorders(true);
+    setDeskewAngle(0);
+    setDeskewAuto(true);
   };
 
   const backToHome = () => {
@@ -2678,6 +2722,27 @@ function App() {
         filename = 'PDF_Comparison_Report.pdf';
       }
 
+      else if (activeTool === 'flatten') {
+        setProcessingStatus('Flattening PDF annotations & form fields...');
+        const file = uploadedFiles[0];
+        outputBytes = await flattenPdf(file.buffer);
+        filename = `${file.name.replace('.pdf', '')}_flattened.pdf`;
+      }
+
+      else if (activeTool === 'n-up') {
+        setProcessingStatus('Generating N-Up booklet layout...');
+        const file = uploadedFiles[0];
+        outputBytes = await nUpPdf(file.buffer, nUpLayout, nUpBorders, (prog) => setProgress(20 + Math.round(prog * 0.7)));
+        filename = `${file.name.replace('.pdf', '')}_${nUpLayout}.pdf`;
+      }
+
+      else if (activeTool === 'deskew') {
+        setProcessingStatus('Deskewing & straightening scanned PDF pages...');
+        const file = uploadedFiles[0];
+        outputBytes = await deskewPdf(file.buffer, deskewAngle, deskewAuto, (prog) => setProgress(20 + Math.round(prog * 0.7)));
+        filename = `${file.name.replace('.pdf', '')}_deskewed.pdf`;
+      }
+
       if (outputBytes) {
         setProgress(90);
         setProcessingStatus('Finalizing document...');
@@ -3005,6 +3070,15 @@ function App() {
                   </a>
                   <a href="#compare" onClick={(e) => { e.preventDefault(); navigateToTool('compare'); }} className="dropdown-link font-semibold">
                     <span className="link-icon"><GitCompare size={18} /></span> Compare PDFs
+                  </a>
+                  <a href="#flatten" onClick={(e) => { e.preventDefault(); navigateToTool('flatten'); }} className="dropdown-link font-semibold">
+                    <span className="link-icon"><Layers size={18} /></span> Flatten PDF
+                  </a>
+                  <a href="#n-up" onClick={(e) => { e.preventDefault(); navigateToTool('n-up'); }} className="dropdown-link font-semibold">
+                    <span className="link-icon"><Grid size={18} /></span> N-Up Booklet
+                  </a>
+                  <a href="#deskew" onClick={(e) => { e.preventDefault(); navigateToTool('deskew'); }} className="dropdown-link font-semibold">
+                    <span className="link-icon"><Compass size={18} /></span> Auto-Deskew
                   </a>
                 </div>
               </div>
@@ -6057,6 +6131,136 @@ function App() {
                         style={{ marginTop: '0.5rem' }}
                       >
                         <GitCompare size={18} /> Export Comparison Report
+                      </button>
+                    </div>
+                  )}
+
+                  {activeTool === 'flatten' && (
+                    <div className="sidebar-section" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      <h3>Flatten Options</h3>
+
+                      <div style={{
+                        padding: '0.75rem',
+                        backgroundColor: 'rgba(59,130,246,0.08)',
+                        border: '1px solid rgba(59,130,246,0.25)',
+                        borderRadius: 'var(--radius-md)',
+                        fontSize: '0.8rem',
+                        color: 'var(--text-secondary)',
+                        lineHeight: '1.5'
+                      }}>
+                        📑 Flattening converts all fillable form fields, comments, vector stamps, and digital signatures directly into static graphics. Once flattened, contents cannot be modified.
+                      </div>
+
+                      <button
+                        className="btn-action-primary"
+                        onClick={runProcess}
+                        style={{ marginTop: '0.5rem' }}
+                      >
+                        <Layers size={18} /> Flatten PDF &amp; Save
+                      </button>
+                    </div>
+                  )}
+
+                  {activeTool === 'n-up' && (
+                    <div className="sidebar-section" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      <h3>N-Up Booklet Options</h3>
+
+                      <div className="form-group">
+                        <label style={{ fontSize: '0.85rem', fontWeight: '600', marginBottom: '0.4rem', display: 'block' }}>Pages Per Sheet</label>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button
+                            type="button"
+                            className={`option-select-btn ${nUpLayout === '2-up' ? 'active' : ''}`}
+                            onClick={() => setNUpLayout('2-up')}
+                            style={{ flex: 1, padding: '0.6rem 0.5rem', textAlign: 'center', fontSize: '0.8rem' }}
+                          >
+                            <strong>2-Up Side-by-Side</strong>
+                            <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>Landscape layout</div>
+                          </button>
+
+                          <button
+                            type="button"
+                            className={`option-select-btn ${nUpLayout === '4-up' ? 'active' : ''}`}
+                            onClick={() => setNUpLayout('4-up')}
+                            style={{ flex: 1, padding: '0.6rem 0.5rem', textAlign: 'center', fontSize: '0.8rem' }}
+                          >
+                            <strong>4-Up Grid</strong>
+                            <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>2x2 Portrait layout</div>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="form-group" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: '600' }}>Draw Page Outline Borders</span>
+                          <label className="toggle-switch">
+                            <input
+                              type="checkbox"
+                              checked={nUpBorders}
+                              onChange={(e) => setNUpBorders(e.target.checked)}
+                            />
+                            <span className="slider"></span>
+                          </label>
+                        </div>
+                      </div>
+
+                      <button
+                        className="btn-action-primary"
+                        onClick={runProcess}
+                        style={{ marginTop: '0.5rem' }}
+                      >
+                        <Grid size={18} /> Generate N-Up Booklet PDF
+                      </button>
+                    </div>
+                  )}
+
+                  {activeTool === 'deskew' && (
+                    <div className="sidebar-section" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      <h3>Deskew Options</h3>
+
+                      <div className="form-group">
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: '600' }}>Auto-Detect Skew Angle</span>
+                          <label className="toggle-switch">
+                            <input
+                              type="checkbox"
+                              checked={deskewAuto}
+                              onChange={(e) => setDeskewAuto(e.target.checked)}
+                            />
+                            <span className="slider"></span>
+                          </label>
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          Automatically analyzes text horizontal projection lines to detect rotation tilt (-8° to +8°).
+                        </div>
+                      </div>
+
+                      <div className="form-group" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
+                        <label style={{ fontSize: '0.85rem', fontWeight: '600', marginBottom: '0.3rem', display: 'block' }}>
+                          Manual Rotation Offset ({deskewAngle > 0 ? `+${deskewAngle}` : deskewAngle}°)
+                        </label>
+                        <input
+                          type="range"
+                          min="-15"
+                          max="15"
+                          step="0.5"
+                          value={deskewAngle}
+                          onChange={(e) => setDeskewAngle(parseFloat(e.target.value))}
+                          style={{ width: '100%', cursor: 'pointer' }}
+                        />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                          <span>-15°</span>
+                          <span>0°</span>
+                          <span>+15°</span>
+                        </div>
+                      </div>
+
+                      <button
+                        className="btn-action-primary"
+                        onClick={runProcess}
+                        style={{ marginTop: '0.5rem' }}
+                      >
+                        <Compass size={18} /> Deskew &amp; Straighten PDF
                       </button>
                     </div>
                   )}
