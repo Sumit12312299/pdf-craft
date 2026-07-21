@@ -391,6 +391,11 @@ function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState('all');
 
+  // Smooth scroll to top when active tool changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [activeTool]);
+
   // File States
   const [uploadedFiles, setUploadedFiles] = useState([]); // { file, buffer, pageCount, name, size, type, previewUrl, firstPagePreview }
   const [dragActive, setDragActive] = useState(false);
