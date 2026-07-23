@@ -7,6 +7,7 @@ export default defineConfig({
   build: {
     chunkSizeWarningLimit: 1200,
     cssCodeSplit: true,
+    target: 'es2022',
     rollupOptions: {
       output: {
         manualChunks(id) {
@@ -15,7 +16,14 @@ export default defineConfig({
             if (id.includes('pdfjs-dist')) return 'vendor-pdfjs';
             if (id.includes('lucide-react')) return 'vendor-icons';
             if (id.includes('tesseract')) return 'vendor-ocr';
-            if (id.includes('xlsx') || id.includes('docx') || id.includes('pptxgen') || id.includes('jspdf')) {
+            if (
+              id.includes('xlsx') ||
+              id.includes('docx') ||
+              id.includes('mammoth') ||
+              id.includes('pptxgen') ||
+              id.includes('jspdf') ||
+              id.includes('html2pdf')
+            ) {
               return 'vendor-converters';
             }
             return 'vendor-core';
@@ -25,3 +33,4 @@ export default defineConfig({
     }
   }
 });
+
