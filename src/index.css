@@ -3727,3 +3727,19 @@ button:active,
               box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1),
               background-color 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+/* Print Styles & Document Output Optimization */
+@media print {
+  header, footer, nav, .sidebar, .btn-action, .dropzone, .theme-picker {
+    display: none !important;
+  }
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .print-area {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
