@@ -1,9 +1,27 @@
 {
-  "name": "new-folder--8-",
+  "name": "pdf-craft-website",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.2.0",
+  "description": "Enterprise-grade, 100% client-side PDF manipulation & document processing web suite.",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Sumit12312299/pdf-craft.git"
+  },
+  "keywords": [
+    "pdf",
+    "pdf-tools",
+    "client-side",
+    "pdf-editor",
+    "merge-pdf",
+    "split-pdf",
+    "react",
+    "vite"
+  ],
+  "author": "Sumit Kumar",
+  "license": "MIT",
   "scripts": {
+
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
