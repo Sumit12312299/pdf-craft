@@ -1,6 +1,12 @@
 # 📄 PDFCraft
 
-PDFCraft is a high-performance, client-side PDF manipulation and utility suite built with **React**, **Vite**, and **Tailwind-like Vanilla CSS**. Designed with security and privacy in mind, PDFCraft processes all files **locally in the browser**—ensuring your sensitive documents never upload to a third-party server.
+![React Version](https://img.shields.io/badge/React-19.2-61DAFB?style=for-the-badge&logo=react)
+![Vite Version](https://img.shields.io/badge/Vite-8.1-646CFF?style=for-the-badge&logo=vite)
+![Security](https://img.shields.io/badge/Privacy-100%25%20Client--Side-brightgreen?style=for-the-badge)
+![License](https://img.shields.io/badge/License-MIT-orange?style=for-the-badge)
+
+PDFCraft is a high-performance, client-side PDF manipulation and utility suite built with **React 19**, **Vite**, and **Vanilla CSS**. Designed with absolute security and privacy in mind, PDFCraft processes all files **locally in the browser**—ensuring your sensitive documents never upload to any third-party server.
+
 
 ---
 
