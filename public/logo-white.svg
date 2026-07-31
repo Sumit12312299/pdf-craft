@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%" fill="none">
+  <defs>
+    <!-- Classic White & Silver Soft Gradient -->
+    <linearGradient id="whitePageGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#F1F5F9" />
+    </linearGradient>
+
+    <!-- Corner Fold Shadow Tint -->
+    <linearGradient id="foldWhiteGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#CBD5E1" />
+      <stop offset="100%" stop-color="#E2E8F0" />
+    </linearGradient>
+
+    <!-- Translucent Overlay -->
+    <linearGradient id="glassWhiteTint" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.4" />
+    </linearGradient>
+
+    <!-- Soft Drop Shadow -->
+    <filter id="whiteGlowShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.25" />
+      <feDropShadow dx="0" dy="0" stdDeviation="20" flood-color="#FFFFFF" flood-opacity="0.15" />
+    </filter>
+  </defs>
+
+  <g filter="url(#whiteGlowShadow)">
+    <!-- Back Offset Layer (Classic Stacked Pages Effect) -->
+    <rect x="145" y="65" width="240" height="340" rx="24" fill="#FFFFFF" transform="rotate(-6 265 235)" opacity="0.3" />
+    <rect x="140" y="70" width="240" height="340" rx="24" fill="#FFFFFF" transform="rotate(-3 260 240)" opacity="0.6" />
+
+    <!-- Main Front Classic White PDF Page Base -->
+    <path d="M 136 72 C 136 56.5 148.5 44 164 44 L 300 44 L 380 124 L 380 420 C 380 435.5 367.5 448 352 448 L 164 448 C 148.5 448 136 435.5 136 420 Z" fill="url(#whitePageGrad)" />
+
+    <!-- Top-Right Classic Page Dog-Ear Fold -->
+    <path d="M 300 44 L 380 124 L 324 124 C 310.75 124 300 113.25 300 100 Z" fill="url(#foldWhiteGrad)" />
+
+    <!-- Document Heading Lines -->
+    <rect x="180" y="125" width="100" height="12" rx="6" fill="#0F172A" opacity="0.85" />
+    <rect x="180" y="155" width="160" height="10" rx="5" fill="#64748B" opacity="0.4" />
+    <rect x="180" y="177" width="130" height="10" rx="5" fill="#64748B" opacity="0.4" />
+
+    <!-- Classic PDF Red/Dark Badge Banner Centerpiece -->
+    <g transform="translate(176, 215)">
+      <!-- Classic PDF Badge Box -->
+      <rect x="0" y="0" width="164" height="175" rx="20" fill="#0F172A" />
+
+      <!-- Classic 'PDF' Text Header in Crimson Red -->
+      <text x="82" y="52" font-family="'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif" font-weight="900" font-size="34" letter-spacing="2" fill="#EF4444" text-anchor="middle">PDF</text>
+      
+      <!-- Divider Line -->
+      <rect x="24" y="68" width="116" height="3" rx="1.5" fill="#334155" />
+
+      <!-- Classic Craft Icon (Stylized Scissors & Document Fold) -->
+      <g transform="translate(42, 82)">
+        <circle cx="20" cy="20" r="8" stroke="#FFFFFF" stroke-width="2.5" fill="none" />
+        <circle cx="60" cy="20" r="8" stroke="#FFFFFF" stroke-width="2.5" fill="none" />
+        <path d="M 26 25 L 54 50 M 54 25 L 26 50" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" />
+        <circle cx="40" cy="37.5" r="3" fill="#EF4444" />
+      </g>
+    </g>
+
+    <!-- Sparkle Stars -->
+    <path d="M 395 190 Q 395 208 413 208 Q 395 208 395 226 Q 395 208 377 208 Q 395 208 395 190 Z" fill="#FFFFFF" />
+    <path d="M 104 350 Q 104 362 116 362 Q 104 362 104 374 Q 104 362 92 362 Q 104 362 104 350 Z" fill="#FFFFFF" opacity="0.8" />
+  </g>
+</svg>
