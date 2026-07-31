@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 160" width="100%" height="100%" fill="none">
+  <defs>
+    <!-- Primary Crimson Red Gradient -->
+    <linearGradient id="brandRedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF385C" />
+      <stop offset="50%" stop-color="#E11D48" />
+      <stop offset="100%" stop-color="#991B1B" />
+    </linearGradient>
+
+    <!-- Craft Layer Gradient -->
+    <linearGradient id="brandCraftGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8B5CF6" />
+      <stop offset="50%" stop-color="#EC4899" />
+      <stop offset="100%" stop-color="#F97316" />
+    </linearGradient>
+
+    <!-- Glass Overlay -->
+    <linearGradient id="brandGlassGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.05" />
+    </linearGradient>
+
+    <filter id="logoShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#E11D48" flood-opacity="0.25" />
+    </filter>
+  </defs>
+
+  <!-- Left Icon Mark -->
+  <g transform="translate(20, 10)" filter="url(#logoShadow)">
+    <!-- Back Stack Layer -->
+    <rect x="36" y="20" width="70" height="96" rx="12" fill="url(#brandCraftGrad)" transform="rotate(-6 71 68)" opacity="0.75" />
+
+    <!-- Main Front Document Base -->
+    <path d="M 32 20 C 32 14.48 36.48 10 42 10 L 80 10 L 102 32 L 102 118 C 102 123.52 97.52 128 92 128 L 42 128 C 36.48 128 32 123.52 32 118 Z" fill="url(#brandRedGrad)" />
+
+    <!-- Dog-Ear Fold Ribbon -->
+    <path d="M 80 10 L 102 32 L 86 32 C 82.69 32 80 29.31 80 26 Z" fill="url(#brandGlassGrad)" />
+
+    <!-- White Lines & P Emblem inside Icon -->
+    <rect x="44" y="32" width="26" height="4" rx="2" fill="#FFFFFF" opacity="0.9" />
+    <rect x="44" y="42" width="42" height="3" rx="1.5" fill="#FFFFFF" opacity="0.4" />
+    <rect x="44" y="49" width="34" height="3" rx="1.5" fill="#FFFFFF" opacity="0.4" />
+
+    <!-- Stylized P -->
+    <path d="M 44 64 L 62 64 C 70 64 75 68 75 74 C 75 80 70 84 62 84 L 53 84 L 53 104 L 44 104 Z M 53 72 L 53 76 L 61 76 C 64 76 66 75 66 74 C 66 73 64 72 61 72 Z" fill="#FFFFFF" />
+
+    <!-- Scissors / Craft Accent -->
+    <circle cx="86" cy="74" r="5" stroke="#FFD166" stroke-width="2" fill="none" />
+    <path d="M 82 82 L 94 94 M 82 94 L 94 82" stroke="#FFD166" stroke-width="2" stroke-linecap="round" />
+
+    <!-- Sparkle Star -->
+    <path d="M 104 56 Q 104 62 110 62 Q 104 62 104 68 Q 104 62 98 62 Q 104 62 104 56 Z" fill="#FFD166" />
+  </g>
+
+  <!-- Right Side Brand Typography: "PDFCraft" -->
+  <g transform="translate(160, 104)">
+    <!-- "PDF" Text in Bold Crimson Gradient -->
+    <text x="0" y="0" font-family="'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif" font-weight="900" font-size="64" letter-spacing="-1.5" fill="url(#brandRedGrad)">PDF</text>
+    
+    <!-- "Craft" Text in Modern Sleek Slate/Dark Theme -->
+    <text x="135" y="0" font-family="'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif" font-weight="400" font-size="64" letter-spacing="-1" fill="#0F172A">Craft</text>
+
+    <!-- Sparkle Star above the 't' in Craft -->
+    <path d="M 312 -54 Q 312 -46 320 -46 Q 312 -46 312 -38 Q 312 -46 304 -46 Q 312 -46 312 -54 Z" fill="#FFD166" />
+
+    <!-- Tagline underneath -->
+    <text x="4" y="26" font-family="'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif" font-weight="600" font-size="16" letter-spacing="3" fill="#64748B" opacity="0.9">CLIENT-SIDE PDF STUDIO</text>
+  </g>
+</svg>
