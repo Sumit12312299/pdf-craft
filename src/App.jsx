@@ -2909,6 +2909,10 @@ function App() {
 
   return (
     <div className="app-container">
+      {/* Dynamic Background Glow Orbs */}
+      <div className="bg-glow-orb orb-1"></div>
+      <div className="bg-glow-orb orb-2"></div>
+      <div className="bg-glow-orb orb-3"></div>
       {/* Header */}
       <header className={`navbar ${isScrolled ? 'scrolled' : ''}`}>
         <div className="navbar-left">

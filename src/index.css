@@ -3743,3 +3743,80 @@ button:active,
     padding: 0 !important;
   }
 }
+
+/* Dynamic Background Glow Orbs */
+.bg-glow-orb {
+  position: fixed;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  filter: blur(130px);
+  opacity: 0.15;
+  z-index: -1;
+  pointer-events: none;
+  mix-blend-mode: plus-lighter;
+  will-change: transform;
+}
+
+html.dark .bg-glow-orb {
+  opacity: 0.12;
+  mix-blend-mode: screen;
+}
+
+.orb-1 {
+  background: radial-gradient(circle, rgba(var(--cat-organize-rgb), 0.35) 0%, rgba(var(--cat-edits-rgb), 0.15) 50%, transparent 100%);
+  top: -150px;
+  left: -150px;
+  animation: floatOrb1 25s infinite alternate ease-in-out;
+}
+
+.orb-2 {
+  background: radial-gradient(circle, rgba(var(--cat-security-rgb), 0.3) 0%, rgba(var(--cat-convert-from-pdf-rgb), 0.18) 60%, transparent 100%);
+  bottom: -150px;
+  right: -100px;
+  animation: floatOrb2 30s infinite alternate ease-in-out;
+}
+
+.orb-3 {
+  background: radial-gradient(circle, rgba(var(--cat-optimize-rgb), 0.28) 0%, rgba(var(--cat-utilities-rgb), 0.15) 50%, transparent 100%);
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: floatOrb3 28s infinite alternate ease-in-out;
+}
+
+@keyframes floatOrb1 {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(120px, 80px) scale(1.15);
+  }
+  100% {
+    transform: translate(-60px, 150px) scale(0.9);
+  }
+}
+
+@keyframes floatOrb2 {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-100px, -150px) scale(0.85);
+  }
+  100% {
+    transform: translate(80px, 50px) scale(1.1);
+  }
+}
+
+@keyframes floatOrb3 {
+  0% {
+    transform: translate(-50%, -50%) translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) translate(-150px, 100px) scale(1.2);
+  }
+  100% {
+    transform: translate(-50%, -50%) translate(100px, -80px) scale(0.85);
+  }
+}
