@@ -390,6 +390,7 @@ function App() {
   const [gridMenuOpen, setGridMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState('all');
+  const [pageTransition, setPageTransition] = useState('');
 
   // Smooth scroll to top when active tool changes
   useEffect(() => {
@@ -881,8 +882,7 @@ function App() {
     const handlePopState = (e) => {
       if (activeTool !== null) {
         e.preventDefault();
-        resetToolState();
-        setActiveTool(null);
+        backToHome();
       }
     };
 
@@ -1831,13 +1831,27 @@ function App() {
   };
 
   const backToHome = () => {
-    resetToolState();
-    setActiveTool(null);
+    setPageTransition('fade-out');
+    setTimeout(() => {
+      resetToolState();
+      setActiveTool(null);
+      setPageTransition('fade-in');
+      setTimeout(() => {
+        setPageTransition('');
+      }, 300);
+    }, 200);
   };
 
   const navigateToTool = (toolId) => {
-    resetToolState();
-    setActiveTool(toolId);
+    setPageTransition('fade-out');
+    setTimeout(() => {
+      resetToolState();
+      setActiveTool(toolId);
+      setPageTransition('fade-in');
+      setTimeout(() => {
+        setPageTransition('');
+      }, 300);
+    }, 200);
   };
 
   // Up/down ordering for Merge PDF (Takes 0ms, very responsive)
@@ -3252,7 +3266,7 @@ function App() {
       </header>
 
       {/* Main Container */}
-      <main className="main-content">
+      <main className={`main-content main-viewport ${pageTransition}`}>
         {activeTool === null ? (
           /* Tool Grid View (Home) */
           <>
@@ -3320,7 +3334,7 @@ function App() {
                             key={tool.id}
                             className={`tool-card tool-cat-${tool.category.toLowerCase().replace(/\s+/g, '-')}`}
                             style={{ animationDelay: `${currentDelayIndex * 35}ms` }}
-                            onClick={() => setActiveTool(tool.id)}
+                            onClick={() => navigateToTool(tool.id)}
                           >
                             <div className="tool-card-icon">{tool.icon}</div>
                             <h3>{tool.title}</h3>
@@ -7569,7 +7583,7 @@ function App() {
         <button
           className={`bottom-nav-item ${mobileTab === 'all' && activeTool === null ? 'active' : ''}`}
           onClick={() => {
-            setActiveTool(null);
+            if (activeTool !== null) backToHome();
             setMobileTab('all');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
@@ -7580,7 +7594,7 @@ function App() {
         <button
           className={`bottom-nav-item ${mobileTab === 'organize' && activeTool === null ? 'active' : ''}`}
           onClick={() => {
-            setActiveTool(null);
+            if (activeTool !== null) backToHome();
             setMobileTab('organize');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
@@ -7591,7 +7605,7 @@ function App() {
         <button
           className={`bottom-nav-item ${mobileTab === 'convert' && activeTool === null ? 'active' : ''}`}
           onClick={() => {
-            setActiveTool(null);
+            if (activeTool !== null) backToHome();
             setMobileTab('convert');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
@@ -7602,7 +7616,7 @@ function App() {
         <button
           className={`bottom-nav-item ${mobileTab === 'security' && activeTool === null ? 'active' : ''}`}
           onClick={() => {
-            setActiveTool(null);
+            if (activeTool !== null) backToHome();
             setMobileTab('security');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
