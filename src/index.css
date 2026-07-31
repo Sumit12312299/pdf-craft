@@ -1428,12 +1428,36 @@ html.dark .tool-card::before {
   transform: translateX(100%) skewX(-25deg);
 }
 
+/* Dynamic gradient border using composited masking */
+.tool-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-md);
+  padding: 1.5px;
+  background: linear-gradient(135deg, rgba(var(--cat-color-rgb), 1) 0%, rgba(var(--cat-color-rgb), 0.1) 100%);
+  -webkit-mask: 
+     linear-gradient(#fff 0 0) content-box, 
+     linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.tool-card:hover::after {
+  opacity: 1;
+}
+
 .tool-card:hover {
   transform: translateY(-6px) scale(1.02) translateZ(0);
-  border-color: rgba(var(--cat-color-rgb), 0.5);
-  box-shadow: 0 10px 30px -10px rgba(var(--cat-color-rgb), 0.25),
-    0 1px 3px rgba(0, 0, 0, 0.05),
-    0 0 15px 2px rgba(var(--cat-color-rgb), 0.12);
+  border-color: transparent;
+  box-shadow: 
+    0 20px 40px -15px rgba(var(--cat-color-rgb), 0.3),
+    0 0 20px 2px rgba(var(--cat-color-rgb), 0.15),
+    inset 0 0 12px rgba(var(--cat-color-rgb), 0.08);
   background-image:
     radial-gradient(rgba(var(--cat-color-rgb), 0.15) 1px, transparent 1px),
     linear-gradient(135deg, var(--bg-primary) 0%, rgba(var(--cat-color-rgb), 0.02) 100%);
@@ -1441,13 +1465,14 @@ html.dark .tool-card::before {
 
 html.dark .tool-card:hover {
   transform: translateY(-6px) scale(1.02) translateZ(0);
-  border-color: rgba(var(--cat-color-rgb), 0.6);
-  box-shadow: 0 10px 30px -10px rgba(var(--cat-color-rgb), 0.35),
-    0 1px 3px rgba(0, 0, 0, 0.3),
-    0 0 20px 2px rgba(var(--cat-color-rgb), 0.18);
+  border-color: transparent;
+  box-shadow: 
+    0 20px 45px -12px rgba(var(--cat-color-rgb), 0.45),
+    0 0 25px 4px rgba(var(--cat-color-rgb), 0.22),
+    inset 0 0 16px rgba(var(--cat-color-rgb), 0.12);
   background-image:
     radial-gradient(rgba(var(--cat-color-rgb), 0.25) 1px, transparent 1px),
-    linear-gradient(135deg, var(--bg-primary) 0%, rgba(var(--cat-color-rgb), 0.03) 100%);
+    linear-gradient(135deg, var(--bg-primary) 0%, rgba(var(--cat-color-rgb), 0.04) 100%);
 }
 
 .tool-card-icon {
