@@ -1323,72 +1323,165 @@ export async function extractImagesFromPdf(pdfBuffer, onProgress) {
       const fn = ops.fnArray[j];
       const isPaintImage = fn === window.pdfjsLib.OPS.paintImageXObject;
       const isInlineImage = fn === window.pdfjsLib.OPS.paintInlineImage;
+      const isPaintJpeg = fn === window.pdfjsLib.OPS.paintJpegXObject;
       
-      if (isPaintImage || isInlineImage) {
-        const objId = ops.argsArray[j][0];
+      if (isPaintImage || isInlineImage || isPaintJpeg) {
         try {
-          const img = await new Promise((resolve) => {
-            let attempts = 0;
-            const checkObj = () => {
-              const o = page.objs.get(objId);
-              if (o) {
-                resolve(o);
-              } else {
-                attempts++;
-                if (attempts > 50) {
-                  // Fallback: resolve null if takes too long
+          let img;
+          if (isInlineImage) {
+            img = ops.argsArray[j][0];
+          } else {
+            const objId = ops.argsArray[j][0];
+            img = await new Promise((resolve) => {
+              let resolved = false;
+              const timer = setTimeout(() => {
+                if (!resolved) {
+                  resolved = true;
                   resolve(null);
-                } else {
-                  setTimeout(checkObj, 30);
+                }
+              }, 2000);
+
+              const handleResolve = (obj) => {
+                if (!resolved) {
+                  resolved = true;
+                  clearTimeout(timer);
+                  resolve(obj);
+                }
+              };
+
+              try {
+                page.objs.get(objId, (resolvedObj) => {
+                  if (resolvedObj) {
+                    handleResolve(resolvedObj);
+                  } else {
+                    try {
+                      page.commonObjs.get(objId, (resolvedCommon) => {
+                        handleResolve(resolvedCommon || null);
+                      });
+                    } catch (e) {
+                      handleResolve(null);
+                    }
+                  }
+                });
+              } catch (err) {
+                try {
+                  page.commonObjs.get(objId, (resolvedCommon) => {
+                    handleResolve(resolvedCommon || null);
+                  });
+                } catch (e2) {
+                  handleResolve(null);
                 }
               }
-            };
-            checkObj();
-          });
+            });
+          }
           
-          if (img && img.width && img.height) {
-            const canvas = document.createElement('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            const ctx = canvas.getContext('2d');
+          if (img) {
+            const width = img.width || (img.bitmap && img.bitmap.width);
+            const height = img.height || (img.bitmap && img.bitmap.height);
             
-            let imgData;
-            if (img.data instanceof Uint8ClampedArray) {
-              if (img.data.length === img.width * img.height * 3) {
-                const rgba = new Uint8ClampedArray(img.width * img.height * 4);
-                for (let k = 0, l = 0; k < img.data.length; k += 3, l += 4) {
-                  rgba[l] = img.data[k];
-                  rgba[l+1] = img.data[k+1];
-                  rgba[l+2] = img.data[k+2];
-                  rgba[l+3] = 255;
-                }
-                imgData = new ImageData(rgba, img.width, img.height);
-              } else {
-                imgData = new ImageData(img.data, img.width, img.height);
-              }
-            } else if (img.data instanceof Uint8Array) {
-              const clamped = new Uint8ClampedArray(img.data);
-              imgData = new ImageData(clamped, img.width, img.height);
-            }
-            
-            if (imgData) {
-              ctx.putImageData(imgData, 0, 0);
-              const dataUrl = canvas.toDataURL('image/png');
-              const response = await fetch(dataUrl);
-              const arrayBuffer = await response.arrayBuffer();
+            if (width && height) {
+              const canvas = document.createElement('canvas');
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
               
-              extractedImages.push({
-                name: `extracted_page_${i}_img_${imageIndex}.png`,
-                dataUrl,
-                bytes: new Uint8Array(arrayBuffer),
-                width: img.width,
-                height: img.height
-              });
-              imageIndex++;
+              let drawn = false;
+              
+              // 1. Try drawing if it has a native image/bitmap/canvas
+              if (img.bitmap) {
+                try {
+                  ctx.drawImage(img.bitmap, 0, 0);
+                  drawn = true;
+                } catch (e) {
+                  console.warn('Failed to draw img.bitmap:', e);
+                }
+              } else if (img instanceof ImageBitmap || img instanceof HTMLImageElement || img instanceof HTMLCanvasElement) {
+                try {
+                  ctx.drawImage(img, 0, 0);
+                  drawn = true;
+                } catch (e) {
+                  console.warn('Failed to draw img directly:', e);
+                }
+              } else if (img.data instanceof ImageBitmap || img.data instanceof HTMLImageElement || img.data instanceof HTMLCanvasElement) {
+                try {
+                  ctx.drawImage(img.data, 0, 0);
+                  drawn = true;
+                } catch (e) {
+                  console.warn('Failed to draw img.data directly:', e);
+                }
+              }
+              
+              // 2. If not drawn directly, fallback to ImageData
+              if (!drawn && img.data) {
+                try {
+                  let imgData;
+                  const dataLength = img.data.length;
+                  const expectedRGBALength = width * height * 4;
+                  const expectedRGBLength = width * height * 3;
+                  
+                  if (dataLength === expectedRGBALength) {
+                    const clamped = img.data instanceof Uint8ClampedArray ? img.data : new Uint8ClampedArray(img.data);
+                    imgData = new ImageData(clamped, width, height);
+                  } else if (dataLength === expectedRGBLength) {
+                    const rgba = new Uint8ClampedArray(expectedRGBALength);
+                    for (let k = 0, l = 0; k < dataLength; k += 3, l += 4) {
+                      rgba[l] = img.data[k];
+                      rgba[l+1] = img.data[k+1];
+                      rgba[l+2] = img.data[k+2];
+                      rgba[l+3] = 255;
+                    }
+                    imgData = new ImageData(rgba, width, height);
+                  } else {
+                    // Try to construct standard clamped array as fallback
+                    const clamped = new Uint8ClampedArray(img.data);
+                    if (clamped.length === expectedRGBALength) {
+                      imgData = new ImageData(clamped, width, height);
+                    } else if (clamped.length === expectedRGBLength) {
+                      const rgba = new Uint8ClampedArray(expectedRGBALength);
+                      for (let k = 0, l = 0; k < clamped.length; k += 3, l += 4) {
+                        rgba[l] = clamped[k];
+                        rgba[l+1] = clamped[k+1];
+                        rgba[l+2] = clamped[k+2];
+                        rgba[l+3] = 255;
+                      }
+                      imgData = new ImageData(rgba, width, height);
+                    }
+                  }
+                  
+                  if (imgData) {
+                    ctx.putImageData(imgData, 0, 0);
+                    drawn = true;
+                  }
+                } catch (e) {
+                  console.warn('Failed to draw via ImageData:', e);
+                }
+              }
+              
+              if (drawn) {
+                const dataUrl = canvas.toDataURL('image/png');
+                
+                // Convert dataUrl to Uint8Array safely and offline
+                const base64 = dataUrl.split(',')[1];
+                const binaryString = window.atob(base64);
+                const len = binaryString.length;
+                const bytes = new Uint8Array(len);
+                for (let k = 0; k < len; k++) {
+                  bytes[k] = binaryString.charCodeAt(k);
+                }
+                
+                extractedImages.push({
+                  name: `extracted_page_${i}_img_${imageIndex}.png`,
+                  dataUrl,
+                  bytes,
+                  width: width,
+                  height: height
+                });
+                imageIndex++;
+              }
             }
           }
         } catch (err) {
-          console.warn('Failed to extract image object:', objId, err);
+          console.warn('Failed to extract image object:', err);
         }
       }
     }
