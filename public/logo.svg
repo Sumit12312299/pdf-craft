@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%" fill="none">
+  <defs>
+    <!-- Primary Crimson-Red Gradient for PDF Document -->
+    <linearGradient id="pdfRedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF385C" />
+      <stop offset="50%" stop-color="#E11D48" />
+      <stop offset="100%" stop-color="#991B1B" />
+    </linearGradient>
+
+    <!-- Craft Layer Gradient (Vibrant Violet to Orange Craft Spark) -->
+    <linearGradient id="craftGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8B5CF6" />
+      <stop offset="50%" stop-color="#EC4899" />
+      <stop offset="100%" stop-color="#F97316" />
+    </linearGradient>
+
+    <!-- Translucent Glass Overlay Gradient -->
+    <linearGradient id="glassGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.05" />
+    </linearGradient>
+
+    <!-- Fold Back Shadow Gradient -->
+    <linearGradient id="foldShadowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#450A0A" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#991B1B" stop-opacity="0.1" />
+    </linearGradient>
+
+    <!-- Drop Shadows & Glow Filters -->
+    <filter id="mainShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="16" flood-color="#E11D48" flood-opacity="0.3" />
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.25" />
+    </filter>
+
+    <filter id="starGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <g filter="url(#mainShadow)">
+    <!-- Back Page / Craft Layer (Rotated Stack Effect) -->
+    <rect x="145" y="70" width="240" height="340" rx="24" fill="url(#craftGrad)" transform="rotate(-7 265 240)" opacity="0.7" />
+
+    <!-- Secondary Page Stack Layer -->
+    <rect x="140" y="75" width="240" height="340" rx="24" fill="#FFFFFF" transform="rotate(-3.5 260 245)" opacity="0.2" />
+
+    <!-- Main PDF Front Document Base -->
+    <!-- Base Body Path with Dog-Ear Corner Notch -->
+    <path d="M 136 72 C 136 56.5 148.5 44 164 44 L 300 44 L 380 124 L 380 420 C 380 435.5 367.5 448 352 448 L 164 448 C 148.5 448 136 435.5 136 420 Z" fill="url(#pdfRedGrad)" />
+
+    <!-- Dog-Ear Fold Ribbon -->
+    <path d="M 300 44 L 380 124 L 324 124 C 310.75 124 300 113.25 300 100 Z" fill="url(#glassGrad)" />
+    <path d="M 300 44 L 380 124 L 324 124 C 310.75 124 300 113.25 300 100 Z" fill="url(#foldShadowGrad)" />
+
+    <!-- Document Decorative Lines (Simulating PDF Lines) -->
+    <rect x="180" y="130" width="90" height="12" rx="6" fill="#FFFFFF" opacity="0.95" />
+    <rect x="180" y="160" width="160" height="10" rx="5" fill="#FFFFFF" opacity="0.4" />
+    <rect x="180" y="182" width="130" height="10" rx="5" fill="#FFFFFF" opacity="0.4" />
+
+    <!-- "Craft" Emblem Badge Centerpiece -->
+    <g transform="translate(176, 220)">
+      <!-- Glassmorphic Container Plate -->
+      <rect x="0" y="0" width="164" height="170" rx="20" fill="rgba(15, 23, 42, 0.4)" stroke="url(#glassGrad)" stroke-width="1.5" />
+      
+      <!-- Stylized PDF "P" & Craft Scissors/Pen Art -->
+      <!-- Styled 'P' -->
+      <path d="M 28 32 L 56 32 C 68 32 76 39 76 50 C 76 61 68 68 56 68 L 44 68 L 44 96 L 28 96 Z M 44 46 L 44 54 L 54 54 C 60 54 62 52 62 50 C 62 48 60 46 54 46 Z" fill="#FFFFFF" />
+
+      <!-- Craft Scissor/Cut Wings Accent -->
+      <path d="M 96 38 C 96 34.69 98.69 32 102 32 C 105.31 32 108 34.69 108 38 C 108 41.31 105.31 44 102 44 C 98.69 44 96 41.31 96 38 Z" stroke="#FFD166" stroke-width="3" fill="none" />
+      <path d="M 96 82 C 96 78.69 98.69 76 102 76 C 105.31 76 108 78.69 108 82 C 108 85.31 105.31 88 102 88 C 98.69 88 96 85.31 96 82 Z" stroke="#FFD166" stroke-width="3" fill="none" />
+      <path d="M 106 43 L 136 77 M 106 77 L 136 43" stroke="#FFD166" stroke-width="3.5" stroke-linecap="round" />
+
+      <!-- Bottom Craft Bar -->
+      <rect x="28" y="120" width="108" height="8" rx="4" fill="url(#craftGrad)" />
+      <rect x="28" y="136" width="70" height="6" rx="3" fill="#FFFFFF" opacity="0.6" />
+    </g>
+
+    <!-- Magic Craft Sparkle 1 (Top Right Corner) -->
+    <path d="M 400 200 Q 400 220 420 220 Q 400 220 400 240 Q 400 220 380 220 Q 400 220 400 200 Z" fill="#FFD166" filter="url(#starGlow)" />
+    
+    <!-- Magic Craft Sparkle 2 (Bottom Left Corner) -->
+    <path d="M 104 360 Q 104 372 116 372 Q 104 372 104 384 Q 104 372 92 372 Q 104 372 104 360 Z" fill="#FF8A00" filter="url(#starGlow)" />
+  </g>
+</svg>
