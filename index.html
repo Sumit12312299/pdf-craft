@@ -121,7 +121,172 @@
     <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.5/dist/tesseract.min.js"></script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Fallback static SEO content for crawlers before JavaScript mount -->
+      <header style="padding: 20px; text-align: center;">
+        <h1>PDFCraft - Free, Client-Side PDF Tools & Document Scanner</h1>
+        <p>100% secure, offline-first PDF suite running entirely in your browser with zero server uploads.</p>
+      </header>
+      <main style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+        <section>
+          <h2>All Client-Side PDF Tools</h2>
+          <p>Click on any tool below to launch it inside the browser:</p>
+          <ul style="list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
+            <li>
+              <h3><a href="/?tool=merge">Merge PDF</a></h3>
+              <p>Combine multiple PDF files into a single document in any order you choose.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=split">Split PDF</a></h3>
+              <p>Extract specific pages or page ranges from a PDF document into a new file.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=organize">Organize PDF</a></h3>
+              <p>Visually sort, rotate, and delete pages of a PDF to restructure the document.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=sign">Sign PDF</a></h3>
+              <p>Draw or upload your signature, then visually place and resize it on any page of the PDF.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=qr">Stamp QR Code</a></h3>
+              <p>Generate a QR code from text or URLs and visually stamp it on any page of the PDF.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=protect">Protect PDF</a></h3>
+              <p>Encrypt your PDF with a secure password to restrict unauthorized opening or modifications.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=unlock">Unlock PDF</a></h3>
+              <p>Remove password protection from a PDF file. Enter the current password to unlock it.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=redact">Redact PDF</a></h3>
+              <p>Permanently draw blackout boxes over sensitive text, numbers, or sections in your PDF.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=compress">Compress PDF</a></h3>
+              <p>Reduce the file size of your PDF while maintaining optimal visual quality.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=rotate">Rotate PDF</a></h3>
+              <p>Rotate the pages of your PDF document (90, 180, or 270 degrees).</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=img-to-pdf">JPG to PDF</a></h3>
+              <p>Convert JPG, JPEG, and PNG images into a clean, paginated PDF file.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=docx-to-pdf">Word to PDF</a></h3>
+              <p>Convert Microsoft Word (.docx) files into clean, readable PDF documents client-side.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=pptx-to-pdf">PowerPoint to PDF</a></h3>
+              <p>Convert PowerPoint (.pptx) presentation slides into a PDF document client-side.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=xlsx-to-pdf">Excel to PDF</a></h3>
+              <p>Convert Excel spreadsheets (.xlsx, .xls) into clean, tabular PDF documents client-side.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=html-to-pdf">HTML to PDF</a></h3>
+              <p>Convert web page HTML files into a structured PDF document client-side.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=pdf-to-img">PDF to JPG</a></h3>
+              <p>Convert and extract every page of a PDF document into standard JPG images.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=extract-text">Extract Text</a></h3>
+              <p>Perform text extraction to get all textual content from a PDF document.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=pdf-to-docx">PDF to Word</a></h3>
+              <p>Convert your PDF document into an editable Microsoft Word DOCX file client-side.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=pdf-to-pptx">PDF to PowerPoint</a></h3>
+              <p>Convert your PDF pages into editable PowerPoint slides (.pptx) client-side.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=pdf-to-xlsx">PDF to Excel</a></h3>
+              <p>Extract tables and structured rows from your PDF into an Excel spreadsheet (.xlsx) client-side.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=pdf-to-pdfa">PDF to PDF/A</a></h3>
+              <p>Convert your PDF to standard PDF/A-1b format for long-term archiving and compliance.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=page-numbers">Add Page Numbers</a></h3>
+              <p>Customize and stamp page numbers on pages with layout controls.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=watermark">Add Watermark</a></h3>
+              <p>Overlay custom text watermarks with control over color, rotation, and opacity.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=metadata">Edit Metadata</a></h3>
+              <p>Update the metadata fields of your PDF (Author, Title, Creator, Subject, Keywords).</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=crop">Crop PDF</a></h3>
+              <p>Visually crop margins or selected sections of your PDF pages easily.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=qr-generator">QR Code Generator</a></h3>
+              <p>Convert any link or text into a downloadable QR code image instantly.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=scanner">Doc Scanner</a></h3>
+              <p>Scan images, crop margins, apply high-contrast scanning filters, and save as high-res PDF/JPG.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=grayscale">Grayscale PDF</a></h3>
+              <p>Convert your PDF pages to grayscale (black & white) to save printer ink and toner.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=extract-images">Extract Images</a></h3>
+              <p>Scan and extract all embedded images and diagrams from a PDF as individual PNG files.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=resize-pdf">Resize Pages</a></h3>
+              <p>Resize PDF pages to standard formats like A4, Letter, Legal, A3 with scale-to-fit options.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=links-editor">Edit PDF Links</a></h3>
+              <p>Inspect the document for active hyperlinks and edit, delete, or add new URLs directly.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=offline-ocr">Offline OCR</a></h3>
+              <p>Scan and extract selectable text from images or scanned PDFs using client-side OCR engine.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=form-filler">PDF Form Filler</a></h3>
+              <p>Automatically detect interactive form fields inside the PDF and fill them in a clean UI.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=compare">Compare PDFs</a></h3>
+              <p>Visually compare two PDF documents side-by-side or with interactive split-screen overlay and pixel diff highlighting.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=flatten">Flatten PDF</a></h3>
+              <p>Permanently flatten form fields, annotations, comments, and signatures into un-editable base page graphics.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=n-up">N-Up Booklet Printer</a></h3>
+              <p>Combine multiple PDF pages onto single sheets (2-Up landscape or 4-Up grid) for booklet printing.</p>
+            </li>
+            <li>
+              <h3><a href="/?tool=deskew">Auto-Deskew Straightener</a></h3>
+              <p>Detect tilt angle on scanned documents and straighten text alignment automatically or manually.</p>
+            </li>
+          </ul>
+        </section>
+      </main>
+      <footer style="text-align: center; margin-top: 40px; padding: 20px; font-size: 14px;">
+        <p>&copy; 2026 PDFCraft. All tools are 100% secure and process documents entirely in client browser memory.</p>
+      </footer>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
     <script>
       // Initialize PDF.js worker

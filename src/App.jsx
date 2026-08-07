@@ -871,17 +871,103 @@ function App() {
     applyTheme(savedTheme === 'dark' ? 'dark' : 'light');
   }, []);
 
-  // Handle Android/Mobile Physical Back Button
+  // Handle URL Query Parameter Router and Mount Init
   useEffect(() => {
-    if (activeTool !== null) {
-      window.history.pushState({ tool: activeTool }, '', window.location.href);
+    const params = new URLSearchParams(window.location.search);
+    const tool = params.get('tool');
+    if (tool) {
+      const matchedTool = tools.find(t => t.id === tool);
+      if (matchedTool) {
+        setActiveTool(tool);
+      }
     }
-  }, [activeTool]);
+  }, [tools]);
 
+  // Sync activeTool state with URL search params and document meta tags for SEO
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const currentUrlTool = params.get('tool');
+
+    if (activeTool) {
+      // 1. Sync state to the URL search parameter
+      if (currentUrlTool !== activeTool) {
+        window.history.pushState({ tool: activeTool }, '', `?tool=${activeTool}`);
+      }
+
+      // 2. Dynamically update document headers for SEO
+      const matchedTool = tools.find(t => t.id === activeTool);
+      if (matchedTool) {
+        document.title = `${matchedTool.title} | PDFCraft Free Client-Side Tools`;
+
+        const metaDesc = document.querySelector('meta[name="description"]');
+        if (metaDesc) {
+          metaDesc.setAttribute('content', `${matchedTool.description} Secure client-side PDF utility running 100% locally in your browser.`);
+        }
+
+        const ogTitle = document.querySelector('meta[property="og:title"]');
+        if (ogTitle) ogTitle.setAttribute('content', `${matchedTool.title} | PDFCraft`);
+        
+        const ogDesc = document.querySelector('meta[property="og:description"]');
+        if (ogDesc) ogDesc.setAttribute('content', matchedTool.description);
+
+        const twitterTitle = document.querySelector('meta[name="twitter:title"]');
+        if (twitterTitle) twitterTitle.setAttribute('content', `${matchedTool.title} | PDFCraft`);
+
+        const twitterDesc = document.querySelector('meta[name="twitter:description"]');
+        if (twitterDesc) twitterDesc.setAttribute('content', matchedTool.description);
+
+        const canonicalLink = document.querySelector('link[rel="canonical"]');
+        if (canonicalLink) {
+          canonicalLink.setAttribute('href', `https://pdf-craft-sand.vercel.app/?tool=${activeTool}`);
+        }
+      }
+    } else {
+      // activeTool is null (home)
+      if (currentUrlTool) {
+        window.history.pushState(null, '', window.location.pathname);
+      }
+
+      // Restore default meta tags
+      document.title = "PDFCraft | Free Client-Side PDF Tools, Editor & Document Scanner";
+
+      const metaDesc = document.querySelector('meta[name="description"]');
+      if (metaDesc) {
+        metaDesc.setAttribute('content', "PDFCraft is a fast, clean, and 100% secure suite of PDF tools running completely in your browser. Merge, split, compress, sign, crop, protect, and scan PDFs offline with zero server uploads.");
+      }
+
+      const ogTitle = document.querySelector('meta[property="og:title"]');
+      if (ogTitle) ogTitle.setAttribute('content', "PDFCraft | Free Client-Side PDF Tools, Editor & Document Scanner");
+
+      const ogDesc = document.querySelector('meta[property="og:description"]');
+      if (ogDesc) ogDesc.setAttribute('content', "Run PDF tools entirely in your browser with zero server uploads. Merge, split, compress, edit, watermark, sign, and scan documents with maximum privacy.");
+
+      const twitterTitle = document.querySelector('meta[name="twitter:title"]');
+      if (twitterTitle) twitterTitle.setAttribute('content', "PDFCraft | Free Client-Side PDF Tools, Editor & Document Scanner");
+
+      const twitterDesc = document.querySelector('meta[name="twitter:description"]');
+      if (twitterDesc) twitterDesc.setAttribute('content', "Secure client-side PDF tools. No servers, no uploads, 100% privacy.");
+
+      const canonicalLink = document.querySelector('link[rel="canonical"]');
+      if (canonicalLink) {
+        canonicalLink.setAttribute('href', 'https://pdf-craft-sand.vercel.app/');
+      }
+    }
+  }, [activeTool, tools]);
+
+  // Listen to popstate to handle browser back/forward buttons with visual page transitions
   useEffect(() => {
     const handlePopState = (e) => {
-      if (activeTool !== null) {
-        e.preventDefault();
+      const params = new URLSearchParams(window.location.search);
+      const tool = params.get('tool');
+      
+      if (tool) {
+        const matchedTool = tools.find(t => t.id === tool);
+        if (matchedTool) {
+          navigateToTool(tool);
+        } else {
+          backToHome();
+        }
+      } else {
         backToHome();
       }
     };
@@ -890,7 +976,7 @@ function App() {
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [activeTool]);
+  }, [tools]);
 
   // QR Code Real-time generation effect
   useEffect(() => {
