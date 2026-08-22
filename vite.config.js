@@ -5,30 +5,14 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   build: {
-    chunkSizeWarningLimit: 1200,
+    chunkSizeWarningLimit: 2000,
     cssCodeSplit: true,
     target: 'es2022',
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('pdf-lib')) return 'vendor-pdf-lib';
-            if (id.includes('pdfjs-dist')) return 'vendor-pdfjs';
-            if (id.includes('lucide-react')) return 'vendor-icons';
-            if (id.includes('tesseract')) return 'vendor-ocr';
-            if (
-              id.includes('xlsx') ||
-              id.includes('docx') ||
-              id.includes('mammoth') ||
-              id.includes('pptxgen') ||
-              id.includes('jspdf') ||
-              id.includes('html2pdf')
-            ) {
-              return 'vendor-converters';
-            }
-            return 'vendor-core';
-          }
-        }
+        // NOTE: manualChunks removed — it was causing circular dependency
+        // issues between vendor chunks, leading to a TDZ ReferenceError
+        // ("Cannot access 'X' before initialization") and a blank white screen.
       }
     }
   }
