@@ -342,6 +342,343 @@ const drawQrWithLabelAndSpacing = async (
   });
 };
 
+  // Define tools catalog
+  const tools = [
+    {
+      id: 'merge',
+      title: 'Merge PDF',
+      description: 'Combine multiple PDF files into a single document in any order you choose.',
+      icon: <Combine size={24} />,
+      category: 'Organize',
+      multiple: true,
+      accept: '.pdf'
+    },
+    {
+      id: 'split',
+      title: 'Split PDF',
+      description: 'Extract specific pages or page ranges from a PDF document into a new file.',
+      icon: <Scissors size={24} />,
+      category: 'Organize',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'organize',
+      title: 'Organize PDF',
+      description: 'Visually sort, rotate, and delete pages of a PDF to restructure the document.',
+      icon: <Layers size={24} />,
+      category: 'Organize',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'sign',
+      title: 'Sign PDF',
+      description: 'Draw or upload your signature, then visually place and resize it on any page of the PDF.',
+      icon: <PenTool size={24} />,
+      category: 'Edits',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'qr',
+      title: 'Stamp QR Code',
+      description: 'Generate a QR code from text or URLs and visually stamp it on any page of the PDF.',
+      icon: <QrCode size={24} />,
+      category: 'Edits',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'protect',
+      title: 'Protect PDF',
+      description: 'Encrypt your PDF with a secure password to restrict unauthorized opening or modifications.',
+      icon: <Lock size={24} />,
+      category: 'Security',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'unlock',
+      title: 'Unlock PDF',
+      description: 'Remove password protection from a PDF file. Enter the current password to unlock it.',
+      icon: <LockOpen size={24} />,
+      category: 'Security',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'redact',
+      title: 'Redact PDF',
+      description: 'Permanently draw blackout boxes over sensitive text, numbers, or sections in your PDF.',
+      icon: <EyeOff size={24} />,
+      category: 'Security',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'compress',
+      title: 'Compress PDF',
+      description: 'Reduce the file size of your PDF while maintaining optimal visual quality.',
+      icon: <Sliders size={24} />,
+      category: 'Optimize',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'rotate',
+      title: 'Rotate PDF',
+      description: 'Rotate the pages of your PDF document (90, 180, or 270 degrees).',
+      icon: <RotateCw size={24} />,
+      category: 'Organize',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'img-to-pdf',
+      title: 'JPG to PDF',
+      description: 'Convert JPG, JPEG, and PNG images into a clean, paginated PDF file.',
+      icon: <IconJpgToPdf size={28} />,
+      category: 'Convert to PDF',
+      multiple: true,
+      accept: '.jpg,.jpeg,.png'
+    },
+    {
+      id: 'docx-to-pdf',
+      title: 'Word to PDF',
+      description: 'Convert Microsoft Word (.docx) files into clean, readable PDF documents client-side.',
+      icon: <IconWordToPdf size={28} />,
+      category: 'Convert to PDF',
+      multiple: false,
+      accept: '.docx'
+    },
+    {
+      id: 'pptx-to-pdf',
+      title: 'PowerPoint to PDF',
+      description: 'Convert PowerPoint (.pptx) presentation slides into a PDF document client-side.',
+      icon: <IconPptToPdf size={28} />,
+      category: 'Convert to PDF',
+      multiple: false,
+      accept: '.pptx'
+    },
+    {
+      id: 'xlsx-to-pdf',
+      title: 'Excel to PDF',
+      description: 'Convert Excel spreadsheets (.xlsx, .xls) into clean, tabular PDF documents client-side.',
+      icon: <IconExcelToPdf size={28} />,
+      category: 'Convert to PDF',
+      multiple: false,
+      accept: '.xlsx,.xls'
+    },
+    {
+      id: 'html-to-pdf',
+      title: 'HTML to PDF',
+      description: 'Convert web page HTML files into a structured PDF document client-side.',
+      icon: <IconHtmlToPdf size={28} />,
+      category: 'Convert to PDF',
+      multiple: false,
+      accept: '.html,.htm'
+    },
+    {
+      id: 'pdf-to-img',
+      title: 'PDF to JPG',
+      description: 'Convert and extract every page of a PDF document into standard JPG images.',
+      icon: <IconPdfToJpg size={28} />,
+      category: 'Convert from PDF',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'extract-text',
+      title: 'Extract Text',
+      description: 'Perform text extraction to get all textual content from a PDF document.',
+      icon: <FileText size={24} />,
+      category: 'Convert from PDF',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'pdf-to-docx',
+      title: 'PDF to Word',
+      description: 'Convert your PDF document into an editable Microsoft Word DOCX file client-side.',
+      icon: <IconPdfToWord size={28} />,
+      category: 'Convert from PDF',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'pdf-to-pptx',
+      title: 'PDF to PowerPoint',
+      description: 'Convert your PDF pages into editable PowerPoint slides (.pptx) client-side.',
+      icon: <IconPdfToPpt size={28} />,
+      category: 'Convert from PDF',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'pdf-to-xlsx',
+      title: 'PDF to Excel',
+      description: 'Extract tables and structured rows from your PDF into an Excel spreadsheet (.xlsx) client-side.',
+      icon: <IconPdfToExcel size={28} />,
+      category: 'Convert from PDF',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'pdf-to-pdfa',
+      title: 'PDF to PDF/A',
+      description: 'Convert your PDF to standard PDF/A-1b format for long-term archiving and compliance.',
+      icon: <IconPdfToPdfA size={28} />,
+      category: 'Convert from PDF',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'page-numbers',
+      title: 'Add Page Numbers',
+      description: 'Customize and stamp page numbers on pages with layout controls.',
+      icon: <Hash size={24} />,
+      category: 'Edits',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'watermark',
+      title: 'Add Watermark',
+      description: 'Overlay custom text watermarks with control over color, rotation, and opacity.',
+      icon: <Type size={24} />,
+      category: 'Edits',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'metadata',
+      title: 'Edit Metadata',
+      description: 'Update the metadata fields of your PDF (Author, Title, Creator, Subject, Keywords).',
+      icon: <Settings size={24} />,
+      category: 'Edits',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'crop',
+      title: 'Crop PDF',
+      description: 'Visually crop margins or selected sections of your PDF pages easily.',
+      icon: <Crop size={24} />,
+      category: 'Edits',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'qr-generator',
+      title: 'QR Code Generator',
+      description: 'Convert any link or text into a downloadable QR code image instantly.',
+      icon: <QrCode size={24} />,
+      category: 'Utilities',
+      multiple: false,
+      accept: null // No file needed
+    },
+    {
+      id: 'scanner',
+      title: 'Doc Scanner',
+      description: 'Scan images, crop margins, apply high-contrast scanning filters, and save as high-res PDF/JPG.',
+      icon: <Scan size={24} />,
+      category: 'Utilities',
+      multiple: false,
+      accept: '.jpg,.jpeg,.png'
+    },
+    {
+      id: 'grayscale',
+      title: 'Grayscale PDF',
+      description: 'Convert your PDF pages to grayscale (black & white) to save printer ink and toner.',
+      icon: <Printer size={24} />,
+      category: 'Optimize',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'extract-images',
+      title: 'Extract Images',
+      description: 'Scan and extract all embedded images and diagrams from a PDF as individual PNG files.',
+      icon: <FileImage size={24} />,
+      category: 'Convert from PDF',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'resize-pdf',
+      title: 'Resize Pages',
+      description: 'Resize PDF pages to standard formats like A4, Letter, Legal, A3 with scale-to-fit options.',
+      icon: <Sliders size={24} />,
+      category: 'Optimize',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'links-editor',
+      title: 'Edit PDF Links',
+      description: 'Inspect the document for active hyperlinks and edit, delete, or add new URLs directly.',
+      icon: <Share2 size={24} />,
+      category: 'Edits',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'offline-ocr',
+      title: 'Offline OCR',
+      description: 'Scan and extract selectable text from images or scanned PDFs using client-side OCR engine.',
+      icon: <FileText size={24} />,
+      category: 'Utilities',
+      multiple: false,
+      accept: '.pdf,.jpg,.jpeg,.png'
+    },
+    {
+      id: 'form-filler',
+      title: 'PDF Form Filler',
+      description: 'Automatically detect interactive form fields inside the PDF and fill them in a clean UI.',
+      icon: <PenTool size={24} />,
+      category: 'Edits',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'compare',
+      title: 'Compare PDFs',
+      description: 'Visually compare two PDF documents side-by-side or with interactive split-screen overlay and pixel diff highlighting.',
+      icon: <GitCompare size={24} />,
+      category: 'Utilities',
+      multiple: true,
+      accept: '.pdf'
+    },
+    {
+      id: 'flatten',
+      title: 'Flatten PDF',
+      description: 'Permanently flatten form fields, annotations, comments, and signatures into un-editable base page graphics.',
+      icon: <Layers size={24} />,
+      category: 'Security',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'n-up',
+      title: 'N-Up Booklet Printer',
+      description: 'Combine multiple PDF pages onto single sheets (2-Up landscape or 4-Up grid) for booklet printing.',
+      icon: <Grid size={24} />,
+      category: 'Organize',
+      multiple: false,
+      accept: '.pdf'
+    },
+    {
+      id: 'deskew',
+      title: 'Auto-Deskew Straightener',
+      description: 'Detect tilt angle on scanned documents and straighten text alignment automatically or manually.',
+      icon: <Compass size={24} />,
+      category: 'Optimize',
+      multiple: false,
+      accept: '.pdf'
+    }
+  ];
+
 function App() {
   // Theme state
   const [theme, setTheme] = useState('light');
@@ -1291,342 +1628,6 @@ function App() {
     }
   };
 
-  // Define tools catalog
-  const tools = [
-    {
-      id: 'merge',
-      title: 'Merge PDF',
-      description: 'Combine multiple PDF files into a single document in any order you choose.',
-      icon: <Combine size={24} />,
-      category: 'Organize',
-      multiple: true,
-      accept: '.pdf'
-    },
-    {
-      id: 'split',
-      title: 'Split PDF',
-      description: 'Extract specific pages or page ranges from a PDF document into a new file.',
-      icon: <Scissors size={24} />,
-      category: 'Organize',
-      multiple: false,
-      accept: '.pdf'
-    },
-    {
-      id: 'organize',
-      title: 'Organize PDF',
-      description: 'Visually sort, rotate, and delete pages of a PDF to restructure the document.',
-      icon: <Layers size={24} />,
-      category: 'Organize',
-      multiple: false,
-      accept: '.pdf'
-    },
-    {
-      id: 'sign',
-      title: 'Sign PDF',
-      description: 'Draw or upload your signature, then visually place and resize it on any page of the PDF.',
-      icon: <PenTool size={24} />,
-      category: 'Edits',
-      multiple: false,
-      accept: '.pdf'
-    },
-    {
-      id: 'qr',
-      title: 'Stamp QR Code',
-      description: 'Generate a QR code from text or URLs and visually stamp it on any page of the PDF.',
-      icon: <QrCode size={24} />,
-      category: 'Edits',
-      multiple: false,
-      accept: '.pdf'
-    },
-    {
-      id: 'protect',
-      title: 'Protect PDF',
-      description: 'Encrypt your PDF with a secure password to restrict unauthorized opening or modifications.',
-      icon: <Lock size={24} />,
-      category: 'Security',
-      multiple: false,
-      accept: '.pdf'
-    },
-    {
-      id: 'unlock',
-      title: 'Unlock PDF',
-      description: 'Remove password protection from a PDF file. Enter the current password to unlock it.',
-      icon: <LockOpen size={24} />,
-      category: 'Security',
-      multiple: false,
-      accept: '.pdf'
-    },
-    {
-      id: 'redact',
-      title: 'Redact PDF',
-      description: 'Permanently draw blackout boxes over sensitive text, numbers, or sections in your PDF.',
-      icon: <EyeOff size={24} />,
-      category: 'Security',
-      multiple: false,
-      accept: '.pdf'
-    },
-    {
-      id: 'compress',
-      title: 'Compress PDF',
-      description: 'Reduce the file size of your PDF while maintaining optimal visual quality.',
-      icon: <Sliders size={24} />,
-      category: 'Optimize',
-      multiple: false,
-      accept: '.pdf'
-    },
-    {
-      id: 'rotate',
-      title: 'Rotate PDF',
-      description: 'Rotate the pages of your PDF document (90, 180, or 270 degrees).',
-      icon: <RotateCw size={24} />,
-      category: 'Organize',
-      multiple: false,
-      accept: '.pdf'
-    },
-    {
-      id: 'img-to-pdf',
-      title: 'JPG to PDF',
-      description: 'Convert JPG, JPEG, and PNG images into a clean, paginated PDF file.',
-      icon: <IconJpgToPdf size={28} />,
-      category: 'Convert to PDF',
-      multiple: true,
-      accept: '.jpg,.jpeg,.png'
-    },
-    {
-      id: 'docx-to-pdf',
-      title: 'Word to PDF',
-      description: 'Convert Microsoft Word (.docx) files into clean, readable PDF documents client-side.',
-      icon: <IconWordToPdf size={28} />,
-      category: 'Convert to PDF',
-      multiple: false,
-      accept: '.docx'
-    },
-    {
-      id: 'pptx-to-pdf',
-      title: 'PowerPoint to PDF',
-      description: 'Convert PowerPoint (.pptx) presentation slides into a PDF document client-side.',
-      icon: <IconPptToPdf size={28} />,
-      category: 'Convert to PDF',
-      multiple: false,
-      accept: '.pptx'
-    },
-    {
-      id: 'xlsx-to-pdf',
-      title: 'Excel to PDF',
-      description: 'Convert Excel spreadsheets (.xlsx, .xls) into clean, tabular PDF documents client-side.',
-      icon: <IconExcelToPdf size={28} />,
-      category: 'Convert to PDF',
-      multiple: false,
-      accept: '.xlsx,.xls'
-    },
-    {
-      id: 'html-to-pdf',
-      title: 'HTML to PDF',
-      description: 'Convert web page HTML files into a structured PDF document client-side.',
-      icon: <IconHtmlToPdf size={28} />,
-      category: 'Convert to PDF',
-      multiple: false,
-      accept: '.html,.htm'
-    },
-    {
-      id: 'pdf-to-img',
-      title: 'PDF to JPG',
-      description: 'Convert and extract every page of a PDF document into standard JPG images.',
-      icon: <IconPdfToJpg size={28} />,
-      category: 'Convert from PDF',
-      multiple: false,
-      accept: '.pdf'
-    },
-    {
-      id: 'extract-text',
-      title: 'Extract Text',
-      description: 'Perform text extraction to get all textual content from a PDF document.',
-      icon: <FileText size={24} />,
-      category: 'Convert from PDF',
-      multiple: false,
-      accept: '.pdf'
-    },
-    {
-      id: 'pdf-to-docx',
-      title: 'PDF to Word',
-      description: 'Convert your PDF document into an editable Microsoft Word DOCX file client-side.',
-      icon: <IconPdfToWord size={28} />,
-      category: 'Convert from PDF',
-      multiple: false,
-      accept: '.pdf'
-    },
-    {
-      id: 'pdf-to-pptx',
-      title: 'PDF to PowerPoint',
-      description: 'Convert your PDF pages into editable PowerPoint slides (.pptx) client-side.',
-      icon: <IconPdfToPpt size={28} />,
-      category: 'Convert from PDF',
-      multiple: false,
-      accept: '.pdf'
-    },
-    {
-      id: 'pdf-to-xlsx',
-      title: 'PDF to Excel',
-      description: 'Extract tables and structured rows from your PDF into an Excel spreadsheet (.xlsx) client-side.',
-      icon: <IconPdfToExcel size={28} />,
-      category: 'Convert from PDF',
-      multiple: false,
-      accept: '.pdf'
-    },
-    {
-      id: 'pdf-to-pdfa',
-      title: 'PDF to PDF/A',
-      description: 'Convert your PDF to standard PDF/A-1b format for long-term archiving and compliance.',
-      icon: <IconPdfToPdfA size={28} />,
-      category: 'Convert from PDF',
-      multiple: false,
-      accept: '.pdf'
-    },
-    {
-      id: 'page-numbers',
-      title: 'Add Page Numbers',
-      description: 'Customize and stamp page numbers on pages with layout controls.',
-      icon: <Hash size={24} />,
-      category: 'Edits',
-      multiple: false,
-      accept: '.pdf'
-    },
-    {
-      id: 'watermark',
-      title: 'Add Watermark',
-      description: 'Overlay custom text watermarks with control over color, rotation, and opacity.',
-      icon: <Type size={24} />,
-      category: 'Edits',
-      multiple: false,
-      accept: '.pdf'
-    },
-    {
-      id: 'metadata',
-      title: 'Edit Metadata',
-      description: 'Update the metadata fields of your PDF (Author, Title, Creator, Subject, Keywords).',
-      icon: <Settings size={24} />,
-      category: 'Edits',
-      multiple: false,
-      accept: '.pdf'
-    },
-    {
-      id: 'crop',
-      title: 'Crop PDF',
-      description: 'Visually crop margins or selected sections of your PDF pages easily.',
-      icon: <Crop size={24} />,
-      category: 'Edits',
-      multiple: false,
-      accept: '.pdf'
-    },
-    {
-      id: 'qr-generator',
-      title: 'QR Code Generator',
-      description: 'Convert any link or text into a downloadable QR code image instantly.',
-      icon: <QrCode size={24} />,
-      category: 'Utilities',
-      multiple: false,
-      accept: null // No file needed
-    },
-    {
-      id: 'scanner',
-      title: 'Doc Scanner',
-      description: 'Scan images, crop margins, apply high-contrast scanning filters, and save as high-res PDF/JPG.',
-      icon: <Scan size={24} />,
-      category: 'Utilities',
-      multiple: false,
-      accept: '.jpg,.jpeg,.png'
-    },
-    {
-      id: 'grayscale',
-      title: 'Grayscale PDF',
-      description: 'Convert your PDF pages to grayscale (black & white) to save printer ink and toner.',
-      icon: <Printer size={24} />,
-      category: 'Optimize',
-      multiple: false,
-      accept: '.pdf'
-    },
-    {
-      id: 'extract-images',
-      title: 'Extract Images',
-      description: 'Scan and extract all embedded images and diagrams from a PDF as individual PNG files.',
-      icon: <FileImage size={24} />,
-      category: 'Convert from PDF',
-      multiple: false,
-      accept: '.pdf'
-    },
-    {
-      id: 'resize-pdf',
-      title: 'Resize Pages',
-      description: 'Resize PDF pages to standard formats like A4, Letter, Legal, A3 with scale-to-fit options.',
-      icon: <Sliders size={24} />,
-      category: 'Optimize',
-      multiple: false,
-      accept: '.pdf'
-    },
-    {
-      id: 'links-editor',
-      title: 'Edit PDF Links',
-      description: 'Inspect the document for active hyperlinks and edit, delete, or add new URLs directly.',
-      icon: <Share2 size={24} />,
-      category: 'Edits',
-      multiple: false,
-      accept: '.pdf'
-    },
-    {
-      id: 'offline-ocr',
-      title: 'Offline OCR',
-      description: 'Scan and extract selectable text from images or scanned PDFs using client-side OCR engine.',
-      icon: <FileText size={24} />,
-      category: 'Utilities',
-      multiple: false,
-      accept: '.pdf,.jpg,.jpeg,.png'
-    },
-    {
-      id: 'form-filler',
-      title: 'PDF Form Filler',
-      description: 'Automatically detect interactive form fields inside the PDF and fill them in a clean UI.',
-      icon: <PenTool size={24} />,
-      category: 'Edits',
-      multiple: false,
-      accept: '.pdf'
-    },
-    {
-      id: 'compare',
-      title: 'Compare PDFs',
-      description: 'Visually compare two PDF documents side-by-side or with interactive split-screen overlay and pixel diff highlighting.',
-      icon: <GitCompare size={24} />,
-      category: 'Utilities',
-      multiple: true,
-      accept: '.pdf'
-    },
-    {
-      id: 'flatten',
-      title: 'Flatten PDF',
-      description: 'Permanently flatten form fields, annotations, comments, and signatures into un-editable base page graphics.',
-      icon: <Layers size={24} />,
-      category: 'Security',
-      multiple: false,
-      accept: '.pdf'
-    },
-    {
-      id: 'n-up',
-      title: 'N-Up Booklet Printer',
-      description: 'Combine multiple PDF pages onto single sheets (2-Up landscape or 4-Up grid) for booklet printing.',
-      icon: <Grid size={24} />,
-      category: 'Organize',
-      multiple: false,
-      accept: '.pdf'
-    },
-    {
-      id: 'deskew',
-      title: 'Auto-Deskew Straightener',
-      description: 'Detect tilt angle on scanned documents and straighten text alignment automatically or manually.',
-      icon: <Compass size={24} />,
-      category: 'Optimize',
-      multiple: false,
-      accept: '.pdf'
-    }
-  ];
 
   const currentTool = tools.find(t => t.id === activeTool);
 
