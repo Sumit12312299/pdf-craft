@@ -5,7 +5,11 @@ import { Document, Packer, Paragraph, TextRun, PageBreak } from 'docx';
 import pptxgen from 'pptxgenjs';
 
 
-// Helper to convert HEX to PDF-lib RGB colors (0 to 1 range)
+/**
+ * Converts a hexadecimal color string to pdf-lib normalized RGB ratios (0.0 to 1.0).
+ * @param {string} hex - Hex color string (e.g., "#FF0000" or "FF0000")
+ * @returns {{r: number, g: number, b: number}} Color object with values between 0 and 1
+ */
 function hexToRgbPercent(hex) {
   const cleanHex = hex.replace('#', '');
   const r = parseInt(cleanHex.substring(0, 2), 16) / 255 || 0;
@@ -14,7 +18,12 @@ function hexToRgbPercent(hex) {
   return { r, g, b };
 }
 
-// Helper to parse page range strings (e.g., "1-3, 5, 8-10")
+/**
+ * Parses comma-separated page ranges (e.g., "1-3, 5, 8-10") into zero-indexed page numbers.
+ * @param {string} rangeStr - Range specification string
+ * @param {number} maxPages - Total number of pages in the target document
+ * @returns {number[]} Array of 0-based page indices
+ */
 export function parseRanges(rangeStr, maxPages) {
   if (!rangeStr || !rangeStr.trim()) {
     // Default to all pages if range is empty
