@@ -10,6 +10,8 @@ import React from 'react';
  * - theme: 'color' | 'white' (default: 'color')
  * - className: string (optional extra CSS classes)
  * - showTagline: boolean (only for full variants, default: true)
+ * 
+ * @returns {React.ReactElement} Scalable SVG brand logo component
  */
 export const PdfCraftLogo = ({
   size = 40,
