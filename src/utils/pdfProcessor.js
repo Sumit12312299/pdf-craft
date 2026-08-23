@@ -25,9 +25,12 @@ function hexToRgbPercent(hex) {
  * @returns {number[]} Array of 0-based page indices
  */
 export function parseRanges(rangeStr, maxPages) {
+  const safeMax = Math.max(0, maxPages || 0);
+  if (safeMax === 0) return [];
+  
   if (!rangeStr || !rangeStr.trim()) {
     // Default to all pages if range is empty
-    return Array.from({ length: maxPages }, (_, i) => i);
+    return Array.from({ length: safeMax }, (_, i) => i);
   }
   
   const pages = [];
