@@ -144,6 +144,17 @@ Unlike online PDF utilities that process documents on remote servers, **PDFCraft
 
 ---
 
+## 🌐 Browser Compatibility
+
+| Browser | Status | Minimum Version |
+| :--- | :---: | :---: |
+| **Google Chrome** | ✅ Supported | 90+ |
+| **Mozilla Firefox** | ✅ Supported | 88+ |
+| **Microsoft Edge** | ✅ Supported | 90+ |
+| **Apple Safari** | ✅ Supported | 14+ |
+
+---
+
 ## 📄 License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
