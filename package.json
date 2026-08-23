@@ -15,6 +15,9 @@
     "pdf-editor",
     "merge-pdf",
     "split-pdf",
+    "ocr",
+    "document-processing",
+    "pwa",
     "react",
     "vite"
   ],
