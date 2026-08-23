@@ -3883,3 +3883,11 @@ html.dark .bg-glow-orb {
     filter: blur(0);
   }
 }
+
+/* Print Stylesheet Overrides */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+}
