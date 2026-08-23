@@ -19,5 +19,7 @@
   "background_color": "#1c1917",
   "theme_color": "#ea580c",
   "display": "standalone",
-  "orientation": "portrait"
+  "orientation": "any",
+  "description": "High-performance, 100% client-side PDF processing and document editing web suite.",
+  "categories": ["utilities", "productivity"]
 }
