@@ -121,6 +121,7 @@ npm run preview
 │   └── sw.js               # Service Worker for offline asset caching
 ├── src/
 │   ├── assets/             # Images and local styles
+│   ├── components/         # Reusable UI components (Logo, etc.)
 │   ├── utils/
 │   │   └── pdfProcessor.js # Core client-side processing algorithms
 │   ├── App.css             # Component-specific styles
