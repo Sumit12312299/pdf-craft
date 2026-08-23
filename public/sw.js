@@ -1,3 +1,7 @@
+/**
+ * Service Worker for PDFCraft Progressive Web Application (PWA)
+ * Strategy: Stale-While-Revalidate with full offline fallback capabilities.
+ */
 const CACHE_NAME = 'pdfcraft-v1';
 const ASSETS = [
   '/',
