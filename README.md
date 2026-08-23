@@ -138,9 +138,10 @@ npm run preview
 ## 🔒 Privacy & Security First
 
 Unlike online PDF utilities that process documents on remote servers, **PDFCraft processes everything in your browser**.
-*   No document bytes are ever sent over the network.
-*   Encryption and decryption keys are handled strictly within local memory.
-*   Works fully offline when registered as a Progressive Web App (PWA).
+*   **Zero Server Uploads**: No document bytes are ever sent over the network.
+*   **Ephemeral Memory Execution**: File buffers are loaded into WebAssembly / JavaScript heap memory and cleared upon task completion.
+*   **AES-256 Client Encryption**: Password encryption and decryption keys are handled strictly within local memory.
+*   **PWA Offline Capabilities**: Works fully offline when registered as a Progressive Web App (PWA).
 
 ---
 
