@@ -347,11 +347,11 @@ const drawQrWithLabelAndSpacing = async (
     {
       id: 'merge',
       title: 'Merge PDF',
-      description: 'Combine multiple PDF files into a single document in any order you choose.',
+      description: 'Combine multiple PDF files and images into a single document in any order with custom image orientation.',
       icon: <Combine size={24} />,
       category: 'Organize',
       multiple: true,
-      accept: '.pdf'
+      accept: '.pdf,.jpg,.jpeg,.png,.webp,.bmp'
     },
     {
       id: 'split',
@@ -753,8 +753,22 @@ function App() {
   const [resultBlob, setResultBlob] = useState(null);
   const [resultName, setResultName] = useState('');
 
-  // Tool-Specific Options
-  const [splitRanges, setSplitRanges] = useState('');
+  const [mergeOptions, setMergeOptions] = useState({
+    imageOrientation: 'auto', // 'auto', 'portrait', 'landscape'
+    imageLayout: 'a4',        // 'a4', 'letter', 'fit'
+    imageMargin: 'none'       // 'none', 'small', 'large'
+  });
+
+  const setImageOrientationForItem = (index, orientation) => {
+    setUploadedFiles(prev => {
+      const updated = [...prev];
+      updated[index] = {
+        ...updated[index],
+        imageOrientation: orientation
+      };
+      return updated;
+    });
+  };
   const [selectedPagesForSplit, setSelectedPagesForSplit] = useState(new Set()); // Set of 0-based indices
   const [compressLevel, setCompressLevel] = useState('recommended'); // high, recommended, low
   const [globalRotation, setGlobalRotation] = useState(90); // 90, 180, 270
@@ -1686,7 +1700,7 @@ function App() {
             await page.render({ canvasContext: context, viewport }).promise;
             firstPagePreview = canvas.toDataURL('image/jpeg', 0.8);
           }
-        } else if (['.jpg', '.jpeg', '.png'].includes(ext)) {
+        } else if (['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif'].includes(ext)) {
           // It is an image file
           firstPagePreview = URL.createObjectURL(file);
         } else {
@@ -1694,10 +1708,14 @@ function App() {
           firstPagePreview = '';
         }
 
+        const isImg = ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif'].includes(ext);
+
         newFiles.push({
           file,
           buffer,
-          pageCount,
+          pageCount: isImg ? 1 : pageCount,
+          isImage: isImg,
+          imageOrientation: mergeOptions.imageOrientation || 'auto',
           name: file.name,
           size: file.size,
           previewUrl: URL.createObjectURL(file),
@@ -2453,9 +2471,8 @@ function App() {
       let filename = 'processed.pdf';
 
       if (activeTool === 'merge') {
-        setProcessingStatus('Merging PDF files...');
-        const buffers = uploadedFiles.map(f => f.buffer);
-        outputBytes = await mergePdfs(buffers);
+        setProcessingStatus('Merging PDF & Image files...');
+        outputBytes = await mergePdfs(uploadedFiles, mergeOptions);
         filename = 'merged_document.pdf';
       }
 
@@ -4103,32 +4120,83 @@ function App() {
                               backgroundColor: 'var(--bg-primary)',
                               border: '1px solid var(--border-color)',
                               borderRadius: 'var(--radius-md)',
-                              padding: '0.75rem 1rem'
+                              padding: '0.75rem 1rem',
+                              gap: '1rem',
+                              flexWrap: 'wrap'
                             }}
                           >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
-                              <div style={{ width: '32px', height: '40px', flexShrink: 0, border: '1px solid var(--border-color)', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
-                                <img src={file.firstPagePreview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="pdf first page" />
-                                <button
-                                  className="btn-preview-eye"
-                                  style={{ width: '18px', height: '18px', bottom: '2px', right: '2px', padding: 0 }}
-                                  title="Preview Page"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openLightbox(file, 0, file.firstPagePreview, file.name);
-                                  }}
-                                >
-                                  <Eye size={10} />
-                                </button>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: '220px' }}>
+                              <div style={{ width: '36px', height: '46px', flexShrink: 0, border: '1px solid var(--border-color)', borderRadius: '4px', overflow: 'hidden', position: 'relative', backgroundColor: '#f1f5f9' }}>
+                                {file.firstPagePreview ? (
+                                  <img src={file.firstPagePreview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="file preview" />
+                                ) : (
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>
+                                    {file.isImage ? 'IMG' : 'PDF'}
+                                  </div>
+                                )}
+                                {file.firstPagePreview && (
+                                  <button
+                                    className="btn-preview-eye"
+                                    style={{ width: '18px', height: '18px', bottom: '2px', right: '2px', padding: 0 }}
+                                    title="Preview Page"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openLightbox(file, 0, file.firstPagePreview, file.name);
+                                    }}
+                                  >
+                                    <Eye size={10} />
+                                  </button>
+                                )}
                               </div>
                               <div style={{ minWidth: 0, flex: 1 }}>
-                                <div style={{ fontSize: '0.85rem', fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</div>
-                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                                  {(file.size / 1024 / 1024).toFixed(2)} MB • {file.pageCount} pages
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                  <span style={{ fontSize: '0.85rem', fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</span>
+                                  <span style={{
+                                    fontSize: '0.65rem',
+                                    fontWeight: '700',
+                                    padding: '1px 6px',
+                                    borderRadius: '4px',
+                                    backgroundColor: file.isImage ? 'rgba(16, 185, 129, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+                                    color: file.isImage ? '#10b981' : '#3b82f6',
+                                    textTransform: 'uppercase'
+                                  }}>
+                                    {file.isImage ? 'Image' : 'PDF'}
+                                  </span>
+                                </div>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                  {(file.size / 1024 / 1024).toFixed(2)} MB • {file.isImage ? '1 page image' : `${file.pageCount} pages`}
                                 </div>
                               </div>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: '1rem' }}>
+
+                            {/* Image orientation option per file */}
+                            {file.isImage && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', backgroundColor: 'var(--bg-secondary)', padding: '4px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
+                                <span style={{ fontSize: '0.72rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Orientation:</span>
+                                {['auto', 'portrait', 'landscape'].map(orient => (
+                                  <button
+                                    key={orient}
+                                    type="button"
+                                    onClick={() => setImageOrientationForItem(idx, orient)}
+                                    style={{
+                                      padding: '2px 8px',
+                                      fontSize: '0.7rem',
+                                      fontWeight: '600',
+                                      borderRadius: '4px',
+                                      border: 'none',
+                                      cursor: 'pointer',
+                                      backgroundColor: (file.imageOrientation || mergeOptions.imageOrientation) === orient ? 'var(--accent-color)' : 'transparent',
+                                      color: (file.imageOrientation || mergeOptions.imageOrientation) === orient ? '#fff' : 'var(--text-secondary)',
+                                      textTransform: 'capitalize'
+                                    }}
+                                  >
+                                    {orient === 'auto' ? 'Auto' : orient === 'portrait' ? 'Portrait' : 'Landscape'}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: 'auto' }}>
                               <button className="btn-icon" style={{ padding: '4px' }} disabled={idx === 0} onClick={() => moveFileOrder(idx, -1)}>
                                 ▲
                               </button>
@@ -5771,8 +5839,69 @@ function App() {
 
                   {activeTool === 'merge' && (
                     <div className="sidebar-section">
-                      <h3>Merge Settings</h3>
-                      <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Verify file ordering. Click arrows to sort files. Merging starts from the top file.</p>
+                      <h3>Merge & Image Settings</h3>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Verify file ordering. Drag or use arrows to sort files. You can merge PDFs and images together.</p>
+
+                      <div className="form-group" style={{ marginTop: '1rem' }}>
+                        <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Global Image Orientation</label>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.4rem', marginTop: '0.3rem' }}>
+                          {[
+                            { id: 'auto', label: 'Auto' },
+                            { id: 'portrait', label: 'Portrait' },
+                            { id: 'landscape', label: 'Landscape' }
+                          ].map(item => (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => setMergeOptions(prev => ({ ...prev, imageOrientation: item.id }))}
+                              style={{
+                                padding: '0.45rem 0.2rem',
+                                fontSize: '0.75rem',
+                                fontWeight: '600',
+                                borderRadius: 'var(--radius-sm)',
+                                border: '1px solid var(--border-color)',
+                                cursor: 'pointer',
+                                textAlign: 'center',
+                                backgroundColor: mergeOptions.imageOrientation === item.id ? 'var(--accent-color)' : 'var(--bg-secondary)',
+                                color: mergeOptions.imageOrientation === item.id ? '#ffffff' : 'var(--text-primary)'
+                              }}
+                            >
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'block' }}>
+                          {mergeOptions.imageOrientation === 'auto' ? 'Auto-detect aspect ratio for each image.' :
+                           mergeOptions.imageOrientation === 'portrait' ? 'Force images to vertical Portrait pages.' :
+                           'Force images to horizontal Landscape pages.'}
+                        </span>
+                      </div>
+
+                      <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                        <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Image Page Layout</label>
+                        <select
+                          className="form-control"
+                          value={mergeOptions.imageLayout}
+                          onChange={(e) => setMergeOptions(prev => ({ ...prev, imageLayout: e.target.value }))}
+                        >
+                          <option value="a4">A4 Page (Standard)</option>
+                          <option value="letter">US Letter</option>
+                          <option value="fit">Fit to Image Size</option>
+                        </select>
+                      </div>
+
+                      <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                        <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Image Margin</label>
+                        <select
+                          className="form-control"
+                          value={mergeOptions.imageMargin}
+                          onChange={(e) => setMergeOptions(prev => ({ ...prev, imageMargin: e.target.value }))}
+                        >
+                          <option value="none">No Margins (Full Page)</option>
+                          <option value="small">Small Margins (0.25")</option>
+                          <option value="large">Large Margins (0.5")</option>
+                        </select>
+                      </div>
                     </div>
                   )}
 

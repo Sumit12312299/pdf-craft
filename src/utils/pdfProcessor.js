@@ -62,15 +62,143 @@ export function parseRanges(rangeStr, maxPages) {
   return [...new Set(pages)];
 }
 
-// 1. Merge PDFs
-export async function mergePdfs(pdfBuffers) {
+async function convertImageToJpegBuffer(buffer) {
+  return new Promise((resolve, reject) => {
+    const blob = new Blob([buffer]);
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Canvas context not available'));
+          return;
+        }
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, img.width, img.height);
+        ctx.drawImage(img, 0, 0);
+
+        canvas.toBlob((compressedBlob) => {
+          if (!compressedBlob) {
+            reject(new Error('Canvas toBlob failed'));
+            return;
+          }
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(new Uint8Array(reader.result));
+          reader.onerror = () => reject(reader.error);
+          reader.readAsArrayBuffer(compressedBlob);
+        }, 'image/jpeg', 0.92);
+      } catch (err) {
+        reject(err);
+      }
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Failed to load image file'));
+    };
+
+    img.src = url;
+  });
+}
+
+// 1. Merge PDFs & Images
+export async function mergePdfs(items, options = {}) {
+  // options: { imageOrientation: 'auto'|'portrait'|'landscape', imageLayout: 'a4'|'letter'|'fit', imageMargin: 'none'|'small'|'large' }
   const mergedPdf = await PDFDocument.create();
   
-  for (const buffer of pdfBuffers) {
-    const donorPdf = await PDFDocument.load(buffer);
-    const pageIndices = donorPdf.getPageIndices();
-    const copiedPages = await mergedPdf.copyPages(donorPdf, pageIndices);
-    copiedPages.forEach((page) => mergedPdf.addPage(page));
+  const DIMENSIONS = {
+    a4: { width: 595.28, height: 841.89 },
+    letter: { width: 612.0, height: 792.0 }
+  };
+
+  const MARGINS = {
+    none: 0,
+    small: 18, // 0.25 inch
+    large: 36  // 0.5 inch
+  };
+
+  for (const item of items) {
+    const buffer = item instanceof ArrayBuffer ? item : item.buffer;
+    const name = item.name || '';
+    const isImage = item.isImage || /\.(jpg|jpeg|png|webp|bmp|gif)$/i.test(name);
+
+    if (isImage) {
+      const itemOrientation = item.imageOrientation || options.imageOrientation || 'auto';
+      const itemLayout = options.imageLayout || 'a4';
+      const itemMargin = options.imageMargin || 'none';
+      const marginSize = MARGINS[itemMargin] ?? 0;
+
+      let embeddedImg = null;
+      const lowerName = name.toLowerCase();
+
+      try {
+        if (lowerName.endsWith('.png')) {
+          embeddedImg = await mergedPdf.embedPng(buffer);
+        } else if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg')) {
+          embeddedImg = await mergedPdf.embedJpg(buffer);
+        } else {
+          const jpegBytes = await convertImageToJpegBuffer(buffer);
+          embeddedImg = await mergedPdf.embedJpg(jpegBytes);
+        }
+      } catch (err) {
+        try {
+          const jpegBytes = await convertImageToJpegBuffer(buffer);
+          embeddedImg = await mergedPdf.embedJpg(jpegBytes);
+        } catch (convErr) {
+          throw new Error(`Failed to process image ${name || 'file'}: ${convErr.message}`);
+        }
+      }
+
+      const dims = embeddedImg.scale(1);
+      const imgW = dims.width;
+      const imgH = dims.height;
+
+      let finalOrientation = itemOrientation;
+      if (finalOrientation === 'auto') {
+        finalOrientation = imgW > imgH ? 'landscape' : 'portrait';
+      }
+
+      let pageWidth, pageHeight;
+      if (itemLayout === 'fit') {
+        pageWidth = imgW + (marginSize * 2);
+        pageHeight = imgH + (marginSize * 2);
+      } else {
+        const layoutSize = DIMENSIONS[itemLayout] || DIMENSIONS.a4;
+        const isLandscape = finalOrientation === 'landscape';
+        pageWidth = isLandscape ? layoutSize.height : layoutSize.width;
+        pageHeight = isLandscape ? layoutSize.width : layoutSize.height;
+      }
+
+      const page = mergedPdf.addPage([pageWidth, pageHeight]);
+
+      const usableWidth = pageWidth - (marginSize * 2);
+      const usableHeight = pageHeight - (marginSize * 2);
+
+      const scale = Math.min(usableWidth / imgW, usableHeight / imgH);
+      const finalW = imgW * scale;
+      const finalH = imgH * scale;
+
+      const x = marginSize + (usableWidth - finalW) / 2;
+      const y = marginSize + (usableHeight - finalH) / 2;
+
+      page.drawImage(embeddedImg, {
+        x,
+        y,
+        width: finalW,
+        height: finalH
+      });
+    } else {
+      const donorPdf = await PDFDocument.load(buffer);
+      const pageIndices = donorPdf.getPageIndices();
+      const copiedPages = await mergedPdf.copyPages(donorPdf, pageIndices);
+      copiedPages.forEach((page) => mergedPdf.addPage(page));
+    }
   }
   
   return await mergedPdf.save();
