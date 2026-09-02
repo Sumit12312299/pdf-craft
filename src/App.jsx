@@ -7842,7 +7842,7 @@ function App() {
             {/* Column 1: Organize & Edit */}
             <div>
               <div className="footer-column-title">
-                <Scissors size={15} style={{ color: '#6366f1' }} />
+                <Scissors size={15} style={{ color: 'var(--accent-color)' }} />
                 <span>Organize & Edit</span>
               </div>
               <ul className="footer-links">
@@ -7882,7 +7882,7 @@ function App() {
             {/* Column 2: Convert & Extract */}
             <div>
               <div className="footer-column-title">
-                <Combine size={15} style={{ color: '#ec4899' }} />
+                <Combine size={15} style={{ color: 'rgba(var(--cat-edits-rgb, 168, 85, 247), 1)' }} />
                 <span>Convert & Extract</span>
               </div>
               <ul className="footer-links">
@@ -7922,7 +7922,7 @@ function App() {
             {/* Column 3: Security & Sign */}
             <div>
               <div className="footer-column-title">
-                <Lock size={15} style={{ color: '#10b981' }} />
+                <Lock size={15} style={{ color: 'var(--success-color)' }} />
                 <span>Security & Sign</span>
               </div>
               <ul className="footer-links">
@@ -7962,7 +7962,7 @@ function App() {
             {/* Column 4: Advanced Utilities & Project */}
             <div>
               <div className="footer-column-title">
-                <Sliders size={15} style={{ color: '#f59e0b' }} />
+                <Sliders size={15} style={{ color: 'var(--warning-color)' }} />
                 <span>Advanced & Tools</span>
               </div>
               <ul className="footer-links">
