@@ -234,7 +234,7 @@ export async function organizePdf(pdfBuffer, pageActions) {
     // Apply additional rotation if specified
     if (action.rotation) {
       const currentRot = copiedPage.getRotation().angle;
-      copiedPage.setRotation(degrees((currentRot + action.rotation) % 360));
+      copiedPage.setRotation(degrees(((currentRot + action.rotation) % 360 + 360) % 360));
     }
     
     destPdf.addPage(copiedPage);
@@ -377,7 +377,7 @@ export async function rotatePdf(pdfBuffer, angle) {
   
   for (const page of pages) {
     const currentRot = page.getRotation().angle;
-    page.setRotation(degrees((currentRot + angle) % 360));
+    page.setRotation(degrees(((currentRot + angle) % 360 + 360) % 360));
   }
   
   return await pdfDoc.save();
@@ -414,12 +414,22 @@ export async function imageToPdf(imageFiles, options) {
     let embeddedImg;
     const lowerName = imgFile.name.toLowerCase();
     
-    if (lowerName.endsWith('.png')) {
-      embeddedImg = await pdfDoc.embedPng(imgFile.buffer);
-    } else if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg')) {
-      embeddedImg = await pdfDoc.embedJpg(imgFile.buffer);
-    } else {
-      throw new Error(`Unsupported image format: ${imgFile.name}. Only PNG and JPG are supported.`);
+    try {
+      if (lowerName.endsWith('.png')) {
+        embeddedImg = await pdfDoc.embedPng(imgFile.buffer);
+      } else if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg')) {
+        embeddedImg = await pdfDoc.embedJpg(imgFile.buffer);
+      } else {
+        const jpegBytes = await convertImageToJpegBuffer(imgFile.buffer);
+        embeddedImg = await pdfDoc.embedJpg(jpegBytes);
+      }
+    } catch (err) {
+      try {
+        const jpegBytes = await convertImageToJpegBuffer(imgFile.buffer);
+        embeddedImg = await pdfDoc.embedJpg(jpegBytes);
+      } catch (convErr) {
+        throw new Error(`Failed to process image ${imgFile.name || 'file'}: ${convErr.message}`);
+      }
     }
     
     // Calculate usable dimensions
@@ -510,6 +520,8 @@ export async function addWatermark(pdfBuffer, options) {
   const rotation = options.rotation !== undefined ? options.rotation : 45;
   const text = options.text || 'CONFIDENTIAL';
   
+  const rad = (rotation * Math.PI) / 180;
+
   pages.forEach((page) => {
     const { width, height } = page.getSize();
     const textWidth = font.widthOfTextAtSize(text, size);
@@ -521,10 +533,13 @@ export async function addWatermark(pdfBuffer, options) {
     // Estimate text height (using font size as a baseline)
     const textHeight = size * 0.75;
     
-    // Draw text with rotation around center
+    // Calculate rotated lower-left origin (x, y) so text center aligns with (centerX, centerY)
+    const x = centerX - (textWidth / 2) * Math.cos(rad) + (textHeight / 2) * Math.sin(rad);
+    const y = centerY - (textWidth / 2) * Math.sin(rad) - (textHeight / 2) * Math.cos(rad);
+
     page.drawText(text, {
-      x: centerX - (textWidth / 2) * Math.cos(rotation * Math.PI / 180),
-      y: centerY - (textHeight / 2),
+      x,
+      y,
       size,
       font,
       color: rgb(color.r, color.g, color.b),
@@ -633,8 +648,22 @@ export async function stampSignatures(pdfBuffer, signatures) {
     
     const { width: pdfPageW, height: pdfPageH } = page.getSize();
     
-    // Embed the transparent PNG signature image
-    const pngImage = await pdfDoc.embedPng(sig.dataUrl);
+    // Embed signature image (PNG, JPG, or fallback format)
+    let pngImage;
+    try {
+      if (typeof sig.dataUrl === 'string' && (sig.dataUrl.startsWith('data:image/jpeg') || sig.dataUrl.startsWith('data:image/jpg'))) {
+        pngImage = await pdfDoc.embedJpg(sig.dataUrl);
+      } else {
+        pngImage = await pdfDoc.embedPng(sig.dataUrl);
+      }
+    } catch (e) {
+      try {
+        pngImage = await pdfDoc.embedJpg(sig.dataUrl);
+      } catch (e2) {
+        const jpegBytes = await convertImageToJpegBuffer(sig.dataUrl);
+        pngImage = await pdfDoc.embedJpg(jpegBytes);
+      }
+    }
     
     // Translation ratios (UI pixels -> PDF points)
     const scaleX = pdfPageW / sig.pageW;
@@ -1422,10 +1451,15 @@ export async function cropPdf(pdfBuffer, cropMargins, onProgress) {
       }
     }
 
-    const leftPx = (margins.left / 100) * width;
-    const rightPx = (margins.right / 100) * width;
-    const topPx = (margins.top / 100) * height;
-    const bottomPx = (margins.bottom / 100) * height;
+    const left = typeof margins?.left === 'number' ? margins.left : 0;
+    const right = typeof margins?.right === 'number' ? margins.right : 0;
+    const top = typeof margins?.top === 'number' ? margins.top : 0;
+    const bottom = typeof margins?.bottom === 'number' ? margins.bottom : 0;
+
+    const leftPx = (left / 100) * width;
+    const rightPx = (right / 100) * width;
+    const topPx = (top / 100) * height;
+    const bottomPx = (bottom / 100) * height;
 
     const newX = x + leftPx;
     const newY = y + bottomPx;
@@ -1886,7 +1920,12 @@ export async function performOcrOnImage(imageBuffer, onProgress) {
 // 29. Get PDF Form Fields (AcroForms)
 export async function getPdfFormFields(pdfBuffer) {
   const pdfDoc = await PDFDocument.load(pdfBuffer);
-  const form = pdfDoc.getForm();
+  let form;
+  try {
+    form = pdfDoc.getForm();
+  } catch (e) {
+    return [];
+  }
   const fields = form.getFields();
   
   return fields.map(field => {
