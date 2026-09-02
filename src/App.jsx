@@ -3478,6 +3478,9 @@ function App() {
               })()}
             </div>
           </>
+        ) : (!currentTool) ? (
+          /* Fallback to Home if activeTool is invalid */
+          backToHome()
         ) : (
           /* Active Tool Workspace */
           <div className="workspace-container">
@@ -3486,8 +3489,8 @@ function App() {
                 <ArrowLeft size={16} /> Back to Tools
               </button>
               <div className="workspace-title-area">
-                <h2>{currentTool.title}</h2>
-                <p>{currentTool.description}</p>
+                <h2>{currentTool?.title || 'PDF Tool'}</h2>
+                <p>{currentTool?.description || ''}</p>
               </div>
             </div>
 
@@ -3832,10 +3835,10 @@ function App() {
                   <div className="success-actions-container" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', justifyContent: 'center', width: '100%', maxWidth: '400px', alignItems: 'center' }}>
                     <button className="btn-download-success" onClick={triggerDownload} style={{ width: '100%', padding: '0.75rem' }}>
                       <Download size={18} /> Download {
-                        currentTool.id === 'pdf-to-img' ? 'ZIP' :
-                          currentTool.id === 'pdf-to-docx' ? 'Word DOCX' :
-                            currentTool.id === 'pdf-to-pptx' ? 'PowerPoint PPTX' :
-                              currentTool.id === 'pdf-to-xlsx' ? 'Excel XLSX' :
+                        currentTool?.id === 'pdf-to-img' ? 'ZIP' :
+                          currentTool?.id === 'pdf-to-docx' ? 'Word DOCX' :
+                            currentTool?.id === 'pdf-to-pptx' ? 'PowerPoint PPTX' :
+                              currentTool?.id === 'pdf-to-xlsx' ? 'Excel XLSX' :
                                 'PDF'
                       }
                     </button>
@@ -3933,21 +3936,21 @@ function App() {
                   style={{ padding: '0.75rem 2.5rem', fontSize: '0.95rem', fontWeight: '700', borderRadius: 'var(--radius-md)' }}
                   onClick={(e) => { e.stopPropagation(); document.getElementById('workspace-file-input').click(); }}
                 >
-                  Select {currentTool.multiple ? 'Files' : 'File'}
+                  Select {currentTool?.multiple ? 'Files' : 'File'}
                 </button>
 
                 <input
                   id="workspace-file-input"
                   type="file"
                   className="file-input"
-                  multiple={currentTool.multiple}
-                  accept={currentTool.accept}
+                  multiple={currentTool?.multiple || false}
+                  accept={currentTool?.accept || '.pdf'}
                   onChange={handleFileInput}
                 />
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '500' }}>Supported:</span>
-                  {currentTool.accept.split(',').map(fmt => (
+                  {(currentTool?.accept || '.pdf').split(',').map(fmt => (
                     <span key={fmt} style={{
                       fontSize: '0.7rem', fontWeight: '700', padding: '0.2rem 0.6rem',
                       backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)',
@@ -4023,7 +4026,7 @@ function App() {
                     <div style={{ fontSize: '0.9rem', fontWeight: '700' }}>
                       Selected {uploadedFiles.length} file{uploadedFiles.length > 1 ? 's' : ''}
                     </div>
-                    {currentTool.multiple && (
+                    {currentTool?.multiple && (
                       <button className="btn-reset" style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }} onClick={() => document.getElementById('workspace-file-input-add').click()}>
                         + Add More Files
                       </button>
@@ -4033,7 +4036,7 @@ function App() {
                       type="file"
                       className="file-input"
                       multiple
-                      accept={currentTool.accept}
+                      accept={currentTool?.accept || '.pdf'}
                       onChange={handleFileInput}
                     />
                   </div>
