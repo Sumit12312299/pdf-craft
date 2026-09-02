@@ -3397,7 +3397,7 @@ function App() {
 
       {/* Main Container */}
       <main className={`main-content main-viewport ${pageTransition}`}>
-        {activeTool === null ? (
+        {activeTool === null || !currentTool ? (
           /* Tool Grid View (Home) */
           <>
             <div className="hero">
@@ -3478,9 +3478,6 @@ function App() {
               })()}
             </div>
           </>
-        ) : (!currentTool) ? (
-          /* Fallback to Home if activeTool is invalid */
-          backToHome()
         ) : (
           /* Active Tool Workspace */
           <div className="workspace-container">
