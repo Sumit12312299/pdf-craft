@@ -1961,28 +1961,28 @@ function App() {
     setDeskewAuto(true);
   };
 
-  const backToHome = () => {
-    setPageTransition('fade-out');
-    setTimeout(() => {
-      resetToolState();
-      setActiveTool(null);
-      setPageTransition('fade-in');
-      setTimeout(() => {
+  // Safety effect: Ensure pageTransition never gets stuck on 'fade-out' or 'fade-in'
+  useEffect(() => {
+    if (pageTransition) {
+      const timer = setTimeout(() => {
         setPageTransition('');
-      }, 300);
-    }, 200);
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [pageTransition]);
+
+  const backToHome = () => {
+    resetToolState();
+    setActiveTool(null);
+    setPageTransition('fade-in');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const navigateToTool = (toolId) => {
-    setPageTransition('fade-out');
-    setTimeout(() => {
-      resetToolState();
-      setActiveTool(toolId);
-      setPageTransition('fade-in');
-      setTimeout(() => {
-        setPageTransition('');
-      }, 300);
-    }, 200);
+    resetToolState();
+    setActiveTool(toolId);
+    setPageTransition('fade-in');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Up/down ordering for Merge PDF (Takes 0ms, very responsive)
