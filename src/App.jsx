@@ -37,8 +37,16 @@ import {
   GitCompare,
   Split,
   Grid,
-  Compass
+  Compass,
+  ShieldCheck,
+  ArrowUp,
+  ExternalLink,
+  Heart,
+  Zap,
+  CheckCircle2,
+  Shield
 } from 'lucide-react';
+import { PdfCraftLogo } from './components/PdfCraftLogo';
 
 import {
   mergePdfs,
@@ -678,6 +686,24 @@ const drawQrWithLabelAndSpacing = async (
       accept: '.pdf'
     }
   ];
+
+const GithubIcon = ({ size = 16, className = '' }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={{ display: 'inline-block', verticalAlign: 'middle' }}
+  >
+    <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
+    <path d="M9 18c-4.51 2-5-2-7-2" />
+  </svg>
+);
 
 function App() {
   // Theme state
@@ -7786,13 +7812,232 @@ function App() {
         </div>
       )}
 
-      {/* Footer */}
+      {/* Modern Multi-Column Mega Footer */}
       <footer className="footer">
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-          <Info size={14} />
-          <span>All document parsing and alterations happen locally via WebAssembly and Canvas. No files are uploaded to any server.</span>
+        <div className="footer-container">
+          {/* Top Brand & Security Guarantee Banner */}
+          <div className="footer-top">
+            <div className="footer-brand">
+              <div className="footer-brand-header">
+                <PdfCraftLogo size={34} variant="full" />
+              </div>
+              <p className="footer-tagline">
+                Enterprise-grade, 100% client-side PDF manipulation & document processing web suite. Clean, private, and lightning fast.
+              </p>
+            </div>
+
+            <div className="footer-security-badge">
+              <ShieldCheck className="footer-security-icon" size={28} />
+              <div className="footer-security-text">
+                <h4>100% Client-Side Privacy Guarantee</h4>
+                <p>
+                  All PDF operations are processed locally in your browser using WebAssembly & Web APIs. Zero files uploaded, zero data collection.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 4-Column Tool Links Grid */}
+          <div className="footer-grid">
+            {/* Column 1: Organize & Edit */}
+            <div>
+              <div className="footer-column-title">
+                <Scissors size={15} style={{ color: '#6366f1' }} />
+                <span>Organize & Edit</span>
+              </div>
+              <ul className="footer-links">
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('merge')}>
+                    Merge PDFs
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('split')}>
+                    Split PDF
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('organize')}>
+                    Organize & Reorder
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('rotate')}>
+                    Rotate Pages
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('crop')}>
+                    Crop PDF
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('page-numbers')}>
+                    Page Numbers & Watermark
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 2: Convert & Extract */}
+            <div>
+              <div className="footer-column-title">
+                <Combine size={15} style={{ color: '#ec4899' }} />
+                <span>Convert & Extract</span>
+              </div>
+              <ul className="footer-links">
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('img-to-pdf')}>
+                    Image to PDF
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('pdf-to-img')}>
+                    PDF to Images (JPG/PNG)
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('docx-to-pdf')}>
+                    Word (DOCX) to PDF
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('pdf-to-docx')}>
+                    PDF to Word (DOCX)
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('extract-text')}>
+                    Extract Text & OCR
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('extract-images')}>
+                    Extract Embedded Images
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 3: Security & Sign */}
+            <div>
+              <div className="footer-column-title">
+                <Lock size={15} style={{ color: '#10b981' }} />
+                <span>Security & Sign</span>
+              </div>
+              <ul className="footer-links">
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('protect')}>
+                    Protect & Encrypt PDF
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('unlock')}>
+                    Unlock PDF Password
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('sign')}>
+                    Sign PDF Document
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('redact')}>
+                    Redact Sensitive Text
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('qr')}>
+                    Stamp QR Code
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('flatten')}>
+                    Flatten PDF Forms
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 4: Advanced Utilities & Project */}
+            <div>
+              <div className="footer-column-title">
+                <Sliders size={15} style={{ color: '#f59e0b' }} />
+                <span>Advanced & Tools</span>
+              </div>
+              <ul className="footer-links">
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('compress')}>
+                    Compress PDF Size
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('metadata')}>
+                    Edit PDF Metadata
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('grayscale')}>
+                    Convert to Grayscale
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('scanner')}>
+                    Document Cam Scanner
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('n-up')}>
+                    N-Up Grid Layout
+                  </button>
+                </li>
+                <li>
+                  <a
+                    className="footer-link-btn"
+                    href="https://github.com/Sumit12312299/pdf-craft"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <GithubIcon size={14} />
+                    <span>GitHub Repository</span>
+                    <ExternalLink size={11} style={{ opacity: 0.6 }} />
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Bottom Bar: Copyright, Live Status Pill & Back to Top */}
+          <div className="footer-bottom">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <div>© {new Date().getFullYear()} <strong>pdfCraft</strong>. Built with privacy in mind.</div>
+              <div className="footer-status-pill">
+                <span className="footer-status-dot"></span>
+                <span>WASM Client Engine: <strong>Active & Offline-Ready</strong></span>
+              </div>
+            </div>
+
+            <div className="footer-bottom-actions">
+              <a
+                href="https://github.com/Sumit12312299/pdf-craft"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="footer-link-btn"
+                style={{ fontSize: '0.8rem' }}
+              >
+                <GithubIcon size={14} /> Star on GitHub
+              </a>
+              <button
+                className="footer-back-to-top"
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                title="Scroll back to top"
+              >
+                <ArrowUp size={14} />
+                <span>Back to Top</span>
+              </button>
+            </div>
+          </div>
         </div>
-        <div>© {new Date().getFullYear()} pdfCraft. Clean & secure browser utilities.</div>
       </footer>
       {/* Premium Glassmorphic Bottom Navigation Bar for Mobile */}
       <div className="bottom-nav">
