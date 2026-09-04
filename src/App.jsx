@@ -796,6 +796,7 @@ function App() {
     });
   };
   const [selectedPagesForSplit, setSelectedPagesForSplit] = useState(new Set()); // Set of 0-based indices
+  const [splitRanges, setSplitRanges] = useState('');
   const [compressLevel, setCompressLevel] = useState('recommended'); // high, recommended, low
   const [globalRotation, setGlobalRotation] = useState(90); // 90, 180, 270
 
