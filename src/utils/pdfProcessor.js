@@ -124,9 +124,15 @@ export async function mergePdfs(items, options = {}) {
   };
 
   for (const item of items) {
-    const buffer = item instanceof ArrayBuffer ? item : item.buffer;
-    const name = item.name || '';
-    const isImage = item.isImage || /\.(jpg|jpeg|png|webp|bmp|gif)$/i.test(name);
+    let buffer = item instanceof ArrayBuffer ? item : item?.buffer;
+    if (!buffer && item && typeof item.arrayBuffer === 'function') {
+      buffer = await item.arrayBuffer();
+    }
+    if (!buffer && item?.file && typeof item.file.arrayBuffer === 'function') {
+      buffer = await item.file.arrayBuffer();
+    }
+    const name = item?.name || item?.file?.name || '';
+    const isImage = item?.isImage || /\.(jpg|jpeg|png|webp|bmp|gif)$/i.test(name);
 
     if (isImage) {
       const itemOrientation = item.imageOrientation || options.imageOrientation || 'auto';
