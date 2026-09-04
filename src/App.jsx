@@ -243,6 +243,172 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
+// Advanced Canvas QR Code Generator with Custom Styles (Square, Circles/Dots, Rounded, Diamond, Star, Custom Eyes)
+const renderCustomStyledQRCodeDataUrl = (text, options = {}) => {
+  const {
+    fgColor = '#000000',
+    bgColor = '#ffffff',
+    dotStyle = 'square',
+    cornerStyle = 'square',
+    size = 400,
+    margin = 2,
+  } = options;
+
+  if (!text || !text.trim()) return '';
+
+  try {
+    const qr = QRCode.create(text, { errorCorrectionLevel: 'H' });
+    const modules = qr.modules;
+    const modCount = modules.size;
+    const totalGrid = modCount + margin * 2;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return '';
+
+    // Background
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, size, size);
+
+    const cellSize = size / totalGrid;
+
+    // Helper to check if (r, c) is inside 7x7 corner finder patterns
+    const isCornerEye = (r, c) => {
+      return (
+        (r < 7 && c < 7) ||
+        (r < 7 && c >= modCount - 7) ||
+        (r >= modCount - 7 && c < 7)
+      );
+    };
+
+    // 1. Draw Data Modules (non-corner modules)
+    ctx.fillStyle = fgColor;
+
+    for (let r = 0; r < modCount; r++) {
+      for (let c = 0; c < modCount; c++) {
+        if (!modules.isDark(r, c)) continue;
+        if (isCornerEye(r, c)) continue; // Handled separately
+
+        const x = (c + margin) * cellSize;
+        const y = (r + margin) * cellSize;
+
+        if (dotStyle === 'dots' || dotStyle === 'circle') {
+          // Circle / Round Dots
+          ctx.beginPath();
+          ctx.arc(x + cellSize / 2, y + cellSize / 2, cellSize * 0.44, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (dotStyle === 'rounded') {
+          // Rounded Squares
+          const padding = cellSize * 0.06;
+          const rad = cellSize * 0.35;
+          ctx.beginPath();
+          if (ctx.roundRect) {
+            ctx.roundRect(x + padding, y + padding, cellSize - padding * 2, cellSize - padding * 2, rad);
+          } else {
+            ctx.rect(x, y, cellSize, cellSize);
+          }
+          ctx.fill();
+        } else if (dotStyle === 'diamond') {
+          // Rhombus / Diamond
+          const cx = x + cellSize / 2;
+          const cy = y + cellSize / 2;
+          const h = cellSize * 0.48;
+          ctx.beginPath();
+          ctx.moveTo(cx, cy - h);
+          ctx.lineTo(cx + h, cy);
+          ctx.lineTo(cx, cy + h);
+          ctx.lineTo(cx - h, cy);
+          ctx.closePath();
+          ctx.fill();
+        } else if (dotStyle === 'star') {
+          // Star / Plus shape
+          const cx = x + cellSize / 2;
+          const cy = y + cellSize / 2;
+          ctx.beginPath();
+          ctx.arc(cx, cy, cellSize * 0.3, 0, Math.PI * 2);
+          ctx.rect(x + cellSize * 0.25, y + cellSize * 0.1, cellSize * 0.5, cellSize * 0.8);
+          ctx.rect(x + cellSize * 0.1, y + cellSize * 0.25, cellSize * 0.8, cellSize * 0.5);
+          ctx.fill();
+        } else {
+          // Default Square
+          ctx.fillRect(x, y, cellSize, cellSize);
+        }
+      }
+    }
+
+    // 2. Draw 3 Corner Finder Eyes (7x7 modules each)
+    const drawCornerEye = (startR, startC) => {
+      const startX = (startC + margin) * cellSize;
+      const startY = (startR + margin) * cellSize;
+      const eyeSize = 7 * cellSize;
+
+      ctx.fillStyle = fgColor;
+      ctx.strokeStyle = fgColor;
+
+      if (cornerStyle === 'circle') {
+        // Circle Outer Ring & Center Dot
+        const cx = startX + eyeSize / 2;
+        const cy = startY + eyeSize / 2;
+        const outerR = eyeSize * 0.43;
+        const innerR = eyeSize * 0.28;
+        const centerR = eyeSize * 0.2;
+
+        // Outer Ring
+        ctx.lineWidth = cellSize * 1.0;
+        ctx.beginPath();
+        ctx.arc(cx, cy, (outerR + innerR) / 2, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Center Solid Circle
+        ctx.beginPath();
+        ctx.arc(cx, cy, centerR, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (cornerStyle === 'rounded') {
+        // Smooth Rounded Corners Outer & Inner Frame
+        const outerRad = cellSize * 1.8;
+        const innerRad = cellSize * 1.0;
+        const pad = cellSize * 0.5;
+
+        ctx.lineWidth = cellSize * 1.0;
+        if (ctx.roundRect) {
+          // Outer Frame
+          ctx.beginPath();
+          ctx.roundRect(startX + pad, startY + pad, eyeSize - pad * 2, eyeSize - pad * 2, outerRad);
+          ctx.stroke();
+
+          // Center Eye (3x3)
+          const centerPad = cellSize * 2;
+          ctx.beginPath();
+          ctx.roundRect(startX + centerPad, startY + centerPad, 3 * cellSize, 3 * cellSize, innerRad);
+          ctx.fill();
+        } else {
+          ctx.strokeRect(startX + pad, startY + pad, eyeSize - pad * 2, eyeSize - pad * 2);
+          ctx.fillRect(startX + cellSize * 2, startY + cellSize * 2, 3 * cellSize, 3 * cellSize);
+        }
+      } else {
+        // Square Corner Eye (Standard)
+        ctx.fillRect(startX, startY, eyeSize, cellSize);
+        ctx.fillRect(startX, startY + eyeSize - cellSize, eyeSize, cellSize);
+        ctx.fillRect(startX, startY, cellSize, eyeSize);
+        ctx.fillRect(startX + eyeSize - cellSize, startY, cellSize, eyeSize);
+
+        ctx.fillRect(startX + 2 * cellSize, startY + 2 * cellSize, 3 * cellSize, 3 * cellSize);
+      }
+    };
+
+    drawCornerEye(0, 0); // Top-Left
+    drawCornerEye(0, modCount - 7); // Top-Right
+    drawCornerEye(modCount - 7, 0); // Bottom-Left
+
+    return canvas.toDataURL('image/png');
+  } catch (err) {
+    console.error('Error rendering custom QR code:', err);
+    return '';
+  }
+};
+
 const getPositionStyle = (pos) => {
   switch (pos) {
     case 'topLeft':
@@ -843,12 +1009,16 @@ function App() {
   const [qrText, setQrText] = useState('https://pdfcraft.online');
   const [qrFgColor, setQrFgColor] = useState('#000000');
   const [qrBgColor, setQrBgColor] = useState('#ffffff');
+  const [qrDotStyle, setQrDotStyle] = useState('square'); // 'square', 'dots', 'rounded', 'diamond', 'star'
+  const [qrCornerStyle, setQrCornerStyle] = useState('square'); // 'square', 'rounded', 'circle'
   const [qrDataUrl, setQrDataUrl] = useState('');
 
   // QR Generator (standalone tool) States
   const [qrGenText, setQrGenText] = useState('https://');
   const [qrGenFgColor, setQrGenFgColor] = useState('#000000');
   const [qrGenBgColor, setQrGenBgColor] = useState('#ffffff');
+  const [qrGenDotStyle, setQrGenDotStyle] = useState('square'); // 'square', 'dots', 'rounded', 'diamond', 'star'
+  const [qrGenCornerStyle, setQrGenCornerStyle] = useState('square'); // 'square', 'rounded', 'circle'
   const [qrGenSize, setQrGenSize] = useState(300);
   const [qrGenDataUrl, setQrGenDataUrl] = useState('');
   const [qrGenError, setQrGenError] = useState('');
@@ -1356,25 +1526,28 @@ function App() {
     };
   }, [tools]);
 
-  // QR Code Real-time generation effect
+  // QR Code Real-time generation effect (Stamp QR)
   useEffect(() => {
     if (activeTool === 'qr') {
-      QRCode.toDataURL(qrText || ' ', {
-        color: {
-          dark: qrFgColor,
-          light: qrBgColor
-        },
-        margin: 1,
-        width: 300
-      })
-        .then(url => {
-          setQrDataUrl(url);
-          setSignatureDataUrl(url); // Map QR code to reuse signature visual placement components!
+      try {
+        const rawUrl = renderCustomStyledQRCodeDataUrl(qrText || ' ', {
+          fgColor: qrFgColor,
+          bgColor: qrBgColor,
+          dotStyle: qrDotStyle,
+          cornerStyle: qrCornerStyle,
+          size: 400,
+          margin: 1
+        });
+        if (rawUrl) {
+          setQrDataUrl(rawUrl);
+          setSignatureDataUrl(rawUrl); // Map QR code to reuse signature visual placement components!
           setSignatureAspectRatio(1); // QR is always square (1:1 ratio)
-        })
-        .catch(err => console.error(err));
+        }
+      } catch (err) {
+        console.error(err);
+      }
     }
-  }, [qrText, qrFgColor, qrBgColor, activeTool]);
+  }, [qrText, qrFgColor, qrBgColor, qrDotStyle, qrCornerStyle, activeTool]);
 
   // Standalone QR Generator real-time generation
   useEffect(() => {
@@ -1385,44 +1558,51 @@ function App() {
         return;
       }
       setQrGenError('');
-      QRCode.toDataURL(qrGenText, {
-        color: {
-          dark: qrGenFgColor,
-          light: qrGenBgColor
-        },
-        margin: 2,
-        width: qrGenSize,
-        errorCorrectionLevel: 'H'
-      })
-        .then(async (rawUrl) => {
-          try {
-            const finalUrl = await drawQrWithLabelAndSpacing(
-              rawUrl,
-              qrGenFgColor,
-              qrGenBgColor,
-              qrGenSize,
-              qrGenLabelText,
-              qrGenLabelFontSize,
-              qrGenTopSpace,
-              qrGenBottomSpace,
-              qrGenLabelPosition
-            );
+      try {
+        const rawUrl = renderCustomStyledQRCodeDataUrl(qrGenText, {
+          fgColor: qrGenFgColor,
+          bgColor: qrGenBgColor,
+          dotStyle: qrGenDotStyle,
+          cornerStyle: qrGenCornerStyle,
+          size: qrGenSize,
+          margin: 2
+        });
+
+        if (!rawUrl) {
+          setQrGenError('Could not render QR Code.');
+          return;
+        }
+
+        drawQrWithLabelAndSpacing(
+          rawUrl,
+          qrGenFgColor,
+          qrGenBgColor,
+          qrGenSize,
+          qrGenLabelText,
+          qrGenLabelFontSize,
+          qrGenTopSpace,
+          qrGenBottomSpace,
+          qrGenLabelPosition
+        )
+          .then((finalUrl) => {
             setQrGenDataUrl(finalUrl);
-          } catch (canvasErr) {
+          })
+          .catch((canvasErr) => {
             console.error(canvasErr);
             setQrGenDataUrl(rawUrl);
-          }
-        })
-        .catch(err => {
-          setQrGenError('Failed to generate QR code: ' + err.message);
-          setQrGenDataUrl('');
-        });
+          });
+      } catch (err) {
+        setQrGenError('Failed to generate QR code: ' + err.message);
+        setQrGenDataUrl('');
+      }
     }
   }, [
     qrGenText,
     qrGenFgColor,
     qrGenBgColor,
     qrGenSize,
+    qrGenDotStyle,
+    qrGenCornerStyle,
     qrGenLabelText,
     qrGenLabelFontSize,
     qrGenTopSpace,
@@ -3674,6 +3854,52 @@ function App() {
                               style={{ flex: 1, width: '100%', minWidth: 0, padding: '0.35rem', fontSize: '0.75rem', fontFamily: 'monospace' }}
                             />
                           </div>
+                        </div>
+                      </div>
+
+                      {/* QR Module Pattern Style */}
+                      <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                        <label style={{ fontSize: '0.75rem', fontWeight: '600' }}>Dot Pattern Style</label>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.3rem', marginTop: '0.25rem' }}>
+                          {[
+                            { id: 'square', label: '⏹️ Square' },
+                            { id: 'dots', label: '🔘 Dots / Circle' },
+                            { id: 'rounded', label: '🔲 Rounded' },
+                            { id: 'diamond', label: '🔷 Diamond' },
+                            { id: 'star', label: '✨ Star' }
+                          ].map(st => (
+                            <button
+                              key={st.id}
+                              type="button"
+                              className={`option-select-btn ${qrGenDotStyle === st.id ? 'active' : ''}`}
+                              onClick={() => setQrGenDotStyle(st.id)}
+                              style={{ padding: '0.35rem 0.2rem', fontSize: '0.7rem', textAlign: 'center' }}
+                            >
+                              {st.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Corner Finder Eyes Style */}
+                      <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                        <label style={{ fontSize: '0.75rem', fontWeight: '600' }}>Corner Eyes Style</label>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.3rem', marginTop: '0.25rem' }}>
+                          {[
+                            { id: 'square', label: '⏹️ Square' },
+                            { id: 'rounded', label: '🔴 Rounded' },
+                            { id: 'circle', label: '⭕ Circle' }
+                          ].map(st => (
+                            <button
+                              key={st.id}
+                              type="button"
+                              className={`option-select-btn ${qrGenCornerStyle === st.id ? 'active' : ''}`}
+                              onClick={() => setQrGenCornerStyle(st.id)}
+                              style={{ padding: '0.35rem 0.2rem', fontSize: '0.7rem', textAlign: 'center' }}
+                            >
+                              {st.label}
+                            </button>
+                          ))}
                         </div>
                       </div>
 
@@ -6063,6 +6289,52 @@ function App() {
                             value={qrBgColor}
                             onChange={(e) => setQrBgColor(e.target.value)}
                           />
+                        </div>
+                      </div>
+
+                      {/* QR Module Pattern Style */}
+                      <div className="form-group" style={{ marginTop: '0.5rem' }}>
+                        <label style={{ fontSize: '0.75rem', fontWeight: '600' }}>Dot Pattern Style</label>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.3rem', marginTop: '0.25rem' }}>
+                          {[
+                            { id: 'square', label: '⏹️ Square' },
+                            { id: 'dots', label: '🔘 Dots / Circle' },
+                            { id: 'rounded', label: '🔲 Rounded' },
+                            { id: 'diamond', label: '🔷 Diamond' },
+                            { id: 'star', label: '✨ Star' }
+                          ].map(st => (
+                            <button
+                              key={st.id}
+                              type="button"
+                              className={`option-select-btn ${qrDotStyle === st.id ? 'active' : ''}`}
+                              onClick={() => setQrDotStyle(st.id)}
+                              style={{ padding: '0.35rem 0.2rem', fontSize: '0.7rem', textAlign: 'center' }}
+                            >
+                              {st.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Corner Finder Eyes Style */}
+                      <div className="form-group" style={{ marginTop: '0.5rem' }}>
+                        <label style={{ fontSize: '0.75rem', fontWeight: '600' }}>Corner Eyes Style</label>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.3rem', marginTop: '0.25rem' }}>
+                          {[
+                            { id: 'square', label: '⏹️ Square' },
+                            { id: 'rounded', label: '🔴 Rounded' },
+                            { id: 'circle', label: '⭕ Circle' }
+                          ].map(st => (
+                            <button
+                              key={st.id}
+                              type="button"
+                              className={`option-select-btn ${qrCornerStyle === st.id ? 'active' : ''}`}
+                              onClick={() => setQrCornerStyle(st.id)}
+                              style={{ padding: '0.35rem 0.2rem', fontSize: '0.7rem', textAlign: 'center' }}
+                            >
+                              {st.label}
+                            </button>
+                          ))}
                         </div>
                       </div>
 
