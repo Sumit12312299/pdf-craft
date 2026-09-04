@@ -8086,6 +8086,169 @@ function App() {
       )}
 
 
+      {/* Clean, Theme-Matched Footer */}
+      <footer className="footer">
+        <div className="footer-container">
+          {/* Footer Top Banner */}
+          <div className="footer-top">
+            <div className="footer-brand">
+              <div className="footer-brand-header">
+                <span className="logo-pdf" style={{ fontSize: '1.4rem' }}>pdf</span>
+                <span className="logo-heart" style={{ fontSize: '1.2rem' }}>❤️</span>
+                <span className="logo-craft" style={{ fontSize: '1.4rem' }}>Craft</span>
+              </div>
+              <p className="footer-tagline">
+                Fast, 100% secure client-side PDF processing suite. Edit, merge, split, compress, protect &amp; scan documents entirely inside your browser.
+              </p>
+            </div>
+
+            <div className="footer-security-badge">
+              <ShieldCheck className="footer-security-icon" size={24} />
+              <div className="footer-security-text">
+                <h4>Zero Server Uploads</h4>
+                <p>All operations run 100% locally on your device for absolute privacy.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer Navigation Columns */}
+          <div className="footer-grid">
+            <div>
+              <div className="footer-column-title">
+                <Layers size={14} /> Popular Tools
+              </div>
+              <ul className="footer-links">
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('merge')}>
+                    Merge PDF
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('split')}>
+                    Split PDF
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('compress')}>
+                    Compress PDF
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('organize')}>
+                    Organize Pages
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <div className="footer-column-title">
+                <PenTool size={14} /> PDF Editing
+              </div>
+              <ul className="footer-links">
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('sign')}>
+                    Sign PDF
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('watermark')}>
+                    Add Watermark
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('page-numbers')}>
+                    Add Page Numbers
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('crop')}>
+                    Crop Document
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <div className="footer-column-title">
+                <Combine size={14} /> Convert
+              </div>
+              <ul className="footer-links">
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('img-to-pdf')}>
+                    Image to PDF
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('pdf-to-img')}>
+                    PDF to Image
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('docx-to-pdf')}>
+                    Word to PDF
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('pdf-to-docx')}>
+                    PDF to Word
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <div className="footer-column-title">
+                <Lock size={14} /> Utilities
+              </div>
+              <ul className="footer-links">
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('qr-generator')}>
+                    QR Generator
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('scanner')}>
+                    Doc Scanner
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('protect')}>
+                    Protect PDF
+                  </button>
+                </li>
+                <li>
+                  <button className="footer-link-btn" onClick={() => navigateToTool('unlock')}>
+                    Unlock PDF
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Footer Bottom Line */}
+          <div className="footer-bottom">
+            <div className="footer-status-pill">
+              <span className="footer-status-dot"></span>
+              <span>100% Client-Side • Local Engine</span>
+            </div>
+
+            <div>
+              © {new Date().getFullYear()} pdfCraft. All rights reserved.
+            </div>
+
+            <div className="footer-bottom-actions">
+              <button
+                className="footer-back-to-top"
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              >
+                ↑ Top
+              </button>
+            </div>
+          </div>
+        </div>
+      </footer>
+
       {/* Premium Glassmorphic Bottom Navigation Bar for Mobile */}
       <div className="bottom-nav">
         <button
