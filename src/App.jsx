@@ -257,7 +257,20 @@ const renderCustomStyledQRCodeDataUrl = (text, options = {}) => {
   if (!text || !text.trim()) return '';
 
   try {
-    const qr = QRCode.create(text, { errorCorrectionLevel: 'H' });
+    const qrLib = (QRCode && typeof QRCode.create === 'function')
+      ? QRCode
+      : (QRCode && QRCode.default && typeof QRCode.default.create === 'function')
+        ? QRCode.default
+        : QRCode;
+
+    if (!qrLib || typeof qrLib.create !== 'function') {
+      console.error('QRCode.create is not available on QRCode import', QRCode);
+      return '';
+    }
+
+    const qr = qrLib.create(text, { errorCorrectionLevel: 'H' });
+    if (!qr || !qr.modules) return '';
+
     const modules = qr.modules;
     const modCount = modules.size;
     const totalGrid = modCount + margin * 2;
@@ -288,7 +301,10 @@ const renderCustomStyledQRCodeDataUrl = (text, options = {}) => {
 
     for (let r = 0; r < modCount; r++) {
       for (let c = 0; c < modCount; c++) {
-        if (!modules.isDark(r, c)) continue;
+        const isDark = modules.get
+          ? modules.get(r, c)
+          : (modules.data ? modules.data[r * modCount + c] : false);
+        if (!isDark) continue;
         if (isCornerEye(r, c)) continue; // Handled separately
 
         const x = (c + margin) * cellSize;
@@ -441,7 +457,9 @@ const drawQrWithLabelAndSpacing = async (
 ) => {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+    if (qrDataUrl && !qrDataUrl.startsWith('data:')) {
+      img.crossOrigin = 'anonymous';
+    }
     img.onload = () => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
@@ -1559,7 +1577,7 @@ function App() {
       }
       setQrGenError('');
       try {
-        const rawUrl = renderCustomStyledQRCodeDataUrl(qrGenText, {
+        let rawUrl = renderCustomStyledQRCodeDataUrl(qrGenText, {
           fgColor: qrGenFgColor,
           bgColor: qrGenBgColor,
           dotStyle: qrGenDotStyle,
@@ -1569,8 +1587,39 @@ function App() {
         });
 
         if (!rawUrl) {
-          setQrGenError('Could not render QR Code.');
-          return;
+          const qrLib = (QRCode && typeof QRCode.toDataURL === 'function')
+            ? QRCode
+            : (QRCode && QRCode.default && typeof QRCode.default.toDataURL === 'function')
+              ? QRCode.default
+              : null;
+          if (qrLib) {
+            qrLib.toDataURL(qrGenText, {
+              color: { dark: qrGenFgColor, light: qrGenBgColor },
+              width: qrGenSize,
+              margin: 2,
+              errorCorrectionLevel: 'H'
+            }, (err, url) => {
+              if (!err && url) {
+                drawQrWithLabelAndSpacing(
+                  url,
+                  qrGenFgColor,
+                  qrGenBgColor,
+                  qrGenSize,
+                  qrGenLabelText,
+                  qrGenLabelFontSize,
+                  qrGenTopSpace,
+                  qrGenBottomSpace,
+                  qrGenLabelPosition
+                ).then(setQrGenDataUrl).catch(() => setQrGenDataUrl(url));
+              } else {
+                setQrGenError('Could not render QR Code.');
+              }
+            });
+            return;
+          } else {
+            setQrGenError('Could not render QR Code.');
+            return;
+          }
         }
 
         drawQrWithLabelAndSpacing(
